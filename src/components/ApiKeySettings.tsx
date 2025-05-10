@@ -22,6 +22,7 @@ import {
 } from "@mui/material"
 import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
+import { obfuscateApiKey, recoverApiKey } from "../lib/keyStorage"
 
 // API Key storage key in Chrome storage
 export const API_KEY_STORAGE_KEY = "openai_api_key"
@@ -40,7 +41,9 @@ export const ApiKeySettings = () => {
       try {
         const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY)
         if (result[API_KEY_STORAGE_KEY]) {
-          setApiKey(result[API_KEY_STORAGE_KEY])
+          // Recover the original API key from the obfuscated version
+          const recoveredKey = recoverApiKey(result[API_KEY_STORAGE_KEY])
+          setApiKey(recoveredKey)
         }
       } catch (error) {
         console.error("Error loading API key:", error)
@@ -57,7 +60,10 @@ export const ApiKeySettings = () => {
   const saveApiKey = async () => {
     setIsSaving(true)
     try {
-      await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: apiKey.trim() })
+      const trimmedKey = apiKey.trim()
+      // Obfuscate the API key before storing it
+      const obfuscatedKey = obfuscateApiKey(trimmedKey)
+      await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: obfuscatedKey })
       toast.success("API key saved successfully")
 
       // Test the API key (optional)

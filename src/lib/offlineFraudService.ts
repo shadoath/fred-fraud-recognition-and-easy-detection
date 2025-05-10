@@ -127,7 +127,7 @@ export async function offlineCheckEmailForFraud(emailData: EmailData): Promise<F
   const threatRating = Math.max(1, Math.min(10, Math.round(threatScore)));
 
   // Generate appropriate explanation based on threat level
-  let explanation = generateExplanation("email", categories, threatRating, flags);
+  const explanation = generateExplanation("email", categories, threatRating, flags);
 
   // Return the offline pattern-based fraud check response
   return {
@@ -185,7 +185,7 @@ export async function offlineCheckTextForFraud(textData: TextData): Promise<Frau
   const threatRating = Math.max(1, Math.min(10, Math.round(threatScore)));
 
   // Generate appropriate explanation based on threat level
-  let explanation = generateExplanation("text", categories, threatRating, flags);
+  const explanation = generateExplanation("text", categories, threatRating, flags);
 
   // Return the offline pattern-based fraud check response
   return {

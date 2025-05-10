@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { API_KEY_STORAGE_KEY } from '../components/ApiKeySettings';
+import { recoverApiKey } from '../lib/keyStorage';
 
 export interface ApiKeyState {
   apiKey: string | null;
@@ -15,12 +16,15 @@ export interface ApiKeyState {
 export const useApiKey = (): ApiKeyState => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  
+
   useEffect(() => {
     const checkApiKey = async () => {
       try {
         const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY);
-        const key = result[API_KEY_STORAGE_KEY];
+        const obfuscatedKey = result[API_KEY_STORAGE_KEY];
+
+        // If we have an obfuscated key, recover the original
+        const key = obfuscatedKey ? recoverApiKey(obfuscatedKey) : null;
         setApiKey(key || null);
       } catch (error) {
         console.error("Error checking API key:", error);
@@ -35,8 +39,10 @@ export const useApiKey = (): ApiKeyState => {
     // Listen for changes to the API key in storage
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes[API_KEY_STORAGE_KEY]) {
-        const newValue = changes[API_KEY_STORAGE_KEY].newValue;
-        setApiKey(newValue || null);
+        const newObfuscatedValue = changes[API_KEY_STORAGE_KEY].newValue;
+        // If we have a new obfuscated value, recover the original
+        const newKey = newObfuscatedValue ? recoverApiKey(newObfuscatedValue) : null;
+        setApiKey(newKey || null);
       }
     };
 
@@ -50,6 +56,6 @@ export const useApiKey = (): ApiKeyState => {
     apiKey,
     hasApiKey: !!apiKey,
     isLoading,
-    isOfflineMode: !apiKey 
+    isOfflineMode: !apiKey
   };
 };
