@@ -1,0 +1,55 @@
+name: "Publish Release"
+on:
+  push:
+    branches:
+      - master
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create deploy_date from date
+        id: today
+        run: |
+          deploy_date=$(TZ=US/Eastern date +%Y.%m.%d__%H_%M)
+          echo "deploy_date=$deploy_date" >> $GITHUB_ENV
+
+      - name: Title & publish draft release
+        id: publish_release
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        uses: release-drafter/release-drafter@v6.1.0
+        with:
+          tag: ${{ env.deploy_date }}
+          name: ${{ env.deploy_date }}
+          version: ${{ env.deploy_date }}
+          publish: true
+
+      - name: Get release details
+        id: release_details
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          release_notes=$(gh release view ${{ env.deploy_date }} --json body -q '.body')
+          echo "release_notes<<EOF" >> $GITHUB_ENV
+          echo "$release_notes" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Discord success notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          RELEASE_NOTES: ${{ env.release_notes }}
+        uses: Ilshidur/action-discord@0.3.2
+        with:
+          args: |
+            **Fraud Email Checker:** ${{ env.deploy_date }}
+            ${{ env.RELEASE_NOTES }}

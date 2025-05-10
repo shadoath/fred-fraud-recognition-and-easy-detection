@@ -1,0 +1,23 @@
+name: "Auto merge to master"
+on:
+  # push:
+  #   branches:
+  #     - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Merge develop -> master
+        uses: devmasx/merge-branch@v1.3.1
+        with:
+          type: now
+          from_branch: develop
+          target_branch: master
+          github_token: "${{ secrets.SHADOATH_PAT }}"

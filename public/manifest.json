@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "FRED: Fraud Recognition & Easy Detection",
+  "short_name": "FRED",
+  "version": "1.0.0",
+  "author": "Skylar Bolton",
+  "description": "Analyzes emails and text for potential fraud using OpenAI or built-in pattern matching when offline. Detects phishing attempts and scams by identifying suspicious content.",
+  "host_permissions": ["https://mail.google.com/*"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "19": "fred-19.png",
+      "38": "fred-38.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["gmail-content-script.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "fred-16.png",
+    "48": "fred-48.png",
+    "128": "fred-128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; connect-src 'self' https://api.openai.com; object-src 'self'"
+  }
+}

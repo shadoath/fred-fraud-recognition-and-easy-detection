@@ -1,0 +1,5 @@
+commitish: "develop"
+template: |
+  ## Changes
+
+  $CHANGES

@@ -1,0 +1,46 @@
+{
+  "env": {
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "root": true,
+  "rules": {
+    "react/no-unescaped-entities": "off",
+    "react-hooks/exhaustive-deps": ["off", { "additionalHooks": "useTracker" }], // Checks effect dependencies
+    "@typescript-eslint/no-unused-vars": "off", // replaced by "unused-imports/no-unused-vars"
+    "import/order": "off", // replaced by "simple-import-sort/imports"
+    "no-unused-vars": "off", // replaced by "unused-imports/no-unused-vars"
+    "simple-import-sort/exports": "error",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/ban-types": "off",
+    "no-var": "off",
+    "simple-import-sort/imports": [
+      "error",
+      {
+        // The default grouping, but with no blank lines.
+        "groups": [["^\\u0000", "^node:", "^@?\\w", "^", "^\\."]]
+      }
+    ],
+    "sort-imports": "off", // replaced by "simple-import-sort/imports"
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": [
+      "error",
+      {
+        // allow "underscoring" unused vars to ignore them
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }
+    ]
+  },
+  "ignorePatterns": ["**/build/**/*", "**/dist/**/*", "**/node_modules/**/*", "**.next/**/*"],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint", "simple-import-sort", "unused-imports"]
+}
