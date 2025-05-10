@@ -149,3 +149,7 @@ If you have any questions or feedback, please open an issue on GitHub.
 <div align="center">
   Made with ❤️ to help protect people from scams
 </div>
+
+## 🤖 Development Note
+
+This project was built with assistance from Claude AI using Claude Code. Many components, features, and improvements were developed through collaboration with an AI assistant, including code organization, feature implementation, and security enhancements.

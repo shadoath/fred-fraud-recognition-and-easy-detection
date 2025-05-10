@@ -8,7 +8,7 @@
     "email": "skylar@example.com"
   },
   "description": "FRED: Fraud Recognition & Easy Detection - Chrome extension that analyzes emails and text for potential fraud using OpenAI API or built-in pattern matching when offline",
-  "homepage": "https://github.com/your-username/fred-fraud-recognition-and-easy-detection",
+  "homepage": "https://github.com/shadoath/fred-fraud-recognition-and-easy-detection",
   "license": "MIT",
   "keywords": [
     "gmail",
