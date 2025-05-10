@@ -22,7 +22,6 @@ import {
   type FraudCheckResponse,
   offlineCheckEmailForFraud,
 } from "../lib/fraudService"
-import { API_KEY_STORAGE_KEY } from "./ApiKeySettings"
 import { ThreatRating } from "./ThreatRating"
 
 // Define types for the fraud check results for the UI
@@ -86,12 +85,12 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         let fraudResult: FraudCheckResponse
 
         // If no API key, use offline mode directly
-        if (isOfflineMode) {
+        if (isOfflineMode || !apiKey) {
           fraudResult = await offlineCheckEmailForFraud(emailData)
         } else {
           try {
             // Try to use OpenAI to check the email when we have an API key
-            fraudResult = await checkEmailWithOpenAI(emailData, apiKey!)
+            fraudResult = await checkEmailWithOpenAI(emailData, apiKey)
           } catch (apiError) {
             console.warn("OpenAI API error, using offline mode:", apiError)
 
@@ -186,7 +185,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             throw error
           })
       } catch (error) {
-        if (error.message.includes("Content script not available")) {
+        if (error instanceof Error && error.message.includes("Content script not available")) {
           throw error
         }
         throw new Error("Failed to communicate with Gmail content script. Try refreshing the page.")
@@ -203,15 +202,15 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         }
 
         try {
-          let fraudResult: FraudCheckResponse
+          let fraudResult: FraudCheckResponse | null = null
 
           // If no API key, use offline mode directly
-          if (isOfflineMode) {
+          if (isOfflineMode || !apiKey) {
             fraudResult = await offlineCheckEmailForFraud(emailData)
           } else {
             try {
               // Try to use OpenAI to check the email when we have an API key
-              fraudResult = await checkEmailWithOpenAI(emailData, apiKey!)
+              fraudResult = await checkEmailWithOpenAI(emailData, apiKey)
             } catch (apiError) {
               console.warn("OpenAI API error, using offline mode:", apiError)
 
