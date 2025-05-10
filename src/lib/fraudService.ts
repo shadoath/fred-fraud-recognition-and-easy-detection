@@ -1,39 +1,12 @@
 import axios, { type AxiosError } from "axios"
+import {
+  ApiErrorResponse,
+  EmailData,
+  FraudCheckResponse,
+  TextData} from "../types/fraudTypes"
 
-type ApiSuccessResponse = {
-  success: true
-  message?: string
-}
-
-type ApiErrorResponse = {
-  success: false
-  message: string
-}
 // OpenAI API URL
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-
-// Response types for fraud detection
-export interface EmailData {
-  sender: string
-  subject?: string
-  content: string
-  timestamp: string
-}
-
-// For generic text that's not an email
-export interface TextData {
-  content: string
-  source?: string // Optional source of the text (e.g., 'pasted', 'website', etc.)
-  timestamp: string
-}
-
-export interface FraudCheckResponse extends ApiSuccessResponse {
-  threatRating: number // 1-10 scale
-  explanation: string
-  flags?: string[] // Optional array of specific fraud indicators
-  confidence?: number // Optional confidence score
-  isOfflineMode?: boolean // Flag to indicate if this is an offline/pattern-based analysis
-}
 
 // OpenAI API response structure
 interface OpenAIResponse {
@@ -344,8 +317,16 @@ export async function safeCheckTextWithOpenAI(
   }
 }
 
-// Import offline analysis functions from dedicated service
-import { offlineCheckEmailForFraud, offlineCheckTextForFraud } from "./offlineFraudService"
+// Export type references for backward compatibility
+export type {
+  ApiErrorResponse,
+  ApiSuccessResponse,
+  EmailData,
+  FraudCheckResponse,
+  TextData} from "../types/fraudTypes"
 
 // Re-export the offline functions for use elsewhere
-export { offlineCheckEmailForFraud, offlineCheckTextForFraud }
+export {
+  offlineCheckEmailForFraud,
+  offlineCheckTextForFraud
+} from "./offlineFraudService"

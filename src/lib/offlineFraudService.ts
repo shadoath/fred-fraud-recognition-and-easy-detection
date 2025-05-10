@@ -1,7 +1,11 @@
-import { EmailData, FraudCheckResponse, TextData } from "./fraudService";
+import {
+  EmailData,
+  FraudCheckResponse,
+  FraudPattern,
+  TextData} from "../types/fraudTypes";
 
 // Define common fraud patterns with categories for reuse
-const commonFraudPatterns = [
+const commonFraudPatterns: FraudPattern[] = [
   // Urgency tactics
   { pattern: "urgent action required", weight: 0.8, category: "Urgency Tactics" },
   { pattern: "immediate attention", weight: 0.7, category: "Urgency Tactics" },
