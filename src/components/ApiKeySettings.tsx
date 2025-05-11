@@ -32,6 +32,7 @@ export const ApiKeySettings = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
+  const [isApiKeySaved, setIsApiKeySaved] = useState<boolean>(false)
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
@@ -44,6 +45,7 @@ export const ApiKeySettings = () => {
           // Recover the original API key from the obfuscated version
           const recoveredKey = recoverApiKey(result[API_KEY_STORAGE_KEY])
           setApiKey(recoveredKey)
+          setIsApiKeySaved(true)
         }
       } catch (error) {
         console.error("Error loading API key:", error)
@@ -65,7 +67,7 @@ export const ApiKeySettings = () => {
       const obfuscatedKey = obfuscateApiKey(trimmedKey)
       await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: obfuscatedKey })
       toast.success("API key saved successfully")
-
+      setIsApiKeySaved(true)
       // Test the API key (optional)
       // You could add a simple test request here
     } catch (error) {
@@ -120,18 +122,21 @@ export const ApiKeySettings = () => {
         </Box>
 
         <Box sx={{ px: 0.5 }}>
-          <Typography
-            variant="body2"
-            sx={{
-              mb: 2,
-              color: theme.palette.text.secondary,
-              fontSize: "0.875rem",
-              lineHeight: 1.5,
-            }}
-          >
-            To analyze content for potential fraud, you need to provide your OpenAI API key. The key
-            is stored securely in your browser and is only used to communicate with OpenAI's API.
-          </Typography>
+          {!isApiKeySaved && (
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 2,
+                color: theme.palette.text.secondary,
+                fontSize: "0.875rem",
+                lineHeight: 1.5,
+              }}
+            >
+              To analyze content for potential fraud, you need to provide your OpenAI API key. The
+              key is stored securely in your browser and is only used to communicate with OpenAI's
+              API.
+            </Typography>
+          )}
 
           {isLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
@@ -220,128 +225,132 @@ export const ApiKeySettings = () => {
                 </Button>
               </Box>
 
-              {/* API Key Help Panel */}
-              <Paper
-                elevation={0}
-                sx={{
-                  mt: 3,
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? "rgba(66, 165, 245, 0.08)"
-                      : "rgba(66, 165, 245, 0.05)",
-                  border: `1px solid ${theme.palette.primary.main}20`,
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    mb: 1.5,
-                    fontWeight: 600,
-                    color: theme.palette.primary.main,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.7,
-                  }}
-                >
-                  <InfoOutlinedIcon fontSize="small" />
-                  How to get an OpenAI API key:
-                </Typography>
-
-                <Box component="ol" sx={{ pl: 2, mb: 0, mt: 0 }}>
-                  <Typography
-                    component="li"
-                    variant="body2"
-                    sx={{
-                      mb: 0.5,
-                      fontSize: "0.85rem",
-                      "& a": {
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 0.3,
-                        color: theme.palette.primary.main,
-                      },
-                    }}
-                  >
-                    Go to{" "}
-                    <Link
-                      href="https://platform.openai.com/account/api-keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      underline="hover"
-                    >
-                      platform.openai.com/account/api-keys
-                      <LinkIcon sx={{ fontSize: "0.9rem" }} />
-                    </Link>
-                  </Typography>
-                  <Typography component="li" variant="body2" sx={{ mb: 0.5, fontSize: "0.85rem" }}>
-                    Sign in or create an account
-                  </Typography>
-                  <Typography component="li" variant="body2" sx={{ mb: 0.5, fontSize: "0.85rem" }}>
-                    Click on "Create new secret key"
-                  </Typography>
-                  <Typography component="li" variant="body2" sx={{ fontSize: "0.85rem" }}>
-                    Copy the key and paste it here
-                  </Typography>
-                </Box>
-
-                <Divider sx={{ my: 1.5, opacity: 0.6 }} />
-
-                <Alert
-                  severity="info"
-                  variant="outlined"
-                  icon={false}
-                  sx={{
-                    borderRadius: 1.5,
-                    py: 0.5,
-                    backgroundColor: "transparent",
-                    "& .MuiAlert-message": {
-                      padding: 0,
-                    },
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "0.75rem",
-                      fontStyle: "italic",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                    }}
-                  >
-                    <InfoOutlinedIcon fontSize="inherit" />
-                    Using OpenAI's API incurs charges based on your usage.
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: "0.75rem",
-                      fontStyle: "italic",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                    }}
-                  >
-                    Check their{" "}
-                    <Link
-                      href="https://openai.com/pricing"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      underline="hover"
-                      style={{ textDecoration: "underline" }}
-                    >
-                      pricing page
-                    </Link>{" "}
-                    for details.
-                  </Typography>
-                </Alert>
-              </Paper>
+              {!isApiKeySaved && <HowToGetApiKey />}
             </>
           )}
         </Box>
       </Card>
     </Fade>
+  )
+}
+
+const HowToGetApiKey = () => {
+  const theme = useTheme()
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        mt: 3,
+        p: 2,
+        borderRadius: 2,
+        backgroundColor:
+          theme.palette.mode === "dark" ? "rgba(66, 165, 245, 0.08)" : "rgba(66, 165, 245, 0.05)",
+        border: `1px solid ${theme.palette.primary.main}20`,
+      }}
+    >
+      <Typography
+        variant="subtitle2"
+        sx={{
+          mb: 1.5,
+          fontWeight: 600,
+          color: theme.palette.primary.main,
+          display: "flex",
+          alignItems: "center",
+          gap: 0.7,
+        }}
+      >
+        <InfoOutlinedIcon fontSize="small" />
+        How to get an OpenAI API key:
+      </Typography>
+
+      <Box component="ol" sx={{ pl: 2, mb: 0, mt: 0 }}>
+        <Typography
+          component="li"
+          variant="body2"
+          sx={{
+            mb: 0.5,
+            fontSize: "0.85rem",
+            "& a": {
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.3,
+              color: theme.palette.primary.main,
+            },
+          }}
+        >
+          Go to{" "}
+          <Link
+            href="https://platform.openai.com/account/api-keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="hover"
+          >
+            platform.openai.com/account/api-keys
+            <LinkIcon sx={{ fontSize: "0.9rem" }} />
+          </Link>
+        </Typography>
+        <Typography component="li" variant="body2" sx={{ mb: 0.5, fontSize: "0.85rem" }}>
+          Sign in or create an account
+        </Typography>
+        <Typography component="li" variant="body2" sx={{ mb: 0.5, fontSize: "0.85rem" }}>
+          Click on "Create new secret key"
+        </Typography>
+        <Typography component="li" variant="body2" sx={{ fontSize: "0.85rem" }}>
+          Copy the key and paste it here
+        </Typography>
+      </Box>
+
+      <Divider sx={{ my: 1.5, opacity: 0.6 }} />
+
+      <Alert
+        severity="info"
+        variant="outlined"
+        icon={false}
+        sx={{
+          borderRadius: 1.5,
+          py: 0.5,
+          backgroundColor: "transparent",
+          "& .MuiAlert-message": {
+            padding: 0,
+          },
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            fontSize: "0.75rem",
+            fontStyle: "italic",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+          }}
+        >
+          <InfoOutlinedIcon fontSize="inherit" />
+          Using OpenAI's API incurs charges based on your usage.
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            fontSize: "0.75rem",
+            fontStyle: "italic",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+          }}
+        >
+          Check their{" "}
+          <Link
+            href="https://openai.com/pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            underline="hover"
+            style={{ textDecoration: "underline" }}
+          >
+            pricing page
+          </Link>{" "}
+          for details.
+        </Typography>
+      </Alert>
+    </Paper>
   )
 }
