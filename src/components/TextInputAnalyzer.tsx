@@ -21,11 +21,7 @@ import {
 import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import {
-  type FraudCheckResponse,
-  safeCheckTextWithOpenAI,
-  type TextData,
-} from "../lib/fraudService"
+import { safeCheckTextWithOpenAI, type TextData } from "../lib/fraudService"
 import { ThreatRating } from "./ThreatRating"
 
 // Define types for the text check results
@@ -325,14 +321,11 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
         <Fade in={!result} timeout={400}>
           <Box>
             {!hasApiKey && (
-              <Alert 
-                severity="warning" 
-                sx={{ mb: 2, borderRadius: 2 }}
-              >
+              <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
                 An OpenAI API key is required. Please add your API key in the settings.
               </Alert>
             )}
-            
+
             <Typography
               variant="body2"
               sx={{
