@@ -150,7 +150,6 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   return (
     <Card
       sx={{
-        p: { xs: 1.5, sm: 2 },
         borderRadius: 2,
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: "none",

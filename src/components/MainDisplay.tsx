@@ -72,7 +72,7 @@ export const MainDisplay = () => {
   }
 
   return (
-    <Container style={{ padding: 12 }}>
+    <Container style={{ padding: 0 }}>
       <Paper
         elevation={3}
         sx={{
@@ -133,7 +133,7 @@ export const MainDisplay = () => {
           </Toolbar>
         </AppBar>
 
-        <Slide direction="down" in={showSettings} mountOnEnter unmountOnExit>
+        <Slide direction="right" in={showSettings} mountOnEnter unmountOnExit>
           <Box>
             <ErrorBoundary>
               <ApiKeySettings />
@@ -142,63 +142,64 @@ export const MainDisplay = () => {
           </Box>
         </Slide>
 
-        <Tabs
-          hidden={!showSettings}
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{
-            borderBottom: 1,
-            borderColor: "divider",
-            "& .MuiTab-root": {
-              minHeight: "48px",
-              fontSize: "0.875rem",
-              transition: "all 0.2s",
-            },
-            "& .Mui-selected": {
-              fontWeight: "bold",
-            },
-            "& .MuiTabs-indicator": {
-              height: 3,
-              borderRadius: "3px 3px 0 0",
-            },
-          }}
-        >
-          <Tab
-            icon={<MailOutlineIcon fontSize="small" />}
-            label="Email"
-            iconPosition="start"
-            id="fred-tab-0"
-            aria-controls="fred-tabpanel-0"
-          />
-          <Tab
-            icon={<TextSnippetIcon fontSize="small" />}
-            label="Text"
-            iconPosition="start"
-            id="fred-tab-1"
-            aria-controls="fred-tabpanel-1"
-          />
-        </Tabs>
+        <Slide direction="left" in={!showSettings} mountOnEnter>
+          <div>
+            <Tabs
+              hidden={!showSettings}
+              value={tabValue}
+              onChange={handleTabChange}
+              variant="fullWidth"
+              sx={{
+                borderBottom: 1,
+                borderColor: "divider",
+                "& .MuiTab-root": {
+                  minHeight: "48px",
+                  fontSize: "0.875rem",
+                  transition: "all 0.2s",
+                },
+                "& .Mui-selected": {
+                  fontWeight: "bold",
+                },
+                "& .MuiTabs-indicator": {
+                  height: 3,
+                  borderRadius: "3px 3px 0 0",
+                },
+              }}
+            >
+              <Tab
+                icon={<MailOutlineIcon fontSize="small" />}
+                label="Email"
+                iconPosition="start"
+                id="fred-tab-0"
+                aria-controls="fred-tabpanel-0"
+              />
+              <Tab
+                icon={<TextSnippetIcon fontSize="small" />}
+                label="Text"
+                iconPosition="start"
+                id="fred-tab-1"
+                aria-controls="fred-tabpanel-1"
+              />
+            </Tabs>
 
-        {isOfflineMode && !isLoading && !showSettings && (
-          <OfflineModeBanner
-            theme={theme}
-            onClick={() => setShowSettings(true)}
-          />
-        )}
+            {isOfflineMode && !isLoading && !showSettings && (
+              <OfflineModeBanner theme={theme} onClick={() => setShowSettings(true)} />
+            )}
 
-        <Box>
-          <TabPanel value={tabValue} index={0}>
-            <ErrorBoundary>
-              <EmailAnalyzer />
-            </ErrorBoundary>
-          </TabPanel>
-          <TabPanel value={tabValue} index={1}>
-            <ErrorBoundary>
-              <TextInputAnalyzer />
-            </ErrorBoundary>
-          </TabPanel>
-        </Box>
+            <Box>
+              <TabPanel value={tabValue} index={0}>
+                <ErrorBoundary>
+                  <EmailAnalyzer />
+                </ErrorBoundary>
+              </TabPanel>
+              <TabPanel value={tabValue} index={1}>
+                <ErrorBoundary>
+                  <TextInputAnalyzer />
+                </ErrorBoundary>
+              </TabPanel>
+            </Box>
+          </div>
+        </Slide>
       </Paper>
 
       <Box sx={{ mt: 1, textAlign: "center" }}>
