@@ -168,7 +168,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
             if (walker.currentNode.textContent) {
               const text = cleanText(walker.currentNode.textContent)
               if (text) {
-                textContent += text + " "
+                textContent += `${text} `
               }
             }
           }
@@ -230,7 +230,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
       return
     }
 
-    if (!hasApiKey) {
+    if (!hasApiKey || !apiKey) {
       toast.error("API key required. Please add an OpenAI API key in the settings.")
       return
     }
@@ -245,15 +245,11 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
       }
 
       // Use OpenAI API for analysis
-      const [apiResult, error] = await safeCheckTextWithOpenAI(textData, apiKey!)
+      const [apiResult, error] = await safeCheckTextWithOpenAI(textData, apiKey)
 
       if (error) {
         console.error("OpenAI API error:", error)
-        if (error.status === 401) {
-          toast.error("Invalid API key. Please check your OpenAI API key.")
-        } else {
-          toast.error(`OpenAI API error: ${error.message || "Unknown error"}`)
-        }
+        toast.error(`OpenAI API error: ${error.message || "Unknown error"}`)
         return
       }
 
@@ -281,7 +277,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
 
   const pasteFromClipboard = () => {
     chrome.runtime.sendMessage({ action: "pasteFromClipboard" }, (response) => {
-      if (response && response.success) {
+      if (response?.success) {
         setTextContent(response.text)
       }
     })
@@ -352,7 +348,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
                   backgroundColor:
                     theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
                   "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: theme.palette.primary.main + "80",
+                    borderColor: `${theme.palette.primary.main}80`,
                   },
                   "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                     borderWidth: "1px",
@@ -515,9 +511,9 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
                 </Typography>
 
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
-                  {result.flags.map((flag, index) => (
+                  {result.flags.map((flag) => (
                     <Chip
-                      key={index}
+                      key={flag}
                       label={flag}
                       size="small"
                       sx={{

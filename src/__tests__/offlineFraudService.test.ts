@@ -25,7 +25,6 @@ describe('Offline Fraud Detection Service', () => {
 
       // Assertions
       expect(response.success).toBe(true);
-      expect(response.isOfflineMode).toBe(true);
       expect(response.threatRating).toBeGreaterThan(3);
       expect(response.flags).toContain('Suspicious sender address');
     });
@@ -116,7 +115,6 @@ describe('Offline Fraud Detection Service', () => {
       const response = await result;
 
       expect(response.success).toBe(true);
-      expect(response.isOfflineMode).toBe(true);
       expect(response.threatRating).toBeGreaterThan(5);
       expect(response.flags?.length).toBeGreaterThan(1);
       expect(response.explanation).toContain('Get-Rich-Quick Schemes');

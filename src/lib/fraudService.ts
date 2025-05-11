@@ -1,9 +1,5 @@
 import axios, { type AxiosError } from "axios"
-import {
-  ApiErrorResponse,
-  EmailData,
-  FraudCheckResponse,
-  TextData} from "../types/fraudTypes"
+import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData } from "../types/fraudTypes"
 
 // OpenAI API URL
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
@@ -108,7 +104,7 @@ Ensure the JSON is valid and properly formatted.
           threatRating,
           explanation: result.explanation,
           flags: Array.isArray(result.flags) ? result.flags : [],
-          confidence: typeof result.confidence === "number" ? result.confidence : undefined
+          confidence: typeof result.confidence === "number" ? result.confidence : undefined,
         }
       } catch (parseError) {
         console.error("Error parsing OpenAI response:", parseError)
@@ -220,7 +216,7 @@ Ensure the JSON is valid and properly formatted.
           threatRating,
           explanation: result.explanation,
           flags: Array.isArray(result.flags) ? result.flags : [],
-          confidence: typeof result.confidence === "number" ? result.confidence : undefined
+          confidence: typeof result.confidence === "number" ? result.confidence : undefined,
         }
       } catch (parseError) {
         console.error("Error parsing OpenAI response:", parseError)
@@ -321,6 +317,7 @@ export type {
   ApiSuccessResponse,
   EmailData,
   FraudCheckResponse,
-  TextData} from "../types/fraudTypes"
+  TextData,
+} from "../types/fraudTypes"
 
 // Offline mode has been removed - API key is now required

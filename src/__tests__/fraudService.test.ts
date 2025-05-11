@@ -95,7 +95,6 @@ describe('Fraud Detection Service API Integration', () => {
         explanation: 'This email shows signs of fraud.',
         flags: ['Suspicious sender', 'Urgent language'],
         confidence: 0.85,
-        isOfflineMode: false
       });
     });
 
