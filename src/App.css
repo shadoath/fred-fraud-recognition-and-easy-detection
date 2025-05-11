@@ -1,6 +1,6 @@
 body {
-  width: 700px;
-  max-width: 700px;
+  width: 600px;
+  max-width: 600px;
   height: auto;
   max-height: 550px;
   font-family: Arial, sans-serif;
@@ -8,7 +8,7 @@ body {
   align-items: flex-start;
 }
 #root {
-  width: 100%;
+  /* width: 100%; */
   /* margin-top: 6px; */
 }
 
