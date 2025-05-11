@@ -23,6 +23,7 @@ import { useApiKey } from "../hooks/useApiKey"
 import { useManifestHook } from "../hooks/useManifestHook"
 import { ApiKeySettings } from "./ApiKeySettings"
 import { EmailAnalyzer } from "./EmailAnalyzer"
+import { ErrorBoundary } from "./ErrorBoundary"
 import { OfflineModeBanner } from "./OfflineModeBanner"
 import { TextInputAnalyzer } from "./TextInputAnalyzer"
 
@@ -133,7 +134,9 @@ export const MainDisplay = () => {
 
         <Slide direction="down" in={showSettings} mountOnEnter unmountOnExit>
           <Box>
-            <ApiKeySettings />
+            <ErrorBoundary>
+              <ApiKeySettings />
+            </ErrorBoundary>
           </Box>
         </Slide>
 
@@ -184,10 +187,14 @@ export const MainDisplay = () => {
 
         <Box>
           <TabPanel value={tabValue} index={0}>
-            <EmailAnalyzer />
+            <ErrorBoundary>
+              <EmailAnalyzer />
+            </ErrorBoundary>
           </TabPanel>
           <TabPanel value={tabValue} index={1}>
-            <TextInputAnalyzer />
+            <ErrorBoundary>
+              <TextInputAnalyzer />
+            </ErrorBoundary>
           </TabPanel>
         </Box>
       </Paper>
