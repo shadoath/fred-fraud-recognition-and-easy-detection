@@ -412,7 +412,14 @@ function extractEmailData(url: string): EmailExtractResponse {
     const clientConfigsLocal = {
       [EmailClientEnum.GMAIL]: {
         senderSelectors: [
-          "[data-message-id] [email]", ".gD [email]", ".gE [email]", "[data-hovercard-id]"
+          // Direct email attribute when available
+          "[data-message-id] [email]",
+          // Try to get the actual email text (highest priority)
+          ".go.gD",
+          // Fallback to email attribute in other elements
+          ".gD [email]",
+          ".gE [email]",
+          "[data-hovercard-id]"
         ],
         subjectSelectors: [
           ".ha h2", "[data-message-id] .hP", ".nH h2"
@@ -422,13 +429,39 @@ function extractEmailData(url: string): EmailExtractResponse {
         ],
         // Gmail-specific fallback for sender
         fallbackStrategy: (doc: Document) => {
-          const fromLabels = Array.from(doc.querySelectorAll(".adn .gE, .adn .gF"));
+          // First try to extract from .go.gD which typically contains the raw email
+          const emailElement = doc.querySelector(".go.gD");
+          if (emailElement && emailElement.textContent?.includes("@")) {
+            return { sender: emailElement.textContent.trim() };
+          }
+
+          // Second, check if there's a span with the email attribute
+          const emailAttrs = Array.from(doc.querySelectorAll("[email]"));
+          for (const el of emailAttrs) {
+            const email = el.getAttribute("email");
+            if (email && email.includes("@")) {
+              return { sender: email };
+            }
+          }
+
+          // Third, look for elements with data-hovercard-id which often contains email
+          const hoverElements = Array.from(doc.querySelectorAll("[data-hovercard-id]"));
+          for (const el of hoverElements) {
+            const hoverId = el.getAttribute("data-hovercard-id");
+            if (hoverId && hoverId.includes("@")) {
+              return { sender: hoverId };
+            }
+          }
+
+          // Last, find any text that looks like an email address
+          const fromLabels = Array.from(doc.querySelectorAll(".adn .gE, .adn .gF, .go, .g2"));
           for (const label of fromLabels) {
             if (label.textContent?.includes("@")) {
               const emailAddress = localUtils.extractEmailAddress(label.textContent);
               if (emailAddress) return { sender: emailAddress };
             }
           }
+
           return {};
         }
       },
@@ -504,8 +537,31 @@ function extractEmailData(url: string): EmailExtractResponse {
 
     // Extract email addresses using regex if we have text but not a clear email
     if (extractedData.sender && !extractedData.sender.includes('@')) {
-      const emailAddress = localUtils.extractEmailAddress(extractedData.sender);
-      if (emailAddress) extractedData.sender = emailAddress;
+      // First check if we can use querySelector to find any email address in the page
+      const allEmails = document.querySelectorAll('.go.gD, [email], [data-hovercard-id]');
+      for (const el of allEmails) {
+        // Try attribute first
+        const emailAttr = el.getAttribute('email') || el.getAttribute('data-hovercard-id');
+        if (emailAttr && emailAttr.includes('@')) {
+          extractedData.sender = emailAttr;
+          break;
+        }
+
+        // Then try text content
+        if (el.textContent && el.textContent.includes('@')) {
+          const emailMatch = localUtils.extractEmailAddress(el.textContent);
+          if (emailMatch) {
+            extractedData.sender = emailMatch;
+            break;
+          }
+        }
+      }
+
+      // If still no email, try regex on the current sender text
+      if (!extractedData.sender.includes('@')) {
+        const emailAddress = localUtils.extractEmailAddress(extractedData.sender);
+        if (emailAddress) extractedData.sender = emailAddress;
+      }
     }
 
     // Limit content size to avoid performance issues
