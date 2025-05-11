@@ -1,15 +1,19 @@
 import DescriptionIcon from "@mui/icons-material/Description"
+import ContentPasteIcon from "@mui/icons-material/ContentPaste"
+import LanguageIcon from "@mui/icons-material/Language"
 import WarningIcon from "@mui/icons-material/Warning"
 import {
   Alert,
   Box,
   Button,
+  ButtonGroup,
   Card,
   Chip,
   CircularProgress,
   Fade,
   Paper,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
   Zoom,
@@ -41,10 +45,178 @@ interface TextInputAnalyzerProps {
 export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   const [textContent, setTextContent] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
+  const [isScraping, setIsScraping] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
   const { apiKey, isOfflineMode } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
+
+  // Function to check permission for the current tab URL
+  const checkCurrentTabPermission = async (): Promise<boolean> => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (!tab?.url) {
+        toast.error("No active tab found")
+        return false
+      }
+
+      const response = await chrome.runtime.sendMessage({
+        action: "checkPermission",
+        url: tab.url
+      })
+
+      return response?.success && response?.hasPermission
+    } catch (error) {
+      console.error("Error checking tab permission:", error)
+      return false
+    }
+  }
+
+  // Function to request permission for the current tab URL
+  const requestCurrentTabPermission = async (): Promise<boolean> => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (!tab?.url) {
+        toast.error("No active tab found")
+        return false
+      }
+
+      const response = await chrome.runtime.sendMessage({
+        action: "requestPermission",
+        url: tab.url
+      })
+
+      return response?.success && response?.granted
+    } catch (error) {
+      console.error("Error requesting tab permission:", error)
+      return false
+    }
+  }
+
+  // Function to extract text from the current webpage
+  const extractWebpageContent = async (): Promise<string> => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (!tab?.id) {
+        throw new Error("No active tab found")
+      }
+
+      // Inject and execute the content scraping script
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          // Helper function to check if an element is visible
+          function isVisible(element: Element): boolean {
+            const style = window.getComputedStyle(element)
+            return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0"
+          }
+
+          // Helper function to clean text (remove extra whitespace, newlines)
+          function cleanText(text: string): string {
+            return text
+              .replace(/\\s+/g, " ") // Collapse multiple spaces, tabs, newlines
+              .trim()
+          }
+
+          // Select the main content area
+          let mainContent: Element =
+            document.querySelector("main") || // HTML5 <main> element
+            document.querySelector("article") || // HTML5 <article> element
+            document.querySelector('[role="main"]') || // ARIA role
+            document.querySelector(".content, #content, .main-content") || // Common class/ID patterns
+            document.body // Fallback to body
+
+          // Elements to exclude (menus, headers, footers, asides, etc.)
+          const excludeSelectors = [
+            "nav",
+            "header",
+            "footer",
+            "aside",
+            '[role="navigation"]',
+            '[role="banner"]',
+            '[role="contentinfo"]',
+            ".menu, .navbar, .sidebar, .widget, .ad, .advert, .footer, .header",
+          ].join(", ")
+
+          // Clone the main content to avoid modifying the original DOM
+          const contentClone = mainContent.cloneNode(true) as Element
+
+          // Remove excluded elements from the clone
+          const excludedElements = contentClone.querySelectorAll(excludeSelectors)
+          excludedElements.forEach((element) => element.remove())
+
+          // Get all visible text nodes
+          let textContent = ""
+          const walker = document.createTreeWalker(contentClone, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+              const parent = node.parentElement
+              // Only include text from visible elements, exclude script/style
+              if (parent && isVisible(parent) && !["SCRIPT", "STYLE"].includes(parent.tagName)) {
+                return NodeFilter.FILTER_ACCEPT
+              }
+              return NodeFilter.FILTER_REJECT
+            },
+          })
+
+          // Collect and clean text
+          while (walker.nextNode()) {
+            if (walker.currentNode.textContent) {
+              const text = cleanText(walker.currentNode.textContent)
+              if (text) {
+                textContent += text + " "
+              }
+            }
+          }
+
+          // Final cleanup
+          textContent = cleanText(textContent)
+
+          return textContent || "No main content text found."
+        }
+      })
+
+      return result.result || "No content extracted"
+    } catch (error) {
+      console.error("Error extracting webpage content:", error)
+      throw error
+    }
+  }
+
+  // Function to scrape content from the current webpage
+  const scrapeCurrentWebpage = async () => {
+    setIsScraping(true)
+    try {
+      // Check if we have permission for this site
+      const hasPermission = await checkCurrentTabPermission()
+
+      if (!hasPermission) {
+        // If no permission, ask the user if they want to grant permission
+        toast.info("Permission needed to access the current webpage")
+        const granted = await requestCurrentTabPermission()
+
+        if (!granted) {
+          toast.error("Permission denied. Cannot extract content from this webpage")
+          return
+        }
+      }
+
+      // Extract content from the current webpage
+      const content = await extractWebpageContent()
+
+      if (content && content !== "No main content text found.") {
+        // Set the extracted content to the text area
+        setTextContent(content)
+        toast.success("Content extracted successfully")
+      } else {
+        toast.warning("Could not extract meaningful content from this page")
+      }
+    } catch (error) {
+      console.error("Error scraping webpage:", error)
+      toast.error("Failed to extract content from the current webpage")
+    } finally {
+      setIsScraping(false)
+    }
+  }
 
   // Function to check the text for fraud
   const checkTextForFraud = async () => {
@@ -212,6 +384,31 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
               variant="outlined"
             />
 
+            {/* Source buttons */}
+            <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+              <ButtonGroup variant="outlined" size="small">
+                <Tooltip title="Paste text manually">
+                  <Button
+                    startIcon={<ContentPasteIcon />}
+                    disabled={isScraping || isChecking}
+                    sx={{ borderRadius: "4px 0 0 4px", textTransform: "none" }}
+                  >
+                    Manual
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Extract text from current webpage">
+                  <Button
+                    startIcon={<LanguageIcon />}
+                    onClick={scrapeCurrentWebpage}
+                    disabled={isScraping || isChecking}
+                    sx={{ borderRadius: "0 4px 4px 0", textTransform: "none" }}
+                  >
+                    {isScraping ? "Extracting..." : "Extract from Webpage"}
+                  </Button>
+                </Tooltip>
+              </ButtonGroup>
+            </Box>
+
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               {onBackToHome && (
                 <Button
@@ -231,7 +428,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
                 variant="contained"
                 color="primary"
                 onClick={checkTextForFraud}
-                disabled={isChecking || !textContent.trim()}
+                disabled={isChecking || isScraping || !textContent.trim()}
                 startIcon={
                   isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
                 }
