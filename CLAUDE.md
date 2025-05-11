@@ -42,11 +42,13 @@ npm run test:watch
 ### Core Components
 
 1. **Extension Structure**
+
    - **Background Script**: Handles communication between content scripts and the popup
    - **Content Script**: Injects into Gmail to analyze emails directly
    - **Popup Interface**: React-based UI for user interaction
 
 2. **Fraud Detection Services**
+
    - **Online Mode** (`fraudService.ts`): Uses OpenAI API with user's key
    - **Offline Mode** (`offlineFraudService.ts`): Pattern matching as fallback
 
@@ -65,12 +67,14 @@ npm run test:watch
 ### TypeScript Integration
 
 The project uses TypeScript for type safety with separate configurations:
+
 - `tsconfig.json`: Main React application
 - `tsconfig.extension.json`: Chrome extension components (background & content scripts)
 
 ## Testing
 
 Tests use Jest with the following setup:
+
 - `jest.config.cjs`: Configuration including TypeScript support
 - Mock Chrome API available in tests
 - Fake timers for async test control
@@ -79,6 +83,7 @@ Tests use Jest with the following setup:
 ## Build Process
 
 The build system uses:
+
 - Vite for bundling the React application
 - TypeScript compiler for extension scripts
 - Custom build process in `build.mjs` that:
@@ -98,17 +103,25 @@ The build system uses:
 ## Best Practices
 
 1. **API Key Security**
+
    - Never commit API keys
    - Use the obfuscation utilities in `keyStorage.ts`
 
 2. **Testing**
+
    - Mock Chrome API calls for unit tests
    - Use fake timers for async code
 
 3. **Extension Build**
+
    - Use `npm run build:extension` for the full extension build
    - Ensure proper file paths in `manifest.json`
 
 4. **Fraud Detection**
    - Gracefully handle OpenAI API errors
    - Always have offline fallback ready
+
+## Additional Notes
+
+- Use " intead of ' for strings
+- DO NOT USE ; to end lines of code in typescript (unless required)
