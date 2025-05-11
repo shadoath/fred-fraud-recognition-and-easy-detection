@@ -292,7 +292,6 @@ function addFraudCheckButton() {
     const button = document.createElement("div")
     button.className = "G-Ni J-J5-Ji fraud-check-button"
     button.id = "fred-fraud-check-button"
-    button.setAttribute("data-fred-version", "1.0")
     button.innerHTML = `
       <div class="T-I J-J5-Ji T-I-Js-Gs ash T-I-ax7 L3" role="button" tabindex="0" 
            style="user-select: none; background-color: #2979ff; color: white; margin-right: 10px; border-radius: 4px; display: flex; align-items: center; padding: 0 12px; height: 32px;"
@@ -351,6 +350,8 @@ function addFraudCheckButton() {
         // Get API key from storage
         const storage = await chrome.storage.local.get("openai_api_key")
         const apiKey = storage["openai_api_key"]
+
+        console.log("FRED - API Key:", apiKey)
 
         // Send data to the extension's background script for analysis
         chrome.runtime.sendMessage(
@@ -414,7 +415,6 @@ function addFraudCheckButton() {
         // Create a simpler button as fallback
         const fallbackButton = document.createElement("button")
         fallbackButton.id = "fred-fallback-button"
-        fallbackButton.setAttribute("data-fred-version", "1.0")
         fallbackButton.innerHTML = "Check for Fraud"
         fallbackButton.style.cssText =
           "background-color: #2979ff; color: white; border: none; padding: 8px 12px; border-radius: 4px; margin: 5px; cursor: pointer; font-weight: bold;"
@@ -696,8 +696,8 @@ function setupObserver() {
   }
 
   // Callback to execute when mutations are observed
-  const callback = (mutationsList) => {
-    console.log("FRED - Mutations observed:", mutationsList)
+  const callback = () => {
+    // console.log("FRED - Mutations observed:", mutationsList)
     // Throttle the callback to prevent performance issues with rapid mutations
     if (callback.throttleTimeout) {
       clearTimeout(callback.throttleTimeout)
