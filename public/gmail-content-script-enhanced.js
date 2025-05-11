@@ -1,6 +1,6 @@
 // Gmail Content Script - Enhanced Version
 // This script extracts email data from Gmail and adds a fraud check button to the UI
-// With direct analysis capabilities
+// With direct analysis capabilities and permission handling
 
 // Initialize the script once the page is fully loaded
 let buttonAdded = false;
@@ -30,6 +30,66 @@ function detectGmailVersion() {
   }
   
   return GMAIL_VERSION.UNKNOWN;
+}
+
+// Function to check if we have permission for the current site
+async function checkSitePermission() {
+  try {
+    const url = window.location.href;
+    
+    // Send request to background script to check permission
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { action: "checkPermission", url },
+        (response) => {
+          if (response && response.success) {
+            resolve(response.hasPermission);
+          } else {
+            console.error("Error checking permission:", response?.error);
+            resolve(false);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error("Error checking site permission:", error);
+    return false;
+  }
+}
+
+// Function to request permission for the current site
+async function requestSitePermission() {
+  try {
+    const url = window.location.href;
+    
+    // First, show a user-friendly confirmation dialog
+    const userConfirmed = confirm(
+      "FRED needs permission to analyze emails from this site.\n\n" +
+      "Click OK to grant access, or Cancel to deny."
+    );
+    
+    if (!userConfirmed) {
+      return false;
+    }
+    
+    // Send request to background script to request permission
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { action: "requestPermission", url },
+        (response) => {
+          if (response && response.success) {
+            resolve(response.granted);
+          } else {
+            console.error("Error requesting permission:", response?.error);
+            resolve(false);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error("Error requesting site permission:", error);
+    return false;
+  }
 }
 
 // Function to extract email data with improved selectors and fallbacks
@@ -245,7 +305,7 @@ function addFraudCheckButton() {
       </div>
     `;
 
-    // Add click handler that performs direct analysis
+    // Add click handler that performs direct analysis with permission handling
     button.addEventListener("click", async () => {
       // Show an in-progress indicator
       button.classList.add('analyzing');
@@ -269,6 +329,22 @@ function addFraudCheckButton() {
       document.head.appendChild(style);
       
       try {
+        // Check if we have permission for this site
+        const hasPermission = await checkSitePermission();
+        
+        if (!hasPermission) {
+          // We don't have permission, try to request it
+          const permissionGranted = await requestSitePermission();
+          
+          if (!permissionGranted) {
+            // Permission denied, restore button and show message
+            button.classList.remove('analyzing');
+            button.innerHTML = originalContent;
+            showNotification('Permission required to analyze emails from this site', 'error');
+            return;
+          }
+        }
+        
         // Extract email data
         const emailData = extractEmailData();
         
@@ -284,6 +360,7 @@ function addFraudCheckButton() {
         chrome.runtime.sendMessage({
           action: "analyzeEmail",
           data: emailData,
+          sourceUrl: window.location.href,
           apiKey: apiKey
         }, (response) => {
           // Restore button state
@@ -293,8 +370,17 @@ function addFraudCheckButton() {
           if (response && response.success) {
             // Show results in an overlay
             showResultsOverlay(response.result, emailData);
+          } else if (response && response.error === "PERMISSION_REQUIRED") {
+            // Special case for permission required
+            showNotification('Permission required to analyze emails from this site', 'error');
+            // Try to request permission again
+            requestSitePermission().then(granted => {
+              if (granted) {
+                showNotification('Permission granted! Try analyzing again.', 'info');
+              }
+            });
           } else {
-            // Handle error - show a toast-like notification
+            // Handle other errors - show a toast-like notification
             showNotification('Error analyzing email: ' + (response?.error || 'Unknown error'), 'error');
             // Open popup as fallback
             chrome.runtime.sendMessage({ action: "openPopup" });
@@ -331,7 +417,21 @@ function addFraudCheckButton() {
         fallbackButton.style.cssText = "background-color: #2979ff; color: white; border: none; padding: 8px 12px; border-radius: 4px; margin: 5px; cursor: pointer; font-weight: bold;";
         
         // Add click handler that opens the extension popup
-        fallbackButton.addEventListener("click", () => {
+        fallbackButton.addEventListener("click", async () => {
+          // Check if we have permission for this site
+          const hasPermission = await checkSitePermission();
+          
+          if (!hasPermission) {
+            // We don't have permission, try to request it
+            const permissionGranted = await requestSitePermission();
+            
+            if (!permissionGranted) {
+              // Permission denied, show message
+              showNotification('Permission required to analyze emails from this site', 'error');
+              return;
+            }
+          }
+          
           chrome.runtime.sendMessage({ action: "openPopup" });
         });
         
@@ -659,21 +759,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   } else if (request.action === "performAnalysis") {
     // Direct action to perform fraud analysis from extension
-    try {
-      const emailData = extractEmailData();
-      sendResponse(emailData);
-    } catch (error) {
-      sendResponse({
-        success: false,
-        message: error.message || "Error extracting email data"
-      });
-    }
+    checkSitePermission().then(hasPermission => {
+      if (!hasPermission) {
+        // No permission, request it
+        requestSitePermission().then(granted => {
+          if (granted) {
+            // Permission granted, extract email data
+            const emailData = extractEmailData();
+            sendResponse(emailData);
+          } else {
+            // Permission denied
+            sendResponse({
+              success: false,
+              message: "Permission required to analyze emails from this site"
+            });
+          }
+        });
+      } else {
+        // We have permission, extract email data
+        try {
+          const emailData = extractEmailData();
+          sendResponse(emailData);
+        } catch (error) {
+          sendResponse({
+            success: false,
+            message: error.message || "Error extracting email data"
+          });
+        }
+      }
+    });
+    return true;
+  } else if (request.action === "requestPermission") {
+    // Handle permission request from extension popup
+    requestSitePermission().then(granted => {
+      sendResponse({ granted });
+    });
     return true;
   }
 });
 
 // Run on script load with retry mechanism to ensure proper initialization
-function initialize(retryCount = 0) {
+async function initialize(retryCount = 0) {
   console.log(`FRED - Fraud Recognition & Easy Detection initializing (attempt ${retryCount + 1})`);
 
   try {
@@ -681,11 +807,49 @@ function initialize(retryCount = 0) {
     const gmailVersion = detectGmailVersion();
     console.log(`FRED - Detected Gmail version: ${gmailVersion}`);
     
+    // Check if we have permission for this site
+    const hasPermission = await checkSitePermission();
+    console.log(`FRED - Site permission status: ${hasPermission ? 'Granted' : 'Not granted'}`);
+    
     // Initial check for open email
     const isEmailOpen = document.querySelector("[data-message-id]");
     if (isEmailOpen) {
       console.log("FRED - Email already open on initialization");
-      addFraudCheckButton();
+      // Only add button if we have permission, or offer to request it
+      if (hasPermission) {
+        addFraudCheckButton();
+      } else {
+        // Add a button that requests permission
+        const toolbarElement = document.querySelector("[data-message-id] .G-tF") || 
+                              document.querySelector("[role='main'] [data-message-id] .G-tF") ||
+                              document.querySelector(".AO [data-message-id] .G-tF");
+        
+        if (toolbarElement) {
+          const permButton = document.createElement("div");
+          permButton.className = "G-Ni J-J5-Ji fraud-check-button";
+          permButton.id = "fred-perm-button";
+          permButton.innerHTML = `
+            <div class="T-I J-J5-Ji T-I-Js-Gs ash T-I-ax7 L3" role="button" tabindex="0" 
+                 style="user-select: none; background-color: #ff9800; color: white; margin-right: 10px; border-radius: 4px; display: flex; align-items: center; padding: 0 12px; height: 32px;"
+                 data-tooltip="Grant permission for FRED">
+              <span style="font-weight: 500; font-size: 13px; white-space: nowrap;">Enable FRED</span>
+            </div>
+          `;
+          
+          permButton.addEventListener("click", async () => {
+            const granted = await requestSitePermission();
+            if (granted) {
+              permButton.remove();
+              addFraudCheckButton();
+              showNotification('Permission granted! You can now analyze emails.', 'info');
+            } else {
+              showNotification('Permission required to analyze emails', 'error');
+            }
+          });
+          
+          toolbarElement.prepend(permButton);
+        }
+      }
     }
 
     // Setup observer to watch for Gmail navigation
@@ -696,6 +860,7 @@ function initialize(retryCount = 0) {
       timestamp: new Date().toISOString(),
       gmailVersion,
       url: window.location.href,
+      hasPermission,
       userAgent: navigator.userAgent
     });
   } catch (error) {

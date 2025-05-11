@@ -14,6 +14,102 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   if (request.action === "analyzeEmail") {
     // Handle direct email analysis from the content script
+    handleEmailAnalysisWithPermissions(request, sender, sendResponse);
+    return true; // Indicates we'll send a response asynchronously
+  }
+  
+  if (request.action === "requestPermission") {
+    // Handle permission request
+    requestUrlPermission(request.url)
+      .then(granted => {
+        sendResponse({ success: true, granted });
+      })
+      .catch(error => {
+        sendResponse({ 
+          success: false, 
+          error: error.message || "Failed to request permission" 
+        });
+      });
+    return true;
+  }
+  
+  if (request.action === "checkPermission") {
+    // Check if we have permission for a URL
+    checkUrlPermission(request.url)
+      .then(hasPermission => {
+        sendResponse({ success: true, hasPermission });
+      })
+      .catch(error => {
+        sendResponse({ 
+          success: false, 
+          error: error.message || "Failed to check permission" 
+        });
+      });
+    return true;
+  }
+});
+
+// Function to check URL permission
+async function checkUrlPermission(url) {
+  try {
+    // Parse the URL to get the origin
+    const urlObj = new URL(url);
+    const origin = urlObj.origin;
+    
+    // Check if we have permission for this origin
+    const result = await chrome.permissions.contains({
+      origins: [origin + "/*"]
+    });
+    
+    return result;
+  } catch (error) {
+    console.error("Error checking URL permission:", error);
+    return false;
+  }
+}
+
+// Function to request URL permission
+async function requestUrlPermission(url) {
+  try {
+    // Parse the URL to get the origin
+    const urlObj = new URL(url);
+    const origin = urlObj.origin;
+    
+    // Request permission
+    const granted = await chrome.permissions.request({
+      origins: [origin + "/*"]
+    });
+    
+    return granted;
+  } catch (error) {
+    console.error("Error requesting URL permission:", error);
+    return false;
+  }
+}
+
+// Handle email analysis with permission checks
+async function handleEmailAnalysisWithPermissions(request, sender, sendResponse) {
+  try {
+    // Get source URL from sender or request
+    const sourceUrl = sender.tab?.url || request.sourceUrl;
+    
+    if (!sourceUrl) {
+      throw new Error("Source URL not provided");
+    }
+    
+    // Check if we have permission to access this URL
+    const hasPermission = await checkUrlPermission(sourceUrl);
+    
+    if (!hasPermission) {
+      sendResponse({
+        success: false,
+        error: "PERMISSION_REQUIRED",
+        message: "Permission required to analyze content from this site"
+      });
+      return;
+    }
+    
+    // Now that we have permission, handle the analysis
     handleEmailAnalysis(request.data, request.apiKey)
       .then(result => {
         sendResponse({ success: true, result });
@@ -25,10 +121,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           error: error.message || "Failed to analyze email" 
         });
       });
-    
-    return true; // Indicates we'll send a response asynchronously
+  } catch (error) {
+    console.error("FRED - Error in permission check:", error);
+    sendResponse({ 
+      success: false, 
+      error: error.message || "Failed to check permissions" 
+    });
   }
-});
+}
 
 // Function to handle email analysis
 async function handleEmailAnalysis(emailData, apiKey) {

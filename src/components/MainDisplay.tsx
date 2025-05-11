@@ -25,6 +25,7 @@ import { ApiKeySettings } from "./ApiKeySettings"
 import { EmailAnalyzer } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { OfflineModeBanner } from "./OfflineModeBanner"
+import PermissionsManager from "./PermissionsManager"
 import { TextInputAnalyzer } from "./TextInputAnalyzer"
 
 interface TabPanelProps {
@@ -136,6 +137,7 @@ export const MainDisplay = () => {
           <Box>
             <ErrorBoundary>
               <ApiKeySettings />
+              <PermissionsManager />
             </ErrorBoundary>
           </Box>
         </Slide>

@@ -79,10 +79,11 @@ module.exports = {
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   modulePaths: ["<rootDir>"],
 
-  // moduleNameMapper: {
-  //   "^\\./logging$": "<rootDir>/test/mocks/logging.ts", // For relative imports like "./logging"
-  //   "^lib/logging$": "<rootDir>/test/mocks/logging.ts", // For absolute imports like "lib/logging"
-  // },
+  moduleNameMapper: {
+    "^@mui/material/(.*)$": "<rootDir>/node_modules/@mui/material/$1",
+    "^@mui/(.*)$": "<rootDir>/node_modules/@mui/$1",
+    "^@testing-library/(.*)$": "<rootDir>/node_modules/@testing-library/$1",
+  },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],
@@ -129,7 +130,7 @@ module.exports = {
   // setupFiles: ["<rootDir>/test/config.ts"],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
-  setupFilesAfterEnv: ["jest-extended/all", "<rootDir>/test/globalSetup.ts"],
+  setupFilesAfterEnv: ["jest-extended/all", "<rootDir>/test/globalSetup.ts", "<rootDir>/test/setupJestDom.ts"],
 
   // The number of seconds after which a test is considered as slow and reported as such in the results.
   // slowTestThreshold: 5,
@@ -138,7 +139,7 @@ module.exports = {
   // snapshotSerializers: [],
 
   // The test environment that will be used for testing
-  // testEnvironment: "jest-environment-node",
+  testEnvironment: "jsdom",
 
   // Options that will be passed to the testEnvironment
   // testEnvironmentOptions: {},
@@ -147,10 +148,10 @@ module.exports = {
   // testLocationInResults: false,
 
   // The glob patterns Jest uses to detect test files
-  // testMatch: [
-  //   "**/__tests__/**/*.[jt]s?(x)",
-  //   "**/?(*.)+(spec|test).[tj]s?(x)"
-  // ],
+  testMatch: [
+    "**/__tests__/**/*.[jt]s",
+    "**/?(*.)+(spec|test).[tj]s"
+  ],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   // testPathIgnorePatterns: [
@@ -168,11 +169,18 @@ module.exports = {
 
   // A map from regular expressions to paths to transformers
   transform: {
-    "^.+\\.(ts|tsx)$": "ts-jest",
+    "^.+\\.(ts|tsx)$": ["ts-jest", {
+      tsconfig: "tsconfig.json",
+      isolatedModules: true,
+      jsx: "react-jsx"
+    }],
+    "^.+\\.(js|jsx)$": "babel-jest",
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-  transformIgnorePatterns: ["<rootDir>/node_modules/"],
+  transformIgnorePatterns: [
+    "/node_modules/(?!(@mui|react-syntax-highlighter)/)",
+  ],
 
   // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
   // unmockedModulePathPatterns: undefined,

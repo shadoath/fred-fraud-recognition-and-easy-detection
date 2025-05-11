@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -18,18 +19,19 @@ jest.mock('../contexts/CustomSnackbarContext', () => ({
 // Component that throws an error on render
 const BuggyComponent = () => {
   throw new Error('Test error from BuggyComponent');
-  // eslint-disable-next-line no-unreachable
+   
   return <div>This will never render</div>;
 };
 
 // Component that throws an error on button click
-const ButtonThatThrows = () => {
+// Not used in current tests, but kept for future use
+const _ButtonThatThrows = () => {
   const [shouldThrow, setShouldThrow] = React.useState(false);
-  
+
   if (shouldThrow) {
     throw new Error('Error triggered by button click');
   }
-  
+
   return (
     <button onClick={() => setShouldThrow(true)}>
       Trigger Error

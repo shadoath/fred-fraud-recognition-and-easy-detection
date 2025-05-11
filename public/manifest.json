@@ -7,6 +7,7 @@
   "description": "Analyzes emails and text for potential fraud using OpenAI or built-in pattern matching when offline.",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "optional_host_permissions": ["<all_urls>"],
+  "host_permissions": [],
   "action": {
     "default_popup": "index.html",
     "default_icon": {

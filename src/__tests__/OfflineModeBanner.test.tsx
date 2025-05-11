@@ -1,8 +1,8 @@
+import { createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { OfflineModeBanner } from '../components/OfflineModeBanner';
-import { createTheme } from '@mui/material/styles';
 
 describe('OfflineModeBanner', () => {
   const mockTheme = createTheme();
@@ -13,12 +13,12 @@ describe('OfflineModeBanner', () => {
   });
   
   it('renders correctly with default props', () => {
-    render(<OfflineModeBanner theme={mockTheme} />);
-    
+    render(<OfflineModeBanner theme={mockTheme} onClick={mockOnClick} />);
+
     // Check if banner is rendered
     expect(screen.getByText(/offline mode active/i)).toBeInTheDocument();
     expect(screen.getByText(/offline pattern matching/i)).toBeInTheDocument();
-    expect(screen.getByText(/add your api key/i)).toBeInTheDocument();
+    expect(screen.getByText(/add an api key/i)).toBeInTheDocument();
   });
   
   it('calls onClick handler when clicked', async () => {
@@ -51,12 +51,12 @@ describe('OfflineModeBanner', () => {
     expect(banner).toHaveStyle('cursor: pointer');
   });
   
-  it('renders without onClick handler', () => {
-    render(<OfflineModeBanner theme={mockTheme} />);
-    
+  it('renders with onClick handler', () => {
+    render(<OfflineModeBanner theme={mockTheme} onClick={mockOnClick} />);
+
     // Find the banner
     const banner = screen.getByRole('alert');
-    
+
     // Ensure it still renders properly
     expect(banner).toBeInTheDocument();
     expect(screen.getByText(/offline mode active/i)).toBeInTheDocument();
