@@ -125,3 +125,5 @@ The build system uses:
 
 - Use " intead of ' for strings
 - DO NOT USE ; to end lines of code in typescript (unless required)
+- In Typescript, use `?.` to an optional chain instead of `&&`
+- Use arrow function syntax for functions
