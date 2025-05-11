@@ -697,6 +697,7 @@ function setupObserver() {
 
   // Callback to execute when mutations are observed
   const callback = (mutationsList) => {
+    console.log("FRED - Mutations observed:", mutationsList)
     // Throttle the callback to prevent performance issues with rapid mutations
     if (callback.throttleTimeout) {
       clearTimeout(callback.throttleTimeout)
