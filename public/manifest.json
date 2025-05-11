@@ -5,8 +5,8 @@
   "version": "1.0.0",
   "author": "Skylar Bolton",
   "description": "Analyzes emails and text for potential fraud using OpenAI or built-in pattern matching when offline.",
-  "host_permissions": ["https://mail.google.com/*"],
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "optional_host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "index.html",
     "default_icon": {
@@ -14,10 +14,13 @@
       "38": "fred-38.png"
     }
   },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["gmail-content-script.js"],
+      "js": ["gmail-content-script-enhanced.js"],
       "run_at": "document_end"
     }
   ],
