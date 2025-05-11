@@ -1,5 +1,9 @@
 # FRED Extension TODO List
 
+## Completed
+- Implement automatic tab selection based on current website (Gmail → Email tab, others → Text tab)
+- Remove offline checker functionality and make API key required
+
 ## High Priority
 - Add error handling for website content that can't be scraped (iframes, SPAs, etc.)
 - Update the manifest.json to include new permissions needed for content scraping

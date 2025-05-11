@@ -33,12 +33,4 @@ export interface FraudCheckResponse extends ApiSuccessResponse {
   explanation: string
   flags?: string[] // Optional array of specific fraud indicators
   confidence?: number // Optional confidence score
-  isOfflineMode?: boolean // Flag to indicate if this is an offline/pattern-based analysis
-}
-
-// Pattern type for offline detection
-export interface FraudPattern {
-  pattern: string
-  weight: number
-  category: string
 }

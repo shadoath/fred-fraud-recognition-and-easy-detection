@@ -1,5 +1,5 @@
-import DescriptionIcon from "@mui/icons-material/Description"
 import ContentPasteIcon from "@mui/icons-material/ContentPaste"
+import DescriptionIcon from "@mui/icons-material/Description"
 import LanguageIcon from "@mui/icons-material/Language"
 import WarningIcon from "@mui/icons-material/Warning"
 import {
@@ -23,7 +23,6 @@ import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
 import {
   type FraudCheckResponse,
-  offlineCheckTextForFraud,
   safeCheckTextWithOpenAI,
   type TextData,
 } from "../lib/fraudService"
@@ -35,7 +34,6 @@ export interface TextCheckResult {
   explanation: string
   content: string
   flags?: string[] // Optional indicators of fraud
-  isOfflineMode?: boolean // Flag to indicate if this is an offline/pattern-based analysis
 }
 
 interface TextInputAnalyzerProps {
@@ -47,14 +45,17 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   const [isChecking, setIsChecking] = useState(false)
   const [isScraping, setIsScraping] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
-  const { apiKey, isOfflineMode } = useApiKey()
+  const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
   // Function to check permission for the current tab URL
   const checkCurrentTabPermission = async (): Promise<boolean> => {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
       if (!tab?.url) {
         toast.error("No active tab found")
         return false
@@ -62,7 +63,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
 
       const response = await chrome.runtime.sendMessage({
         action: "checkPermission",
-        url: tab.url
+        url: tab.url,
       })
 
       return response?.success && response?.hasPermission
@@ -75,7 +76,10 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   // Function to request permission for the current tab URL
   const requestCurrentTabPermission = async (): Promise<boolean> => {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
       if (!tab?.url) {
         toast.error("No active tab found")
         return false
@@ -83,7 +87,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
 
       const response = await chrome.runtime.sendMessage({
         action: "requestPermission",
-        url: tab.url
+        url: tab.url,
       })
 
       return response?.success && response?.granted
@@ -96,7 +100,10 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   // Function to extract text from the current webpage
   const extractWebpageContent = async (): Promise<string> => {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
       if (!tab?.id) {
         throw new Error("No active tab found")
       }
@@ -108,7 +115,9 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
           // Helper function to check if an element is visible
           function isVisible(element: Element): boolean {
             const style = window.getComputedStyle(element)
-            return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0"
+            return (
+              style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0"
+            )
           }
 
           // Helper function to clean text (remove extra whitespace, newlines)
@@ -119,7 +128,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
           }
 
           // Select the main content area
-          let mainContent: Element =
+          const mainContent: Element =
             document.querySelector("main") || // HTML5 <main> element
             document.querySelector("article") || // HTML5 <article> element
             document.querySelector('[role="main"]') || // ARIA role
@@ -172,7 +181,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
           textContent = cleanText(textContent)
 
           return textContent || "No main content text found."
-        }
+        },
       })
 
       return result.result || "No content extracted"
@@ -225,13 +234,13 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
       return
     }
 
+    if (!hasApiKey) {
+      toast.error("API key required. Please add an OpenAI API key in the settings.")
+      return
+    }
+
     setIsChecking(true)
     try {
-      // Check if in offline mode
-      if (isOfflineMode) {
-        toast.info("No API key found. Using offline pattern-matching analysis.")
-      }
-
       // Prepare text data for fraud check
       const textData: TextData = {
         content: textContent,
@@ -239,77 +248,47 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
         timestamp: new Date().toISOString(),
       }
 
-      let fraudResult: FraudCheckResponse | null = null
+      // Use OpenAI API for analysis
+      const [apiResult, error] = await safeCheckTextWithOpenAI(textData, apiKey!)
 
-      // If no API key, use offline mode directly
-      if (isOfflineMode) {
-        fraudResult = await offlineCheckTextForFraud(textData)
-      } else {
-        // Try with OpenAI first when we have an API key
-        const [apiResult, error] = await safeCheckTextWithOpenAI(textData, apiKey!)
-
-        // If OpenAI API fails, use offline implementation
-        if (error) {
-          console.warn("OpenAI API error, using offline mode:", error)
-          toast.info("Using offline analysis mode due to API connection issues")
-
-          fraudResult = await offlineCheckTextForFraud(textData)
+      if (error) {
+        console.error("OpenAI API error:", error)
+        if (error.status === 401) {
+          toast.error("Invalid API key. Please check your OpenAI API key.")
         } else {
-          fraudResult = apiResult
+          toast.error(`OpenAI API error: ${error.message || "Unknown error"}`)
         }
+        return
+      }
 
-        if (!fraudResult) {
-          // Final fallback to offline implementation if nothing worked
-          fraudResult = await offlineCheckTextForFraud(textData)
-        }
+      if (!apiResult) {
+        toast.error("Failed to analyze text. Please try again later.")
+        return
       }
 
       // Transform the API response to our UI result format
       const checkResult: TextCheckResult = {
-        threatRating: fraudResult.threatRating,
-        explanation: fraudResult.explanation,
+        threatRating: apiResult.threatRating,
+        explanation: apiResult.explanation,
         content: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
-        flags: fraudResult.flags,
-        isOfflineMode: fraudResult.isOfflineMode,
+        flags: apiResult.flags,
       }
 
       setResult(checkResult)
     } catch (error) {
       console.error("Error checking text:", error)
-      if (typeof error === "object" && error !== null && "status" in error) {
-        // Handle specific API errors
-        if ((error as any).status === 401) {
-          toast.error("Invalid API key. Please check your OpenAI API key.")
-        } else {
-          toast.error(`OpenAI API error: ${(error as any).message || "Unknown error"}`)
-        }
-      } else {
-        toast.error("Error analyzing text. Using pattern matching instead.")
-
-        try {
-          // Final fallback if everything else fails
-          const fraudResult = await offlineCheckTextForFraud({
-            content: textContent.trim(),
-            source: "pasted",
-            timestamp: new Date().toISOString(),
-          })
-
-          const checkResult: TextCheckResult = {
-            threatRating: fraudResult.threatRating,
-            explanation: fraudResult.explanation,
-            content: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
-            flags: fraudResult.flags,
-            isOfflineMode: true,
-          }
-
-          setResult(checkResult)
-        } catch (mockError) {
-          toast.error("Failed to analyze text. Please try again later.")
-        }
-      }
+      toast.error("An error occurred while analyzing the text. Please try again later.")
     } finally {
       setIsChecking(false)
     }
+  }
+
+  const pasteFromClipboard = () => {
+    chrome.runtime.sendMessage({ action: "pasteFromClipboard" }, (response) => {
+      if (response && response.success) {
+        setTextContent(response.text)
+      }
+    })
   }
 
   // Function to get color based on threat rating
@@ -342,11 +321,18 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
         </Typography>
       </Box>
 
-      {/* Optional API Key Info Banner - removed since we now have a global banner */}
-
       {!result ? (
         <Fade in={!result} timeout={400}>
           <Box>
+            {!hasApiKey && (
+              <Alert 
+                severity="warning" 
+                sx={{ mb: 2, borderRadius: 2 }}
+              >
+                An OpenAI API key is required. Please add your API key in the settings.
+              </Alert>
+            )}
+            
             <Typography
               variant="body2"
               sx={{
@@ -355,8 +341,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
                 color: theme.palette.text.secondary,
               }}
             >
-              Paste any text below to check for potential fraud or scams. The analysis will be
-              performed using AI or pattern-matching if offline.
+              Paste any text below to check for potential fraud or scams using AI analysis.
             </Typography>
 
             <TextField
@@ -387,13 +372,14 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
             {/* Source buttons */}
             <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
               <ButtonGroup variant="outlined" size="small">
-                <Tooltip title="Paste text manually">
+                <Tooltip title="Paste text from clipboard">
                   <Button
                     startIcon={<ContentPasteIcon />}
                     disabled={isScraping || isChecking}
                     sx={{ borderRadius: "4px 0 0 4px", textTransform: "none" }}
+                    onClick={() => pasteFromClipboard()}
                   >
-                    Manual
+                    Paste
                   </Button>
                 </Tooltip>
                 <Tooltip title="Extract text from current webpage">
@@ -428,7 +414,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
                 variant="contained"
                 color="primary"
                 onClick={checkTextForFraud}
-                disabled={isChecking || isScraping || !textContent.trim()}
+                disabled={isChecking || isScraping || !textContent.trim() || !hasApiKey}
                 startIcon={
                   isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
                 }
@@ -500,26 +486,8 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
                     color: theme.palette.primary.main,
                   }}
                 >
-                  {result.isOfflineMode ? "Pattern Analysis:" : "AI Analysis:"}
+                  AI Analysis:
                 </Typography>
-
-                {result.isOfflineMode && (
-                  <Chip
-                    label="OFFLINE MODE"
-                    size="small"
-                    sx={{
-                      backgroundColor:
-                        theme.palette.mode === "dark"
-                          ? "rgba(255,193,7,0.2)"
-                          : "rgba(255,193,7,0.1)",
-                      color: "#b2930c",
-                      fontSize: "0.65rem",
-                      height: 20,
-                      fontWeight: 600,
-                      border: "1px solid rgba(255,193,7,0.3)",
-                    }}
-                  />
-                )}
               </Box>
 
               <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.5, fontSize: "0.9rem" }}>

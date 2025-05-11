@@ -108,8 +108,7 @@ Ensure the JSON is valid and properly formatted.
           threatRating,
           explanation: result.explanation,
           flags: Array.isArray(result.flags) ? result.flags : [],
-          confidence: typeof result.confidence === "number" ? result.confidence : undefined,
-          isOfflineMode: false,
+          confidence: typeof result.confidence === "number" ? result.confidence : undefined
         }
       } catch (parseError) {
         console.error("Error parsing OpenAI response:", parseError)
@@ -221,8 +220,7 @@ Ensure the JSON is valid and properly formatted.
           threatRating,
           explanation: result.explanation,
           flags: Array.isArray(result.flags) ? result.flags : [],
-          confidence: typeof result.confidence === "number" ? result.confidence : undefined,
-          isOfflineMode: false,
+          confidence: typeof result.confidence === "number" ? result.confidence : undefined
         }
       } catch (parseError) {
         console.error("Error parsing OpenAI response:", parseError)
@@ -325,8 +323,4 @@ export type {
   FraudCheckResponse,
   TextData} from "../types/fraudTypes"
 
-// Re-export the offline functions for use elsewhere
-export {
-  offlineCheckEmailForFraud,
-  offlineCheckTextForFraud
-} from "./offlineFraudService"
+// Offline mode has been removed - API key is now required

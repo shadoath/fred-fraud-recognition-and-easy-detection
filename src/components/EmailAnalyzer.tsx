@@ -2,6 +2,7 @@ import EmailIcon from "@mui/icons-material/Email"
 import ReportProblemIcon from "@mui/icons-material/ReportProblem"
 import WarningIcon from "@mui/icons-material/Warning"
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -19,8 +20,7 @@ import { useApiKey } from "../hooks/useApiKey"
 import {
   checkEmailWithOpenAI,
   type EmailData,
-  type FraudCheckResponse,
-  offlineCheckEmailForFraud,
+  type FraudCheckResponse
 } from "../lib/fraudService"
 import { ThreatRating } from "./ThreatRating"
 
@@ -31,7 +31,6 @@ export interface EmailCheckResult {
   sender: string
   subject: string
   flags?: string[] // Optional indicators of fraud
-  isOfflineMode?: boolean // Flag to indicate if this is an offline/pattern-based analysis
 }
 
 export interface EmailExtractResponse {
@@ -54,11 +53,10 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   const [manualSender, setManualSender] = useState<string>("")
   const [manualSubject, setManualSubject] = useState<string>("")
   const [manualContent, setManualContent] = useState<string>("")
-  const { apiKey, isOfflineMode } = useApiKey()
+  const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
-  // Check if API key exists on component mount
   // Function to check a manually entered email
   const checkManualEmail = async () => {
     if (!manualSender.trim() || !manualContent.trim()) {
@@ -66,13 +64,13 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       return
     }
 
+    if (!hasApiKey) {
+      toast.error("API key required. Please add an OpenAI API key in the settings.")
+      return
+    }
+
     setIsChecking(true)
     try {
-      // Check if in offline mode
-      if (isOfflineMode) {
-        toast.info("No API key found. Using offline pattern-matching analysis.")
-      }
-
       // Prepare email data
       const emailData: EmailData = {
         sender: manualSender.trim(),
@@ -82,25 +80,8 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       }
 
       try {
-        let fraudResult: FraudCheckResponse
-
-        // If no API key, use offline mode directly
-        if (isOfflineMode || !apiKey) {
-          fraudResult = await offlineCheckEmailForFraud(emailData)
-        } else {
-          try {
-            // Try to use OpenAI to check the email when we have an API key
-            fraudResult = await checkEmailWithOpenAI(emailData, apiKey)
-          } catch (apiError) {
-            console.warn("OpenAI API error, using offline mode:", apiError)
-
-            // If OpenAI fails, fall back to the offline implementation
-            fraudResult = await offlineCheckEmailForFraud(emailData)
-
-            // Notify the user that we're using offline mode
-            toast.info("Using offline analysis mode due to API connection issues")
-          }
-        }
+        // Use OpenAI to check the email
+        const fraudResult = await checkEmailWithOpenAI(emailData, apiKey!)
 
         // Transform the API response to our UI result format
         const checkResult: EmailCheckResult = {
@@ -108,8 +89,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
           explanation: fraudResult.explanation,
           sender: emailData.sender,
           subject: emailData.subject || "Unknown Subject",
-          flags: fraudResult.flags,
-          isOfflineMode: fraudResult.isOfflineMode,
+          flags: fraudResult.flags
         }
 
         setResult(checkResult)
@@ -121,23 +101,15 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         setShowManualEntry(false)
       } catch (error) {
         console.error("Email analysis error:", error)
-        toast.error("Error analyzing email. Using pattern matching instead.")
-
-        try {
-          // Final fallback to offline implementation
-          const fraudResult = await offlineCheckEmailForFraud(emailData)
-
-          const checkResult: EmailCheckResult = {
-            threatRating: fraudResult.threatRating,
-            explanation: fraudResult.explanation,
-            sender: emailData.sender,
-            subject: emailData.subject || "Unknown Subject",
-            flags: fraudResult.flags,
-            isOfflineMode: true,
+        
+        if (error && typeof error === "object" && "status" in error) {
+          // Handle specific API errors
+          if ((error as any).status === 401) {
+            toast.error("Invalid API key. Please check your OpenAI API key.")
+          } else {
+            toast.error(`OpenAI API error: ${(error as any).message || "Unknown error"}`)
           }
-
-          setResult(checkResult)
-        } catch (offlineError) {
+        } else {
           toast.error("Failed to analyze email. Please try again later.")
         }
       }
@@ -151,13 +123,13 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
 
   // Function to check the currently open email
   const checkCurrentEmail = async () => {
+    if (!hasApiKey) {
+      toast.error("API key required. Please add an OpenAI API key in the settings.")
+      return
+    }
+
     setIsChecking(true)
     try {
-      // Check if in offline mode
-      if (isOfflineMode) {
-        toast.info("No API key found. Using offline pattern-matching analysis.")
-      }
-
       // Send message to the content script to extract the current email
       let emailExtractResponse: EmailExtractResponse | null = null
       try {
@@ -192,85 +164,37 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       }
 
       // Handle the response
-      if (emailExtractResponse?.success) {
-        // Prepare email data for fraud check
-        const emailData: EmailData = {
-          sender: emailExtractResponse.sender,
-          subject: emailExtractResponse.subject,
-          content: emailExtractResponse.content,
-          timestamp: emailExtractResponse.timestamp,
-        }
-
-        try {
-          let fraudResult: FraudCheckResponse | null = null
-
-          // If no API key, use offline mode directly
-          if (isOfflineMode || !apiKey) {
-            fraudResult = await offlineCheckEmailForFraud(emailData)
-          } else {
-            try {
-              // Try to use OpenAI to check the email when we have an API key
-              fraudResult = await checkEmailWithOpenAI(emailData, apiKey)
-            } catch (apiError) {
-              console.warn("OpenAI API error, using offline mode:", apiError)
-
-              // If OpenAI fails, fall back to the offline implementation
-              fraudResult = await offlineCheckEmailForFraud(emailData)
-
-              // Notify the user that we're using offline mode
-              toast.info("Using offline analysis mode due to API connection issues")
-            }
-          }
-
-          // Transform the API response to our UI result format
-          const checkResult: EmailCheckResult = {
-            threatRating: fraudResult.threatRating,
-            explanation: fraudResult.explanation,
-            sender: emailData.sender,
-            subject: emailData.subject || "Unknown Subject",
-            flags: fraudResult.flags,
-            isOfflineMode: fraudResult.isOfflineMode,
-          }
-
-          setResult(checkResult)
-        } catch (error) {
-          console.error("Email analysis error:", error)
-          if (typeof error === "object" && error !== null && "status" in error) {
-            // Handle specific API errors
-            if (error.status === 401) {
-              toast.error("Invalid API key. Please check your OpenAI API key.")
-            } else if ("message" in error) {
-              toast.error(`Analysis error: ${error.message}`)
-            }
-          } else {
-            toast.error("Error analyzing email. Using pattern matching instead.")
-
-            try {
-              // Final fallback to offline implementation if everything else fails
-              const fraudResult = await offlineCheckEmailForFraud(emailData)
-
-              const checkResult: EmailCheckResult = {
-                threatRating: fraudResult.threatRating,
-                explanation: fraudResult.explanation,
-                sender: emailData.sender,
-                subject: emailData.subject || "Unknown Subject",
-                flags: fraudResult.flags,
-                isOfflineMode: true,
-              }
-
-              setResult(checkResult)
-            } catch (mockError) {
-              toast.error("Failed to analyze email. Please try again later.")
-            }
-          }
-        }
-      } else {
-        throw new Error(emailExtractResponse?.message || "Failed to extract email data")
+      if (!emailExtractResponse || !emailExtractResponse.success) {
+        throw new Error(
+          emailExtractResponse?.message ||
+            "Failed to extract email data. Please make sure you're viewing an email in Gmail."
+        )
       }
+
+      // Prepare email data
+      const emailData: EmailData = {
+        sender: emailExtractResponse.sender,
+        subject: emailExtractResponse.subject,
+        content: emailExtractResponse.content,
+        timestamp: emailExtractResponse.timestamp,
+      }
+
+      // Use OpenAI to check the email
+      const fraudResult = await checkEmailWithOpenAI(emailData, apiKey!)
+
+      // Transform the API response to our UI result format
+      const checkResult: EmailCheckResult = {
+        threatRating: fraudResult.threatRating,
+        explanation: fraudResult.explanation,
+        sender: emailData.sender,
+        subject: emailData.subject || "Unknown Subject",
+        flags: fraudResult.flags
+      }
+
+      setResult(checkResult)
     } catch (error) {
-      const errorString = "Error checking email"
-      console.error(errorString, error)
-      toast.error(error instanceof Error ? `${errorString}: ${error.message}` : errorString)
+      console.error("Error checking email:", error)
+      toast.error(error instanceof Error ? error.message : "Error checking email")
     } finally {
       setIsChecking(false)
     }
@@ -286,7 +210,6 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   return (
     <Card
       sx={{
-        p: { xs: 1.5, sm: 2 },
         borderRadius: 2,
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: "none",
@@ -307,187 +230,167 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         </Typography>
       </Box>
 
-      {/* Optional API Key Info Banner - removed since we now have a global banner */}
-
       {!result ? (
-        <Box>
-          <Typography variant="body2" sx={{ mb: 3, fontSize: "0.9rem" }}>
-            Open an email in Gmail and click the button below to check it for potential fraud.
-            <Box
-              component="span"
-              sx={{
-                display: "block",
-                mt: 1,
-                fontSize: "0.8rem",
-                color: theme.palette.mode === "dark" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)",
-              }}
-            >
-              Note: If you receive connection errors, please refresh the Gmail tab and try again.
-            </Box>
-          </Typography>
-
-          {/* Manual Email Entry Form */}
-          {showManualEntry ? (
-            <Box
-              sx={{
-                mt: 1,
-                mb: 3,
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-                p: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-                backgroundColor:
-                  theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 600,
-                  color: theme.palette.primary.main,
-                }}
+        <Fade in={!result} timeout={400}>
+          <Box>
+            {!hasApiKey && (
+              <Alert 
+                severity="warning" 
+                sx={{ mb: 2, borderRadius: 2 }}
               >
-                Manual Email Entry
-              </Typography>
-
-              <TextField
-                label="Sender Email"
-                placeholder="from@example.com"
-                value={manualSender}
-                onChange={(e) => setManualSender(e.target.value)}
-                fullWidth
-                size="small"
-                required
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 1.5,
-                  },
-                }}
-              />
-
-              <TextField
-                label="Subject"
-                placeholder="Email subject (optional)"
-                value={manualSubject}
-                onChange={(e) => setManualSubject(e.target.value)}
-                fullWidth
-                size="small"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 1.5,
-                  },
-                }}
-              />
-
-              <TextField
-                label="Email Content"
-                placeholder="Paste the email content here..."
-                value={manualContent}
-                onChange={(e) => setManualContent(e.target.value)}
-                fullWidth
-                multiline
-                rows={5}
-                required
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 1.5,
-                  },
-                }}
-              />
-
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setShowManualEntry(false)}
+                An OpenAI API key is required. Please add your API key in the settings.
+              </Alert>
+            )}
+            
+            {!showManualEntry ? (
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="body2"
                   sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
+                    mb: 3,
+                    fontSize: "0.9rem",
+                    color: theme.palette.text.secondary,
                   }}
                 >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={checkManualEmail}
-                  disabled={isChecking || !manualSender.trim() || !manualContent.trim()}
-                  startIcon={isChecking ? <CircularProgress size={16} color="inherit" /> : null}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                  }}
-                  size="small"
-                >
-                  {isChecking ? "Analyzing..." : "Analyze Email"}
-                </Button>
-              </Box>
-            </Box>
-          ) : (
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              {onBackToHome && (
-                <Button
-                  variant="outlined"
-                  onClick={onBackToHome}
-                  size="medium"
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                  }}
-                >
-                  Back
-                </Button>
-              )}
-
-              <Box sx={{ display: "flex", gap: 1, ml: "auto" }}>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => setShowManualEntry(true)}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                  }}
-                  size="medium"
-                >
-                  Manual Entry
-                </Button>
+                  Open a Gmail message and click the button below to analyze it for fraud indicators.
+                </Typography>
 
                 <Button
                   variant="contained"
                   color="primary"
+                  disabled={isChecking || !hasApiKey}
                   onClick={checkCurrentEmail}
-                  disabled={isChecking}
                   startIcon={
                     isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
                   }
                   sx={{
                     borderRadius: 2,
-                    px: 2,
+                    py: 1,
+                    px: 3,
                     textTransform: "none",
+                    fontWeight: 500,
                     boxShadow: 2,
                   }}
-                  size="medium"
                 >
-                  {isChecking ? "Analyzing..." : "Check Current Email"}
+                  {isChecking ? "Analyzing..." : "Analyze Current Email"}
+                </Button>
+
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mt: 3,
+                    mb: 2,
+                    fontSize: "0.8rem",
+                    color: theme.palette.text.secondary,
+                    fontStyle: "italic",
+                  }}
+                >
+                  - or -
+                </Typography>
+
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setShowManualEntry(true)}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 400,
+                    fontSize: "0.8rem",
+                    borderRadius: 2,
+                  }}
+                >
+                  Enter Email Details Manually
                 </Button>
               </Box>
-            </Box>
-          )}
-        </Box>
+            ) : (
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mb: 2,
+                    fontSize: "0.9rem",
+                    color: theme.palette.text.secondary,
+                  }}
+                >
+                  Enter the email details manually to analyze for potential fraud.
+                </Typography>
+
+                <TextField
+                  fullWidth
+                  label="Sender Email"
+                  placeholder="e.g., sender@domain.com"
+                  value={manualSender}
+                  onChange={(e) => setManualSender(e.target.value)}
+                  sx={{ mb: 2 }}
+                  size="small"
+                  variant="outlined"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Subject (optional)"
+                  placeholder="Email subject line"
+                  value={manualSubject}
+                  onChange={(e) => setManualSubject(e.target.value)}
+                  sx={{ mb: 2 }}
+                  size="small"
+                  variant="outlined"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Email Content"
+                  placeholder="Paste the email content here..."
+                  multiline
+                  rows={5}
+                  value={manualContent}
+                  onChange={(e) => setManualContent(e.target.value)}
+                  sx={{ mb: 3 }}
+                  variant="outlined"
+                />
+
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Button
+                    variant="text"
+                    color="inherit"
+                    onClick={() => setShowManualEntry(false)}
+                    sx={{
+                      textTransform: "none",
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    disabled={isChecking || !manualSender.trim() || !manualContent.trim() || !hasApiKey}
+                    onClick={checkManualEmail}
+                    startIcon={
+                      isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
+                    }
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: "none",
+                    }}
+                  >
+                    {isChecking ? "Analyzing..." : "Check For Fraud"}
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Fade>
       ) : (
         <Fade in={!!result} timeout={600}>
           <Box sx={{ width: "100%" }}>
             {/* Using our custom ThreatRating component */}
             <ThreatRating rating={result.threatRating} />
 
-            {/* Email Info */}
+            {/* Email Summary */}
             <Paper
               elevation={0}
               sx={{
-                mt: 3,
+                mt: 2,
                 p: 2,
                 borderRadius: 2,
                 backgroundColor:
@@ -497,29 +400,47 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             >
               <Typography
                 variant="subtitle2"
-                sx={{ mb: 1, fontWeight: 600, color: theme.palette.primary.main }}
+                sx={{
+                  mb: 1,
+                  fontWeight: 600,
+                  color: theme.palette.primary.main,
+                }}
               >
-                Email Details
+                Email Details:
               </Typography>
 
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "flex-start" }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 65 }}>
-                    From:
-                  </Typography>
-                  <Typography variant="body2" sx={{ ml: 1 }}>
-                    {result.sender}
-                  </Typography>
-                </Box>
+              <Box sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  component="span"
+                  sx={{ fontWeight: 500, color: theme.palette.text.primary }}
+                >
+                  From:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  component="span"
+                  sx={{ ml: 1, color: theme.palette.text.secondary }}
+                >
+                  {result.sender}
+                </Typography>
+              </Box>
 
-                <Box sx={{ display: "flex", alignItems: "flex-start" }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 65 }}>
-                    Subject:
-                  </Typography>
-                  <Typography variant="body2" sx={{ ml: 1 }}>
-                    {result.subject}
-                  </Typography>
-                </Box>
+              <Box>
+                <Typography
+                  variant="body2"
+                  component="span"
+                  sx={{ fontWeight: 500, color: theme.palette.text.primary }}
+                >
+                  Subject:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  component="span"
+                  sx={{ ml: 1, color: theme.palette.text.secondary }}
+                >
+                  {result.subject}
+                </Typography>
               </Box>
             </Paper>
 
@@ -548,32 +469,10 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
                   sx={{
                     fontWeight: 600,
                     color: theme.palette.primary.main,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
                   }}
                 >
-                  <ReportProblemIcon fontSize="small" />
-                  {result.isOfflineMode ? "Pattern Analysis" : "AI Analysis"}
+                  AI Analysis:
                 </Typography>
-
-                {result.isOfflineMode && (
-                  <Chip
-                    label="OFFLINE MODE"
-                    size="small"
-                    sx={{
-                      backgroundColor:
-                        theme.palette.mode === "dark"
-                          ? "rgba(255,193,7,0.2)"
-                          : "rgba(255,193,7,0.1)",
-                      color: "#b2930c",
-                      fontSize: "0.65rem",
-                      height: 20,
-                      fontWeight: 600,
-                      border: "1px solid rgba(255,193,7,0.3)",
-                    }}
-                  />
-                )}
               </Box>
 
               <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.5, fontSize: "0.9rem" }}>
@@ -608,9 +507,9 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
                 </Typography>
 
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
-                  {result.flags.map((flag) => (
+                  {result.flags.map((flag, index) => (
                     <Chip
-                      key={flag}
+                      key={index}
                       label={flag}
                       size="small"
                       sx={{
@@ -658,7 +557,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
                 }}
                 size="medium"
               >
-                Check Another Email
+                Analyze Another Email
               </Button>
             </Box>
           </Box>

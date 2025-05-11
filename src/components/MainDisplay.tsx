@@ -17,7 +17,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
 import { useApiKey } from "../hooks/useApiKey"
 import { useManifestHook } from "../hooks/useManifestHook"
@@ -59,9 +59,61 @@ export const MainDisplay = () => {
   const manifest = useManifestHook()
   const theme = useTheme()
   const { darkMode, toggleDarkMode } = useCustomThemeContext()
-  const { isOfflineMode, isLoading } = useApiKey()
+  const { isLoading } = useApiKey()
   const [tabValue, setTabValue] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
+  const [emailProvider, setEmailProvider] = useState<string | null>(null)
+
+  // Email provider detection
+  useEffect(() => {
+    const detectEmailProvider = async () => {
+      try {
+        // Get the active tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+
+        if (tab?.url) {
+          const url = new URL(tab.url)
+          const hostname = url.hostname.toLowerCase()
+
+          // Define known email providers hostnames
+          const emailProviders = [
+            { domain: 'mail.google.com', name: 'Gmail' },
+            { domain: 'outlook.live.com', name: 'Outlook' },
+            { domain: 'outlook.office.com', name: 'Outlook' },
+            { domain: 'outlook.office365.com', name: 'Outlook' },
+            { domain: 'mail.yahoo.com', name: 'Yahoo Mail' },
+            { domain: 'aol.com', name: 'AOL Mail' },
+            { domain: 'protonmail.com', name: 'ProtonMail' },
+            { domain: 'mail.proton.me', name: 'ProtonMail' },
+            { domain: 'zoho.com', name: 'Zoho Mail' }
+          ]
+
+          // Find the matching provider
+          const matchedProvider = emailProviders.find(provider =>
+            hostname.includes(provider.domain)
+          )
+
+          if (matchedProvider) {
+            // We're on an email provider site
+            setEmailProvider(matchedProvider.name)
+            setTabValue(0) // Email tab
+          } else {
+            // Not on an email provider site
+            setEmailProvider(null)
+            setTabValue(1) // Text tab
+          }
+        }
+      } catch (error) {
+        console.error('Error detecting email provider:', error)
+        setEmailProvider(null)
+        // Default to text tab on error
+        setTabValue(1)
+      }
+    }
+
+    // Run the detection
+    detectEmailProvider()
+  }, []) // Empty dependency array means this runs once on mount
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -168,7 +220,7 @@ export const MainDisplay = () => {
             >
               <Tab
                 icon={<MailOutlineIcon fontSize="small" />}
-                label="Email"
+                label={emailProvider ? `Email (${emailProvider})` : "Email"}
                 iconPosition="start"
                 id="fred-tab-0"
                 aria-controls="fred-tabpanel-0"
@@ -182,9 +234,7 @@ export const MainDisplay = () => {
               />
             </Tabs>
 
-            {isOfflineMode && !isLoading && !showSettings && (
-              <OfflineModeBanner theme={theme} onClick={() => setShowSettings(true)} />
-            )}
+            {/* Offline mode has been removed - API key is now required */}
 
             <Box>
               <TabPanel value={tabValue} index={0}>

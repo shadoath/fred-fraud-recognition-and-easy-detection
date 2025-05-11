@@ -6,7 +6,6 @@ export interface ApiKeyState {
   apiKey: string | null;
   hasApiKey: boolean;
   isLoading: boolean;
-  isOfflineMode: boolean;
 }
 
 /**
@@ -55,7 +54,6 @@ export const useApiKey = (): ApiKeyState => {
   return {
     apiKey,
     hasApiKey: !!apiKey,
-    isLoading,
-    isOfflineMode: !apiKey
+    isLoading
   };
 };
