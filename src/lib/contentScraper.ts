@@ -271,26 +271,226 @@ function findLargestTextBlock(document: Document): string | null {
 
 /**
  * Handles the actual DOM traversal and data extraction
+ * This function is injected into the page context via executeScript,
+ * so it needs to be self-contained with all required utilities
  */
 function extractEmailData(url: string): EmailExtractResponse {
   try {
-    // Detect the email client type
-    const { client, detectionMethod } = detectEmailClient(url, document);
-    
-    // Find the matching client config
-    const config = clientConfigs.find(c => c.name === client) || clientConfigs[clientConfigs.length - 1];
-    
-    // Extract the email parts with utility to track success
-    const extractedData = {
-      sender: extractBySelectors(document, config.senderSelectors),
-      subject: extractBySelectors(document, config.subjectSelectors),
-      content: extractBySelectors(document, config.contentSelectors)
+    // Define local utility functions that will be available in the injected context
+    const localUtils = {
+      // Extract email using regex pattern
+      extractEmailAddress: (text: string): string | null => {
+        const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+        return emailMatch ? emailMatch[0] : null;
+      },
+
+      // Format client name for display
+      formatClientName: (clientName: string): string => {
+        return clientName.charAt(0).toUpperCase() + clientName.slice(1);
+      },
+
+      // Truncate text to specified length
+      truncateText: (text: string, maxLength: number): string => {
+        return text.length > maxLength
+          ? `${text.substring(0, maxLength)}... (truncated)`
+          : text;
+      }
     };
-    
+
+    // Recreate the emailClient enum since it won't be available in injected context
+    const EmailClientEnum = {
+      GMAIL: "gmail",
+      OUTLOOK: "outlook",
+      YAHOO: "yahoo",
+      PROTONMAIL: "protonmail",
+      GENERIC: "generic",
+      UNKNOWN: "unknown"
+    };
+
+    // Helper function to detect email client
+    function detectEmailClientLocal(urlStr: string, doc: Document): { client: string, detectionMethod: string } {
+      // Check for Gmail
+      if (/mail\.google\.com/.test(urlStr)) {
+        if (doc.querySelector('[data-message-id]')) {
+          return { client: EmailClientEnum.GMAIL, detectionMethod: "url+element" };
+        }
+        return { client: EmailClientEnum.GMAIL, detectionMethod: "url" };
+      }
+
+      // Check for Outlook
+      if (/outlook\.(live|office|office365)\.com/.test(urlStr)) {
+        if (doc.querySelector('[data-tid="messageBodyContent"]')) {
+          return { client: EmailClientEnum.OUTLOOK, detectionMethod: "url+element" };
+        }
+        return { client: EmailClientEnum.OUTLOOK, detectionMethod: "url" };
+      }
+
+      // Check for Yahoo Mail
+      if (/mail\.yahoo\.com/.test(urlStr)) {
+        return { client: EmailClientEnum.YAHOO, detectionMethod: "url" };
+      }
+
+      // Check for ProtonMail
+      if (/mail\.protonmail\.com/.test(urlStr)) {
+        return { client: EmailClientEnum.PROTONMAIL, detectionMethod: "url" };
+      }
+
+      // Default to generic
+      return { client: EmailClientEnum.GENERIC, detectionMethod: "fallback" };
+    }
+
+    // Helper function to safely extract text
+    function safeExtractTextLocal(element: Element | null): string | null {
+      if (!element) return null;
+
+      // Try textContent first
+      const text = element.textContent?.trim();
+      if (text) return text;
+
+      // Fallback to innerHTML with cleanup
+      if (element.innerHTML) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = element.innerHTML;
+        // Remove all script tags
+        const scripts = tempDiv.querySelectorAll('script');
+        scripts.forEach(script => script.remove());
+        // Get the clean text
+        return tempDiv.textContent?.trim() || null;
+      }
+
+      return null;
+    }
+
+    // Helper function to extract content using selectors
+    function extractBySelectorLocal(doc: Document, selectors: string[]): string | null {
+      for (const selector of selectors) {
+        try {
+          const element = doc.querySelector(selector);
+          if (!element) continue;
+
+          return safeExtractTextLocal(element);
+        } catch (error) {
+          console.error(`Error with selector ${selector}:`, error);
+        }
+      }
+      return null;
+    }
+
+    // Helper function to find largest text block
+    function findLargestTextBlockLocal(doc: Document): string | null {
+      const contentSelector = "article, section, div, p";
+
+      // Filter elements with meaningful text content
+      const contentBlocks = Array.from(doc.querySelectorAll(contentSelector)).filter(el => {
+        const text = el.textContent?.trim() || "";
+        return text.length > 100 && text.includes(" ") && !el.querySelector("script");
+      });
+
+      if (contentBlocks.length === 0) return null;
+
+      // Sort by text length to find the largest content block
+      contentBlocks.sort((a, b) => (b.textContent?.length || 0) - (a.textContent?.length || 0));
+
+      return contentBlocks[0].textContent?.trim() || null;
+    }
+
+    // Common selectors for various email elements
+    const commonSelectorsLocal = {
+      senderCommon: [
+        "[class*='sender']", "[class*='from']", "[id*='sender']", "[id*='from']"
+      ],
+      subjectCommon: [
+        "[class*='subject']", "[id*='subject']", "h1", "h2"
+      ],
+      contentCommon: [
+        "[class*='body']", "[class*='content']", "[id*='body']", "[id*='content']",
+        "article", "main", ".main", "#main"
+      ]
+    };
+
+    // Client-specific selectors
+    const clientConfigsLocal = {
+      [EmailClientEnum.GMAIL]: {
+        senderSelectors: [
+          "[data-message-id] [email]", ".gD [email]", ".gE [email]", "[data-hovercard-id]"
+        ],
+        subjectSelectors: [
+          ".ha h2", "[data-message-id] .hP", ".nH h2"
+        ],
+        contentSelectors: [
+          "[data-message-id] .a3s.aiL", ".a3s", ".adn .gs"
+        ],
+        // Gmail-specific fallback for sender
+        fallbackStrategy: (doc: Document) => {
+          const fromLabels = Array.from(doc.querySelectorAll(".adn .gE, .adn .gF"));
+          for (const label of fromLabels) {
+            if (label.textContent?.includes("@")) {
+              const emailAddress = localUtils.extractEmailAddress(label.textContent);
+              if (emailAddress) return { sender: emailAddress };
+            }
+          }
+          return {};
+        }
+      },
+      [EmailClientEnum.OUTLOOK]: {
+        senderSelectors: [
+          ".allowTextSelection span[data-tid='from'] span", ".from span",
+          "span[data-tid='from']", "[role='heading'] + div span"
+        ],
+        subjectSelectors: [
+          "[role='heading']", ".subjectLine", ".subject"
+        ],
+        contentSelectors: [
+          "[role='region'][aria-label*='Message body']", ".ReadMsgBody",
+          ".rps_b9c8", "[data-tid='messageBodyContent']"
+        ]
+      },
+      [EmailClientEnum.YAHOO]: {
+        senderSelectors: [
+          ".message-from span", ".pointer.ellipsis.from"
+        ],
+        subjectSelectors: [
+          ".message-subject span", ".subject-text"
+        ],
+        contentSelectors: [
+          ".msg-body", ".mail-content"
+        ]
+      },
+      [EmailClientEnum.PROTONMAIL]: {
+        senderSelectors: [
+          ".item-sender-address", ".message-sender"
+        ],
+        subjectSelectors: [
+          ".item-subject", ".message-subject"
+        ],
+        contentSelectors: [
+          ".message-content", ".content"
+        ]
+      },
+      [EmailClientEnum.GENERIC]: {
+        senderSelectors: commonSelectorsLocal.senderCommon,
+        subjectSelectors: commonSelectorsLocal.subjectCommon,
+        contentSelectors: commonSelectorsLocal.contentCommon
+      }
+    };
+
+    // Detect the email client type
+    const { client, detectionMethod } = detectEmailClientLocal(url, document);
+
+    // Get the client config
+    const config = clientConfigsLocal[client] || clientConfigsLocal[EmailClientEnum.GENERIC];
+
+    // Extract the email parts
+    const extractedData = {
+      sender: extractBySelectorLocal(document, config.senderSelectors),
+      subject: extractBySelectorLocal(document, config.subjectSelectors),
+      content: extractBySelectorLocal(document, config.contentSelectors)
+    };
+
     // Use client-specific fallback strategies if needed
     if (config.fallbackStrategy && (!extractedData.sender || !extractedData.content)) {
       const fallbackData = config.fallbackStrategy(document);
-      
+
       // Apply fallback data where needed
       if (!extractedData.sender && fallbackData.sender) extractedData.sender = fallbackData.sender;
       if (!extractedData.content && fallbackData.content) extractedData.content = fallbackData.content;
@@ -299,18 +499,18 @@ function extractEmailData(url: string): EmailExtractResponse {
 
     // Last resort fallback for content
     if (!extractedData.content) {
-      extractedData.content = findLargestTextBlock(document);
+      extractedData.content = findLargestTextBlockLocal(document);
     }
-    
+
     // Extract email addresses using regex if we have text but not a clear email
     if (extractedData.sender && !extractedData.sender.includes('@')) {
-      const emailAddress = utils.extractEmailAddress(extractedData.sender);
+      const emailAddress = localUtils.extractEmailAddress(extractedData.sender);
       if (emailAddress) extractedData.sender = emailAddress;
     }
-    
+
     // Limit content size to avoid performance issues
     if (extractedData.content) {
-      extractedData.content = utils.truncateText(extractedData.content, 5000);
+      extractedData.content = localUtils.truncateText(extractedData.content, 5000);
     }
     
     // Log extraction details
@@ -322,7 +522,7 @@ function extractEmailData(url: string): EmailExtractResponse {
       contentFound: !!extractedData.content,
       contentLength: extractedData.content?.length || 0
     });
-    
+
     // Prepare the consistent response format
     const commonResponse = {
       client,
@@ -331,7 +531,17 @@ function extractEmailData(url: string): EmailExtractResponse {
         detectionMethod
       }
     };
-    
+
+    // Create error message function locally
+    function createErrorMessage(data: { sender?: string | null, content?: string | null }): string {
+      const missingParts = [];
+      if (!data.sender) missingParts.push('sender email');
+      if (!data.content) missingParts.push('email content');
+
+      return `Could not extract complete email data. Missing: ${missingParts.join(', ')}.
+              Please ensure you have an email open in your mail client.`;
+    }
+
     // Return success or failure based on required data presence
     if (extractedData.sender && extractedData.content) {
       return {
@@ -349,7 +559,7 @@ function extractEmailData(url: string): EmailExtractResponse {
         sender: extractedData.sender,
         subject: extractedData.subject,
         content: extractedData.content,
-        message: constructErrorMessage(extractedData),
+        message: createErrorMessage(extractedData),
         ...commonResponse
       };
     }
@@ -357,8 +567,8 @@ function extractEmailData(url: string): EmailExtractResponse {
     console.error("Error extracting email data:", error);
     return {
       success: false,
-      message: `Error extracting email data: ${(error as Error).message}`,
-      client: EmailClient.UNKNOWN,
+      message: `Error extracting email data: ${error instanceof Error ? error.message : String(error)}`,
+      client: EmailClientEnum.UNKNOWN,
       clientData: {
         url,
         detectionMethod: "error"
