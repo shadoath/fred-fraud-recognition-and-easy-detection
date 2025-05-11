@@ -145,42 +145,29 @@ const clientConfigs: ClientConfig[] = [
 ]
 
 // Helper function to detect email client
-function detectEmailClientLocal(
+const detectEmailClientLocal = (
   urlStr: string,
   doc: Document
-): { client: EmailClient; detectionMethod: string } {
-  // Check for Gmail
-  if (/mail\.google\.com/.test(urlStr)) {
-    if (doc.querySelector("[data-message-id]")) {
-      return { client: EmailClient.GMAIL, detectionMethod: "url+element" }
-    }
-    return { client: EmailClient.GMAIL, detectionMethod: "url" }
+): { client: EmailClient; detectionMethod: string } => {
+  // Find matching client config
+  const config = clientConfigs.find((config) =>
+    config.urlPatterns.some((pattern) => pattern.test(urlStr))
+  )
+
+  if (!config) {
+    return { client: EmailClient.UNKNOWN, detectionMethod: "fallback" }
   }
 
-  // Check for Outlook
-  if (/outlook\.(live|office|office365)\.com/.test(urlStr)) {
-    if (doc.querySelector('[data-tid="messageBodyContent"]')) {
-      return { client: EmailClient.OUTLOOK, detectionMethod: "url+element" }
-    }
-    return { client: EmailClient.OUTLOOK, detectionMethod: "url" }
+  // Check for validation element if specified
+  if (config.validationElement && doc.querySelector(config.validationElement)) {
+    return { client: config.name, detectionMethod: "url+element" }
   }
 
-  // Check for Yahoo Mail
-  if (/mail\.yahoo\.com/.test(urlStr)) {
-    return { client: EmailClient.YAHOO, detectionMethod: "url" }
-  }
-
-  // Check for ProtonMail
-  if (/mail\.protonmail\.com/.test(urlStr)) {
-    return { client: EmailClient.PROTONMAIL, detectionMethod: "url" }
-  }
-
-  // Default to generic
-  return { client: EmailClient.GENERIC, detectionMethod: "fallback" }
+  return { client: config.name, detectionMethod: "url" }
 }
 
 // Helper function to safely extract text
-function safeExtractTextLocal(element: Element | null): string | null {
+const safeExtractTextLocal = (element: Element | null): string | null => {
   if (!element) return null
 
   // Try textContent first
@@ -202,7 +189,7 @@ function safeExtractTextLocal(element: Element | null): string | null {
 }
 
 // Helper function to extract content using selectors
-function extractBySelectorLocal(doc: Document, selectors: string[]): string | null {
+const extractBySelectorLocal = (doc: Document, selectors: string[]): string | null => {
   for (const selector of selectors) {
     try {
       const element = doc.querySelector(selector)
@@ -217,7 +204,7 @@ function extractBySelectorLocal(doc: Document, selectors: string[]): string | nu
 }
 
 // Helper function to find largest text block
-function findLargestTextBlockLocal(doc: Document): string | null {
+const findLargestTextBlockLocal = (doc: Document): string | null => {
   const contentSelector = "article, section, div, p"
 
   // Filter elements with meaningful text content
@@ -235,7 +222,7 @@ function findLargestTextBlockLocal(doc: Document): string | null {
 }
 
 // Create error message function
-function createErrorMessage(data: { sender?: string | null; content?: string | null }): string {
+const createErrorMessage = (data: { sender?: string | null; content?: string | null }): string => {
   const missingParts = []
   if (!data.sender) missingParts.push("sender email")
   if (!data.content) missingParts.push("email content")
@@ -249,7 +236,7 @@ function createErrorMessage(data: { sender?: string | null; content?: string | n
  * This function is injected into the page context via executeScript,
  * so it needs to be self-contained with all required utilities
  */
-function extractEmailData(url: string): EmailExtractResponse {
+const extractEmailData = (url: string): EmailExtractResponse => {
   try {
     // Define local utility functions that will be available in the injected context
     const localUtils = {
@@ -270,117 +257,16 @@ function extractEmailData(url: string): EmailExtractResponse {
       },
     }
 
-    // Common selectors for various email elements
-    const commonSelectorsLocal = {
-      senderCommon: ["[class*='sender']", "[class*='from']", "[id*='sender']", "[id*='from']"],
-      subjectCommon: ["[class*='subject']", "[id*='subject']", "h1", "h2"],
-      contentCommon: [
-        "[class*='body']",
-        "[class*='content']",
-        "[id*='body']",
-        "[id*='content']",
-        "article",
-        "main",
-        ".main",
-        "#main",
-      ],
-    }
-
-    // Client-specific selectors
-    const clientConfigsLocal: Record<
-      EmailClient,
-      {
-        senderSelectors: string[]
-        subjectSelectors: string[]
-        contentSelectors: string[]
-        fallbackStrategy?: (doc: Document) => { sender?: string }
-      }
-    > = {
-      [EmailClient.GMAIL]: {
-        senderSelectors: [
-          "[data-message-id] [email]",
-          ".go.gD",
-          ".gD [email]",
-          ".gE [email]",
-          "[data-hovercard-id]",
-        ],
-        subjectSelectors: [".ha h2", "[data-message-id] .hP", ".nH h2"],
-        contentSelectors: ["[data-message-id] .a3s.aiL", ".a3s", ".adn .gs"],
-        fallbackStrategy: (doc: Document) => {
-          const emailElement = doc.querySelector(".go.gD")
-          if (emailElement?.textContent?.includes("@")) {
-            return { sender: emailElement.textContent.trim() }
-          }
-
-          const emailAttrs = Array.from(doc.querySelectorAll("[email]"))
-          for (const el of emailAttrs) {
-            const email = el.getAttribute("email")
-            if (email?.includes("@")) {
-              return { sender: email }
-            }
-          }
-
-          const hoverElements = Array.from(doc.querySelectorAll("[data-hovercard-id]"))
-          for (const el of hoverElements) {
-            const hoverId = el.getAttribute("data-hovercard-id")
-            if (hoverId?.includes("@")) {
-              return { sender: hoverId }
-            }
-          }
-
-          const fromLabels = Array.from(doc.querySelectorAll(".adn .gE, .adn .gF, .go, .g2"))
-          for (const label of fromLabels) {
-            if (label.textContent?.includes("@")) {
-              const emailAddress = localUtils.extractEmailAddress(label.textContent)
-              if (emailAddress) return { sender: emailAddress }
-            }
-          }
-
-          return {}
-        },
-      },
-      [EmailClient.OUTLOOK]: {
-        senderSelectors: [
-          ".allowTextSelection span[data-tid='from'] span",
-          ".from span",
-          "span[data-tid='from']",
-          "[role='heading'] + div span",
-        ],
-        subjectSelectors: ["[role='heading']", ".subjectLine", ".subject"],
-        contentSelectors: [
-          "[role='region'][aria-label*='Message body']",
-          ".ReadMsgBody",
-          ".rps_b9c8",
-          "[data-tid='messageBodyContent']",
-        ],
-      },
-      [EmailClient.YAHOO]: {
-        senderSelectors: [".message-from span", ".pointer.ellipsis.from"],
-        subjectSelectors: [".message-subject span", ".subject-text"],
-        contentSelectors: [".msg-body", ".mail-content"],
-      },
-      [EmailClient.PROTONMAIL]: {
-        senderSelectors: [".item-sender-address", ".message-sender"],
-        subjectSelectors: [".item-subject", ".message-subject"],
-        contentSelectors: [".message-content", ".content"],
-      },
-      [EmailClient.GENERIC]: {
-        senderSelectors: commonSelectorsLocal.senderCommon,
-        subjectSelectors: commonSelectorsLocal.subjectCommon,
-        contentSelectors: commonSelectorsLocal.contentCommon,
-      },
-      [EmailClient.UNKNOWN]: {
-        senderSelectors: commonSelectorsLocal.senderCommon,
-        subjectSelectors: commonSelectorsLocal.subjectCommon,
-        contentSelectors: commonSelectorsLocal.contentCommon,
-      },
-    }
-
     // Detect the email client type
     const { client, detectionMethod } = detectEmailClientLocal(url, document)
 
-    // Get the client config
-    const config = clientConfigsLocal[client] || clientConfigsLocal[EmailClient.GENERIC]
+    // Find matching client config
+    const config =
+      clientConfigs.find((c) => c.name === client) ||
+      clientConfigs.find((c) => c.name === EmailClient.GENERIC)
+    if (!config) {
+      throw new Error("No matching client configuration found")
+    }
 
     // Extract the email parts
     const extractedData = {
@@ -488,7 +374,7 @@ function extractEmailData(url: string): EmailExtractResponse {
 /**
  * Main function to extract email data from the current tab using chrome APIs
  */
-export async function extractEmailFromTab(tabId: number): Promise<EmailExtractResponse> {
+export const extractEmailFromTab = async (tabId: number): Promise<EmailExtractResponse> => {
   try {
     // Validate tab and permissions
     const tab = await chrome.tabs.get(tabId)

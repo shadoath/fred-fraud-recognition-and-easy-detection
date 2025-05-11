@@ -118,7 +118,9 @@ const commonFraudPatterns: FraudPattern[] = [
  * @param emailData The email data to analyze
  * @returns The fraud check results with offline mode indicator
  */
-export async function offlineCheckEmailForFraud(emailData: EmailData): Promise<FraudCheckResponse> {
+export const offlineCheckEmailForFraud = async (
+  emailData: EmailData
+): Promise<FraudCheckResponse> => {
   // Simulate API call delay
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
@@ -204,7 +206,7 @@ export async function offlineCheckEmailForFraud(emailData: EmailData): Promise<F
  * @param textData The text data to analyze
  * @returns The fraud check results with offline mode indicator
  */
-export async function offlineCheckTextForFraud(textData: TextData): Promise<FraudCheckResponse> {
+export const offlineCheckTextForFraud = async (textData: TextData): Promise<FraudCheckResponse> => {
   // Simulate API call delay
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
@@ -259,12 +261,12 @@ export async function offlineCheckTextForFraud(textData: TextData): Promise<Frau
 /**
  * Helper function to generate explanation text based on analysis results
  */
-function generateExplanation(
+const generateExplanation = (
   contentType: "email" | "text",
   categories: Set<string>,
   threatRating: number,
   flags: string[]
-): string {
+): string => {
   // Create category-based explanation
   if (categories.size > 0) {
     let explanation = `[OFFLINE MODE ANALYSIS] This ${contentType} ${

@@ -12,7 +12,7 @@ const OBFUSCATION_KEY = "FRED-2025-PROTECTION"
  * @param apiKey The raw API key to obfuscate.
  * @returns Obfuscated key string.
  */
-export function obfuscateApiKey(apiKey: string): string {
+export const obfuscateApiKey = (apiKey: string): string => {
   if (!apiKey) return ""
 
   const base64 = btoa(apiKey)
@@ -28,7 +28,7 @@ export function obfuscateApiKey(apiKey: string): string {
  * @param obfuscated Obfuscated key string.
  * @returns The original API key, or an empty string if invalid.
  */
-export function recoverApiKey(obfuscated: string): string {
+export const recoverApiKey = (obfuscated: string): string => {
   if (!obfuscated) return ""
 
   try {
