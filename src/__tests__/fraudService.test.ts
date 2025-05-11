@@ -2,10 +2,9 @@ import axios from 'axios';
 import { 
   checkEmailWithOpenAI, 
   checkTextWithOpenAI,
+  OPENAI_API_URL,
   safeCheckEmailWithOpenAI,
-  safeCheckTextWithOpenAI,
-  OPENAI_API_URL
-} from '../lib/fraudService';
+  safeCheckTextWithOpenAI} from '../lib/fraudService';
 import { EmailData, TextData } from '../types/fraudTypes';
 
 // Mock axios to avoid actual API calls
