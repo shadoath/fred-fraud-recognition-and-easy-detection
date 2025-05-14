@@ -23,7 +23,6 @@ import { useManifestHook } from "../hooks/useManifestHook"
 import { ApiKeySettings } from "./ApiKeySettings"
 import { EmailAnalyzer } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
-import PermissionsManager from "./PermissionsManager"
 import { TextInputAnalyzer } from "./TextInputAnalyzer"
 
 interface TabPanelProps {
@@ -186,7 +185,7 @@ export const MainDisplay = () => {
           <Box>
             <ErrorBoundary>
               <ApiKeySettings />
-              <PermissionsManager />
+              {/* <PermissionsManager /> */}
             </ErrorBoundary>
           </Box>
         </Slide>
