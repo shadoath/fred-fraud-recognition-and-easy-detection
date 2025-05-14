@@ -18,7 +18,6 @@ import {
 import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { extractEmailFromTab } from "../lib/contentScraper"
 import { checkEmailWithOpenAI, type EmailData } from "../lib/fraudService"
 import { ThreatRating } from "./ThreatRating"
 
@@ -29,21 +28,15 @@ export interface EmailCheckResult {
   sender: string
   subject: string
   flags?: string[] // Optional indicators of fraud
-  extractedFrom?: string // Which client the email was extracted from
 }
 
 interface EmailAnalyzerProps {
   onBackToHome?: () => void
 }
 
-// Constants for styling and defaults
-const STORAGE_KEY = {
-  EXTRACTED_CLIENT: 'lastExtractedClient'
-};
-
 const DEFAULT_VALUES = {
-  SUBJECT: "No Subject"
-};
+  SUBJECT: "No Subject",
+}
 
 export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   // State management
@@ -53,30 +46,30 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   const [emailFormData, setEmailFormData] = useState({
     sender: "",
     subject: "",
-    content: ""
+    content: "",
   })
-  
+
   // Hooks
   const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
   // Form field handlers
-  const handleFieldChange = (field: keyof typeof emailFormData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setEmailFormData({
-      ...emailFormData,
-      [field]: e.target.value
-    })
-  }
+  const handleFieldChange =
+    (field: keyof typeof emailFormData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setEmailFormData({
+        ...emailFormData,
+        [field]: e.target.value,
+      })
+    }
 
   // Reset form fields
   const resetForm = () => {
     setEmailFormData({
       sender: "",
       subject: "",
-      content: ""
+      content: "",
     })
   }
 
@@ -101,32 +94,55 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         throw new Error("No active tab found")
       }
 
-      // Extract the email from the current tab
-      const extractResult = await extractEmailFromTab(tabs[0].id)
+      // Check if we're on Gmail
+      const url = tabs[0].url || ""
+      if (!url.includes("mail.google.com")) {
+        throw new Error("Please open Gmail to extract email content")
+      }
 
-      if (!extractResult.success) {
-        throw new Error(extractResult.message || "Failed to extract email content")
+      // Execute the scrapeGmail function from our injected content script
+      const [result] = await chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        func: () => {
+          // This will call our globally exposed scrapeGmail function from the content script
+          // @ts-ignore - the scrapeGmail function is defined in the gmailScraper.js content script
+          return window.scrapeGmail ? window.scrapeGmail() : null
+        },
+      })
+
+      const extractResult = result.result || null
+
+      if (!extractResult || !extractResult.success) {
+        throw new Error(extractResult?.message || "Failed to extract email content")
       }
 
       // Populate the form with extracted data
       setEmailFormData({
         sender: extractResult.sender || "",
         subject: extractResult.subject || "",
-        content: extractResult.content || ""
+        content: extractResult.content || "",
       })
 
-      // Show success message with client info and store for later
-      const clientName = extractResult.client ? 
-        extractResult.client.charAt(0).toUpperCase() + extractResult.client.slice(1) : 
-        "Unknown";
-      
-      // Store the client name for later display in results
-      window.localStorage.setItem(STORAGE_KEY.EXTRACTED_CLIENT, clientName);
-      
-      toast.success(`Email extracted from ${clientName}`)
+      toast.success("Email extracted from Gmail")
     } catch (error) {
-      console.error("Email extraction error:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to extract email")
+      console.error("Gmail extraction error:", error)
+
+      // Provide more helpful error messages
+      if (error instanceof Error) {
+        if (error.message.includes("Please open Gmail")) {
+          toast.error(
+            "Please open Gmail to extract email content. This extension currently only supports Gmail."
+          )
+        } else if (error.message.includes("Permission")) {
+          toast.error(
+            "Permission required. Please make sure you've allowed this extension to access Gmail."
+          )
+        } else {
+          toast.error(error.message || "Failed to extract email from Gmail")
+        }
+      } else {
+        toast.error("Failed to extract email from Gmail. Please make sure you have an email open.")
+      }
     } finally {
       setIsExtracting(false)
     }
@@ -153,10 +169,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       }
 
       // Use OpenAI to check the email
-      const fraudResult = await checkEmailWithOpenAI(emailData, apiKey!)
-
-      // Get the stored client name if we extracted from a mail client
-      const extractedClient = window.localStorage.getItem(STORAGE_KEY.EXTRACTED_CLIENT);
+      const fraudResult = await checkEmailWithOpenAI(emailData, apiKey || "")
 
       // Transform the API response to our UI result format
       const checkResult: EmailCheckResult = {
@@ -165,11 +178,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         sender: emailData.sender,
         subject: emailData.subject || DEFAULT_VALUES.SUBJECT,
         flags: fraudResult.flags,
-        extractedFrom: extractedClient || undefined
       }
-
-      // Clear the stored client name after using it
-      window.localStorage.removeItem(STORAGE_KEY.EXTRACTED_CLIENT)
 
       // Update UI
       setResult(checkResult)
@@ -212,7 +221,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          mb: 2
+          mb: 2,
         }}
       >
         <Typography
@@ -238,7 +247,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             sx={{
               borderRadius: 2,
               textTransform: "none",
-              fontSize: "0.8rem"
+              fontSize: "0.8rem",
             }}
           >
             {isExtracting ? "Extracting..." : "Extract from Tab"}
@@ -251,7 +260,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         label="Sender Email"
         placeholder="e.g., sender@domain.com"
         value={emailFormData.sender}
-        onChange={handleFieldChange('sender')}
+        onChange={handleFieldChange("sender")}
         sx={{ mb: 2 }}
         size="small"
         variant="outlined"
@@ -262,7 +271,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         label="Subject (optional)"
         placeholder="Email subject line"
         value={emailFormData.subject}
-        onChange={handleFieldChange('subject')}
+        onChange={handleFieldChange("subject")}
         sx={{ mb: 2 }}
         size="small"
         variant="outlined"
@@ -275,7 +284,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         multiline
         rows={5}
         value={emailFormData.content}
-        onChange={handleFieldChange('content')}
+        onChange={handleFieldChange("content")}
         sx={{ mb: 3 }}
         variant="outlined"
       />
@@ -285,16 +294,14 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
           variant="contained"
           color="primary"
           disabled={
-            isChecking || 
-            isExtracting || 
-            !emailFormData.sender.trim() || 
-            !emailFormData.content.trim() || 
+            isChecking ||
+            isExtracting ||
+            !emailFormData.sender.trim() ||
+            !emailFormData.content.trim() ||
             !hasApiKey
           }
           onClick={checkEmail}
-          startIcon={
-            isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
-          }
+          startIcon={isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />}
           sx={{
             borderRadius: 2,
             textTransform: "none",
@@ -378,7 +385,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
                 fontWeight: 500,
                 color: theme.palette.text.primary,
                 fontSize: "0.75rem",
-                fontStyle: "italic"
+                fontStyle: "italic",
               }}
             >
               Source:
@@ -390,7 +397,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
                 ml: 1,
                 color: theme.palette.info.main,
                 fontSize: "0.75rem",
-                fontStyle: "italic"
+                fontStyle: "italic",
               }}
             >
               Extracted from {result!.extractedFrom}
