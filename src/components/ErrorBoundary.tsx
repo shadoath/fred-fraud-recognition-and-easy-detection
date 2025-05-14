@@ -1,18 +1,18 @@
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import { Box, Button, Paper, Typography, useTheme } from "@mui/material";
-import React, { Component, ErrorInfo, ReactNode } from "react";
-import { useCustomSnackbar } from "../contexts/CustomSnackbarContext";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"
+import RefreshIcon from "@mui/icons-material/Refresh"
+import { Box, Button, Paper, Typography, useTheme } from "@mui/material"
+import React, { Component, type ErrorInfo, type ReactNode } from "react"
+import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: ReactNode
+  fallback?: ReactNode
 }
 
 interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  hasError: boolean
+  error: Error | null
+  errorInfo: ErrorInfo | null
 }
 
 /**
@@ -21,12 +21,12 @@ interface State {
  */
 class ErrorBoundaryClass extends Component<Props, State> {
   constructor(props: Props) {
-    super(props);
+    super(props)
     this.state = {
       hasError: false,
       error: null,
       errorInfo: null,
-    };
+    }
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -35,15 +35,15 @@ class ErrorBoundaryClass extends Component<Props, State> {
       hasError: true,
       error,
       errorInfo: null,
-    };
+    }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log the error to an error reporting service
-    console.error("Error caught by ErrorBoundary:", error, errorInfo);
+    console.error("Error caught by ErrorBoundary:", error, errorInfo)
     this.setState({
       errorInfo,
-    });
+    })
   }
 
   resetErrorBoundary = (): void => {
@@ -51,53 +51,45 @@ class ErrorBoundaryClass extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
-    });
-  };
+    })
+  }
 
   render(): ReactNode {
-    const { hasError, error } = this.state;
-    const { children, fallback } = this.props;
+    const { hasError, error } = this.state
+    const { children, fallback } = this.props
 
     if (hasError) {
       // Custom fallback UI
       if (fallback) {
-        return fallback;
+        return fallback
       }
 
       // Default fallback UI
-      return (
-        <ErrorFallback
-          error={error}
-          resetErrorBoundary={this.resetErrorBoundary}
-        />
-      );
+      return <ErrorFallback error={error} resetErrorBoundary={this.resetErrorBoundary} />
     }
 
-    return children;
+    return children
   }
 }
 
 interface ErrorFallbackProps {
-  error: Error | null;
-  resetErrorBoundary: () => void;
+  error: Error | null
+  resetErrorBoundary: () => void
 }
 
 /**
  * Default fallback UI component for the error boundary
  */
-const ErrorFallback: React.FC<ErrorFallbackProps> = ({
-  error,
-  resetErrorBoundary,
-}) => {
-  const theme = useTheme();
-  const { toast } = useCustomSnackbar();
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary }) => {
+  const theme = useTheme()
+  const { toast } = useCustomSnackbar()
 
   React.useEffect(() => {
     // Show a toast notification when an error occurs
     if (error) {
-      toast.error("An error occurred in the application");
+      toast.error("An error occurred in the application")
     }
-  }, [error, toast]);
+  }, [error, toast])
 
   return (
     <Paper
@@ -112,14 +104,8 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <ErrorOutlineIcon
-          color="error"
-          sx={{ mr: 1, fontSize: "1.5rem" }}
-        />
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: 600, color: theme.palette.error.main }}
-        >
+        <ErrorOutlineIcon color="error" sx={{ mr: 1, fontSize: "1.5rem" }} />
+        <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
           Something went wrong
         </Typography>
       </Box>
@@ -135,8 +121,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           sx={{
             p: 1.5,
             mb: 2,
-            backgroundColor:
-              theme.palette.mode === "dark" ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.05)",
+            backgroundColor: theme.palette.mode === "dark" ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.05)",
             borderRadius: 1,
             fontFamily: "monospace",
             fontSize: "0.8rem",
@@ -158,12 +143,12 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         Try Again
       </Button>
     </Paper>
-  );
-};
+  )
+}
 
 /**
  * HOC that wraps the ErrorBoundaryClass to allow hooks in the fallback UI
  */
 export const ErrorBoundary: React.FC<Props> = (props) => {
-  return <ErrorBoundaryClass {...props} />;
-};
+  return <ErrorBoundaryClass {...props} />
+}
