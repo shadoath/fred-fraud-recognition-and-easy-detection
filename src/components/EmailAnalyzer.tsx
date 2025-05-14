@@ -314,128 +314,15 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   )
 
   // UI Component: Results Display
-  const ResultsDisplay = () => (
-    <Box sx={{ width: "100%" }}>
-      {/* Using our custom ThreatRating component */}
-      <ThreatRating rating={result!.threatRating} />
+  const ResultsDisplay = () => {
+    if (!result) return null
 
-      {/* Email Summary */}
-      <Paper
-        elevation={0}
-        sx={{
-          mt: 2,
-          p: 2,
-          borderRadius: 2,
-          backgroundColor:
-            theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-          border: `1px solid ${theme.palette.divider}`,
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{
-            mb: 1,
-            fontWeight: 600,
-            color: theme.palette.primary.main,
-          }}
-        >
-          Email Details:
-        </Typography>
+    return (
+      <Box sx={{ width: "100%" }}>
+        {/* Using our custom ThreatRating component */}
+        <ThreatRating rating={result.threatRating} />
 
-        <Box sx={{ mb: 1 }}>
-          <Typography
-            variant="body2"
-            component="span"
-            sx={{ fontWeight: 500, color: theme.palette.text.primary }}
-          >
-            From:
-          </Typography>
-          <Typography
-            variant="body2"
-            component="span"
-            sx={{ ml: 1, color: theme.palette.text.secondary }}
-          >
-            {result!.sender}
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography
-            variant="body2"
-            component="span"
-            sx={{ fontWeight: 500, color: theme.palette.text.primary }}
-          >
-            Subject:
-          </Typography>
-          <Typography
-            variant="body2"
-            component="span"
-            sx={{ ml: 1, color: theme.palette.text.secondary }}
-          >
-            {result!.subject}
-          </Typography>
-        </Box>
-
-        {result!.extractedFrom && (
-          <Box sx={{ mt: 1 }}>
-            <Typography
-              variant="body2"
-              component="span"
-              sx={{
-                fontWeight: 500,
-                color: theme.palette.text.primary,
-                fontSize: "0.75rem",
-                fontStyle: "italic",
-              }}
-            >
-              Source:
-            </Typography>
-            <Typography
-              variant="body2"
-              component="span"
-              sx={{
-                ml: 1,
-                color: theme.palette.info.main,
-                fontSize: "0.75rem",
-                fontStyle: "italic",
-              }}
-            >
-              Extracted from {result!.extractedFrom}
-            </Typography>
-          </Box>
-        )}
-      </Paper>
-
-      {/* Analysis */}
-      <Paper
-        elevation={0}
-        sx={{
-          mt: 2,
-          p: 2,
-          borderRadius: 2,
-          backgroundColor:
-            theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-          border: `1px solid ${theme.palette.divider}`,
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{
-            mb: 1,
-            fontWeight: 600,
-            color: theme.palette.primary.main,
-          }}
-        >
-          AI Analysis:
-        </Typography>
-
-        <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.5, fontSize: "0.9rem" }}>
-          {result!.explanation}
-        </Typography>
-      </Paper>
-
-      {/* Detected Indicators */}
-      {result!.flags && result!.flags.length > 0 && (
+        {/* Email Summary */}
         <Paper
           elevation={0}
           sx={{
@@ -443,79 +330,167 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             p: 2,
             borderRadius: 2,
             backgroundColor:
-              theme.palette.mode === "dark"
-                ? `${getThreatColor(result!.threatRating)}10`
-                : `${getThreatColor(result!.threatRating)}08`,
-            border: `1px solid ${getThreatColor(result!.threatRating)}30`,
+              theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+            border: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Typography
             variant="subtitle2"
             sx={{
-              mb: 1.5,
+              mb: 1,
               fontWeight: 600,
-              color: getThreatColor(result!.threatRating),
+              color: theme.palette.primary.main,
             }}
           >
-            Detected Indicators:
+            Email Details:
           </Typography>
 
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
-            {result!.flags.map((flag, index) => (
-              <Chip
-                key={index}
-                label={flag}
-                size="small"
-                sx={{
-                  backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? `${getThreatColor(result!.threatRating)}20`
-                      : `${getThreatColor(result!.threatRating)}15`,
-                  color: getThreatColor(result!.threatRating),
-                  borderRadius: 1,
-                  fontSize: "0.75rem",
-                  "& .MuiChip-label": {
-                    px: 1,
-                  },
-                }}
-              />
-            ))}
+          <Box sx={{ mb: 1 }}>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{ fontWeight: 500, color: theme.palette.text.primary }}
+            >
+              From:
+            </Typography>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{ ml: 1, color: theme.palette.text.secondary }}
+            >
+              {result.sender}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{ fontWeight: 500, color: theme.palette.text.primary }}
+            >
+              Subject:
+            </Typography>
+            <Typography
+              variant="body2"
+              component="span"
+              sx={{ ml: 1, color: theme.palette.text.secondary }}
+            >
+              {result.subject}
+            </Typography>
           </Box>
         </Paper>
-      )}
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-        {onBackToHome && (
-          <Button
-            variant="outlined"
-            onClick={onBackToHome}
-            size="medium"
+        {/* Analysis */}
+        <Paper
+          elevation={0}
+          sx={{
+            mt: 2,
+            p: 2,
+            borderRadius: 2,
+            backgroundColor:
+              theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+            border: `1px solid ${theme.palette.divider}`,
+          }}
+        >
+          <Typography
+            variant="subtitle2"
             sx={{
-              borderRadius: 2,
-              textTransform: "none",
+              mb: 1,
+              fontWeight: 600,
+              color: theme.palette.primary.main,
             }}
           >
-            Back
-          </Button>
+            AI Analysis:
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.5, fontSize: "0.9rem" }}>
+            {result.explanation}
+          </Typography>
+        </Paper>
+
+        {/* Detected Indicators */}
+        {result.flags && result.flags.length > 0 && (
+          <Paper
+            elevation={0}
+            sx={{
+              mt: 2,
+              p: 2,
+              borderRadius: 2,
+              backgroundColor:
+                theme.palette.mode === "dark"
+                  ? `${getThreatColor(result.threatRating)}10`
+                  : `${getThreatColor(result.threatRating)}08`,
+              border: `1px solid ${getThreatColor(result.threatRating)}30`,
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{
+                mb: 1.5,
+                fontWeight: 600,
+                color: getThreatColor(result.threatRating),
+              }}
+            >
+              Detected Indicators:
+            </Typography>
+
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
+              {result.flags.map((flag) => (
+                <Chip
+                  key={flag}
+                  label={flag}
+                  size="small"
+                  sx={{
+                    backgroundColor:
+                      theme.palette.mode === "dark"
+                        ? `${getThreatColor(result.threatRating)}20`
+                        : `${getThreatColor(result.threatRating)}15`,
+                    color: getThreatColor(result.threatRating),
+                    borderRadius: 1,
+                    fontSize: "0.75rem",
+                    "& .MuiChip-label": {
+                      px: 1,
+                    },
+                  }}
+                />
+              ))}
+            </Box>
+          </Paper>
         )}
 
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setResult(null)}
-          sx={{
-            ml: "auto",
-            borderRadius: 2,
-            textTransform: "none",
-            boxShadow: 2,
-          }}
-          size="medium"
-        >
-          Analyze Another Email
-        </Button>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
+          {onBackToHome && (
+            <Button
+              variant="outlined"
+              onClick={onBackToHome}
+              size="medium"
+              sx={{
+                borderRadius: 2,
+                textTransform: "none",
+              }}
+            >
+              Back
+            </Button>
+          )}
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setResult(null)}
+            sx={{
+              ml: "auto",
+              borderRadius: 2,
+              textTransform: "none",
+              boxShadow: 2,
+            }}
+            size="medium"
+          >
+            Analyze Another Email
+          </Button>
+        </Box>
       </Box>
-    </Box>
-  )
+    )
+  }
 
   // Main component rendering
   return (

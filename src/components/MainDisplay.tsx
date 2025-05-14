@@ -17,14 +17,12 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
-import { useApiKey } from "../hooks/useApiKey"
 import { useManifestHook } from "../hooks/useManifestHook"
 import { ApiKeySettings } from "./ApiKeySettings"
 import { EmailAnalyzer } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
-import { OfflineModeBanner } from "./OfflineModeBanner"
 import PermissionsManager from "./PermissionsManager"
 import { TextInputAnalyzer } from "./TextInputAnalyzer"
 
@@ -59,7 +57,6 @@ export const MainDisplay = () => {
   const manifest = useManifestHook()
   const theme = useTheme()
   const { darkMode, toggleDarkMode } = useCustomThemeContext()
-  const { isLoading } = useApiKey()
   const [tabValue, setTabValue] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [emailProvider, setEmailProvider] = useState<string | null>(null)
@@ -77,19 +74,19 @@ export const MainDisplay = () => {
 
           // Define known email providers hostnames
           const emailProviders = [
-            { domain: 'mail.google.com', name: 'Gmail' },
-            { domain: 'outlook.live.com', name: 'Outlook' },
-            { domain: 'outlook.office.com', name: 'Outlook' },
-            { domain: 'outlook.office365.com', name: 'Outlook' },
-            { domain: 'mail.yahoo.com', name: 'Yahoo Mail' },
-            { domain: 'aol.com', name: 'AOL Mail' },
-            { domain: 'protonmail.com', name: 'ProtonMail' },
-            { domain: 'mail.proton.me', name: 'ProtonMail' },
-            { domain: 'zoho.com', name: 'Zoho Mail' }
+            { domain: "mail.google.com", name: "Gmail" },
+            { domain: "outlook.live.com", name: "Outlook" },
+            { domain: "outlook.office.com", name: "Outlook" },
+            { domain: "outlook.office365.com", name: "Outlook" },
+            { domain: "mail.yahoo.com", name: "Yahoo Mail" },
+            { domain: "aol.com", name: "AOL Mail" },
+            { domain: "protonmail.com", name: "ProtonMail" },
+            { domain: "mail.proton.me", name: "ProtonMail" },
+            { domain: "zoho.com", name: "Zoho Mail" },
           ]
 
           // Find the matching provider
-          const matchedProvider = emailProviders.find(provider =>
+          const matchedProvider = emailProviders.find((provider) =>
             hostname.includes(provider.domain)
           )
 
@@ -104,7 +101,7 @@ export const MainDisplay = () => {
           }
         }
       } catch (error) {
-        console.error('Error detecting email provider:', error)
+        console.error("Error detecting email provider:", error)
         setEmailProvider(null)
         // Default to text tab on error
         setTabValue(1)
