@@ -1,19 +1,15 @@
-import ContentPasteIcon from "@mui/icons-material/ContentPaste"
 import DescriptionIcon from "@mui/icons-material/Description"
-import LanguageIcon from "@mui/icons-material/Language"
 import WarningIcon from "@mui/icons-material/Warning"
 import {
   Alert,
   Box,
   Button,
-  ButtonGroup,
   Card,
   Chip,
   CircularProgress,
   Fade,
   Paper,
   TextField,
-  Tooltip,
   Typography,
   useTheme,
   Zoom,
@@ -359,7 +355,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
             />
 
             {/* Source buttons */}
-            <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+            {/* <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
               <ButtonGroup variant="outlined" size="small">
                 <Tooltip title="Paste text from clipboard">
                   <Button
@@ -382,7 +378,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
                   </Button>
                 </Tooltip>
               </ButtonGroup>
-            </Box>
+            </Box> */}
 
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               {onBackToHome && (
