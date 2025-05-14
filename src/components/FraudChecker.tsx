@@ -79,7 +79,7 @@ export const FraudChecker = () => {
         })
 
       // Handle the response
-      if (response && response.success) {
+      if (response?.success) {
         // Prepare email data for fraud check
         const emailData: EmailData = {
           sender: response.sender,
