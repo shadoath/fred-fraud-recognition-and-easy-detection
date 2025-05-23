@@ -185,7 +185,6 @@ export const MainDisplay = () => {
           <Box>
             <ErrorBoundary>
               <ApiKeySettings />
-              {/* <PermissionsManager /> */}
             </ErrorBoundary>
           </Box>
         </Slide>
@@ -229,8 +228,6 @@ export const MainDisplay = () => {
                 aria-controls="fred-tabpanel-1"
               />
             </Tabs>
-
-            {/* Offline mode has been removed - API key is now required */}
 
             <Box>
               <TabPanel value={tabValue} index={0}>

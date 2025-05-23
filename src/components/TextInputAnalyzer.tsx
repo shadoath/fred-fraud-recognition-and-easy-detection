@@ -35,14 +35,14 @@ interface TextInputAnalyzerProps {
 export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   const [textContent, setTextContent] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
-  const [isScraping, setIsScraping] = useState(false)
+  const [isScraping] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
   const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
   // Function to check permission for the current tab URL
-  const checkCurrentTabPermission = async (): Promise<boolean> => {
+  const _checkCurrentTabPermission = async (): Promise<boolean> => {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
@@ -66,7 +66,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   }
 
   // Function to request permission for the current tab URL
-  const requestCurrentTabPermission = async (): Promise<boolean> => {
+  const _requestCurrentTabPermission = async (): Promise<boolean> => {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
@@ -90,7 +90,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   }
 
   // Function to extract text from the current webpage
-  const extractWebpageContent = async (): Promise<string> => {
+  const _extractWebpageContent = async (): Promise<string> => {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
@@ -183,41 +183,6 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
     }
   }
 
-  // Function to scrape content from the current webpage
-  const scrapeCurrentWebpage = async () => {
-    setIsScraping(true)
-    try {
-      // Check if we have permission for this site
-      const hasPermission = await checkCurrentTabPermission()
-
-      if (!hasPermission) {
-        // If no permission, ask the user if they want to grant permission
-        toast.info("Permission needed to access the current webpage")
-        const granted = await requestCurrentTabPermission()
-
-        if (!granted) {
-          toast.error("Permission denied. Cannot extract content from this webpage")
-          return
-        }
-      }
-
-      // Extract content from the current webpage
-      const content = await extractWebpageContent()
-
-      if (content && content !== "No main content text found.") {
-        // Set the extracted content to the text area
-        setTextContent(content)
-        toast.success("Content extracted successfully")
-      } else {
-        toast.warning("Could not extract meaningful content from this page")
-      }
-    } catch (error) {
-      console.error("Error scraping webpage:", error)
-      toast.error("Failed to extract content from the current webpage")
-    } finally {
-      setIsScraping(false)
-    }
-  }
 
   // Function to check the text for fraud
   const checkTextForFraud = async () => {
@@ -271,13 +236,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
     }
   }
 
-  const pasteFromClipboard = () => {
-    chrome.runtime.sendMessage({ action: "pasteFromClipboard" }, (response) => {
-      if (response?.success) {
-        setTextContent(response.text)
-      }
-    })
-  }
+  // This line was for clipboard functionality that has been removed
 
   // Function to get color based on threat rating
   const getThreatColor = (rating: number): string => {
@@ -354,31 +313,6 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
               variant="outlined"
             />
 
-            {/* Source buttons */}
-            {/* <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
-              <ButtonGroup variant="outlined" size="small">
-                <Tooltip title="Paste text from clipboard">
-                  <Button
-                    startIcon={<ContentPasteIcon />}
-                    disabled={isScraping || isChecking}
-                    sx={{ borderRadius: "4px 0 0 4px", textTransform: "none" }}
-                    onClick={() => pasteFromClipboard()}
-                  >
-                    Paste
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Extract text from current webpage">
-                  <Button
-                    startIcon={<LanguageIcon />}
-                    onClick={scrapeCurrentWebpage}
-                    disabled={isScraping || isChecking}
-                    sx={{ borderRadius: "0 4px 4px 0", textTransform: "none" }}
-                  >
-                    {isScraping ? "Extracting..." : "Extract from Webpage"}
-                  </Button>
-                </Tooltip>
-              </ButtonGroup>
-            </Box> */}
 
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               {onBackToHome && (

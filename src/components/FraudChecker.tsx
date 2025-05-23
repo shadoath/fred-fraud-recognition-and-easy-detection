@@ -5,9 +5,9 @@ import { Box, Button, Card, CircularProgress, Collapse, Divider, Typography } fr
 import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { checkEmailWithOpenAI, type EmailData } from "../lib/fraudService"
+import { recoverApiKey } from "../lib/keyStorage"
 import { API_KEY_STORAGE_KEY, ApiKeySettings } from "./ApiKeySettings"
 import { threatLevels, ThreatRating } from "./ThreatRating"
-
 // Define types for the fraud check results for the UI
 export interface FraudCheckResult {
   threatRating: number // 1-10 scale
@@ -62,9 +62,11 @@ export const FraudChecker = () => {
       // First check if we have an API key
       const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY)
       const apiKey = result[API_KEY_STORAGE_KEY]
+      const recoveredKey = recoverApiKey(apiKey)
 
-      if (!apiKey) {
+      if (!recoveredKey) {
         setShowSettings(true)
+
         throw new Error("No OpenAI API key found. Please add your API key in settings.")
       }
 
@@ -90,7 +92,7 @@ export const FraudChecker = () => {
 
         try {
           // Use OpenAI to check the email
-          const fraudResult = await checkEmailWithOpenAI(emailData, apiKey)
+          const fraudResult = await checkEmailWithOpenAI(emailData, recoveredKey)
 
           // Transform the API response to our UI result format
           const checkResult: FraudCheckResult = {
