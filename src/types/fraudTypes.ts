@@ -35,8 +35,3 @@ export interface FraudCheckResponse extends ApiSuccessResponse {
   confidence?: number // Optional confidence score
 }
 
-export interface FraudPattern {
-  pattern: string
-  weight: number
-  category: string
-}
