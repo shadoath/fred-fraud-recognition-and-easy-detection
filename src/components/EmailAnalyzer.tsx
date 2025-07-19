@@ -106,31 +106,35 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         target: { tabId: tabs[0].id },
         func: () => {
           // Do nothing, just verify we can execute scripts in this tab
-          return true;
-        }
-      });
+          return true
+        },
+      })
 
       // Now extract the email data
       const [result] = await chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         func: () => {
-          // Try to find the scrapeGmail function
-          // @ts-ignore - window.scrapeGmail is added by our content script
-          if (typeof window.scrapeGmail === 'function') {
-            // @ts-ignore - call the scrapeGmail function
-            return window.scrapeGmail();
-          }
-
-          // If function not found, manually extract using same logic
-          // This is a fallback in case the content script didn't load properly
-          // Extract using basic selectors
           try {
-            const sender = document.querySelector('.gD [email]')?.getAttribute('email') ||
-                          document.querySelector('[data-hovercard-id]')?.getAttribute('data-hovercard-id');
-            const subject = document.querySelector('.ha h2')?.textContent ||
-                           document.querySelector('[data-message-id] .hP')?.textContent;
-            const content = document.querySelector('[data-message-id] .a3s.aiL')?.textContent ||
-                           document.querySelector('.a3s')?.textContent;
+            // Gmail-specific selectors
+            const email1 = document
+              .querySelector("[data-message-id] [email]")
+              ?.getAttribute("email")
+            const email2 = document.querySelector(".gE [email]")?.getAttribute("email")
+            const email3 = document.querySelector(".gD [email]")?.getAttribute("email")
+            const email4 = document
+              .querySelector("[data-hovercard-id]")
+              ?.getAttribute("data-hovercard-id")
+            const email5 = document.querySelector(".go")?.textContent?.trim()
+            const sender = email1 || email2 || email3 || email4 || email5
+            console.info({ email1, email2, email3, email4, email5, sender })
+            const subject =
+              document.querySelector(".ha h2")?.textContent ||
+              document.querySelector("[data-message-id] .hP")?.textContent
+            const content =
+              document
+                .querySelector("[data-message-id] .a3s.aiL")
+                ?.textContent?.replace(/\n+/g, " ")
+                .trim() || document.querySelector(".a3s")?.textContent?.replace(/\n+/g, " ").trim()
 
             if (sender && content) {
               return {
@@ -138,19 +142,21 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
                 sender,
                 subject: subject || "No Subject",
                 content,
-                timestamp: new Date().toISOString()
-              };
+                timestamp: new Date().toISOString(),
+              }
             } else {
               return {
                 success: false,
-                message: "Could not extract email data. Make sure you have an email open."
-              };
+                message: "Could not extract email data. Make sure you have an email open.",
+              }
             }
           } catch (error) {
             return {
               success: false,
-              message: "Error extracting email: " + (error instanceof Error ? error.message : String(error))
-            };
+              message:
+                "Error extracting email: " +
+                (error instanceof Error ? error.message : String(error)),
+            }
           }
         },
       })
@@ -174,7 +180,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
 
       // Provide more helpful error messages
       if (error instanceof Error) {
-        const errorMsg = error.message || "";
+        const errorMsg = error.message || ""
 
         if (errorMsg.includes("Please open Gmail")) {
           toast.error(
@@ -184,22 +190,23 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
           toast.error(
             "Permission required. Please make sure you've allowed this extension to access Gmail."
           )
-        } else if (errorMsg.includes("Could not establish connection") || errorMsg.includes("Receiving end does not exist")) {
-          toast.error(
-            "Connection to Gmail failed. Try refreshing the Gmail page and try again."
-          )
-          console.error("ContentScript connection error:", error);
+        } else if (
+          errorMsg.includes("Could not establish connection") ||
+          errorMsg.includes("Receiving end does not exist")
+        ) {
+          toast.error("Connection to Gmail failed. Try refreshing the Gmail page and try again.")
+          console.error("ContentScript connection error:", error)
         } else if (errorMsg.includes("Cannot access a chrome")) {
           toast.error(
             "Access to Gmail denied. Please click on the Gmail page once before extracting."
           )
         } else {
           toast.error(errorMsg || "Failed to extract email from Gmail")
-          console.error("Extraction error:", error);
+          console.error("Extraction error:", error)
         }
       } else {
         toast.error("Failed to extract email from Gmail. Please make sure you have an email open.")
-        console.error("Unknown error:", error);
+        console.error("Unknown error:", error)
       }
     } finally {
       setIsExtracting(false)
