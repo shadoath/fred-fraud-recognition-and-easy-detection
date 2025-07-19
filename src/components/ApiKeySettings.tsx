@@ -20,78 +20,16 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useEffect, useState } from "react"
-import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
-import { obfuscateApiKey, recoverApiKey } from "../lib/keyStorage"
-
+import { useState } from "react"
+import { useApiKey } from "../hooks/useApiKey"
 // API Key storage key in Chrome storage
 export const API_KEY_STORAGE_KEY = "openai_api_key"
 
 export const ApiKeySettings = () => {
-  const [apiKey, setApiKey] = useState<string>("")
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [isSaving, setIsSaving] = useState<boolean>(false)
-  const [showApiKey, setShowApiKey] = useState<boolean>(false)
-  const [isApiKeySaved, setIsApiKeySaved] = useState<boolean>(false)
-  const { toast } = useCustomSnackbar()
   const theme = useTheme()
-
-  // Load API key on component mount
-  useEffect(() => {
-    const loadApiKey = async () => {
-      try {
-        const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY)
-        if (result[API_KEY_STORAGE_KEY]) {
-          // Recover the original API key from the obfuscated version
-          const recoveredKey = recoverApiKey(result[API_KEY_STORAGE_KEY])
-          setApiKey(recoveredKey)
-          setIsApiKeySaved(true)
-        }
-      } catch (error) {
-        console.error("Error loading API key:", error)
-        toast.error("Error loading your saved API key")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadApiKey()
-  }, [])
-
-  // Save API key to Chrome storage
-  const saveApiKey = async () => {
-    setIsSaving(true)
-    try {
-      const trimmedKey = apiKey.trim()
-      // Obfuscate the API key before storing it
-      const obfuscatedKey = obfuscateApiKey(trimmedKey)
-      await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: obfuscatedKey })
-      toast.success("API key saved successfully")
-      setIsApiKeySaved(true)
-      // Test the API key (optional)
-      // You could add a simple test request here
-    } catch (error) {
-      console.error("Error saving API key:", error)
-      toast.error("Error saving API key")
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  // Clear API key from Chrome storage
-  const clearApiKey = async () => {
-    setIsSaving(true)
-    try {
-      await chrome.storage.local.remove(API_KEY_STORAGE_KEY)
-      setApiKey("")
-      toast.success("API key removed")
-    } catch (error) {
-      console.error("Error removing API key:", error)
-      toast.error("Error removing API key")
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey } =
+    useApiKey()
+  const [showApiKey, setShowApiKey] = useState<boolean>(false)
 
   return (
     <Fade in={true} timeout={400}>
@@ -194,7 +132,7 @@ export const ApiKeySettings = () => {
                   variant="contained"
                   color="primary"
                   onClick={saveApiKey}
-                  disabled={isSaving || !apiKey.trim().startsWith("sk-")}
+                  disabled={isSaving || !apiKey?.trim().startsWith("sk-")}
                   sx={{
                     flex: 1,
                     borderRadius: 2,
