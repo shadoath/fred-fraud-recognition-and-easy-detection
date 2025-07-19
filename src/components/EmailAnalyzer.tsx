@@ -114,20 +114,19 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       const [result] = await chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         func: () => {
-          // Try to find the scrapeGmail function
-          // @ts-ignore - window.scrapeGmail is added by our content script
-          if (typeof window.scrapeGmail === "function") {
-            // @ts-ignore - call the scrapeGmail function
-            return window.scrapeGmail()
-          }
-
-          // If function not found, manually extract using same logic
-          // This is a fallback in case the content script didn't load properly
-          // Extract using basic selectors
           try {
-            const sender =
-              document.querySelector(".gD [email]")?.getAttribute("email") ||
-              document.querySelector("[data-hovercard-id]")?.getAttribute("data-hovercard-id")
+            // Gmail-specific selectors
+            const email1 = document
+              .querySelector("[data-message-id] [email]")
+              ?.getAttribute("email")
+            const email2 = document.querySelector(".gE [email]")?.getAttribute("email")
+            const email3 = document.querySelector(".gD [email]")?.getAttribute("email")
+            const email4 = document
+              .querySelector("[data-hovercard-id]")
+              ?.getAttribute("data-hovercard-id")
+            const email5 = document.querySelector(".go")?.textContent?.trim()
+            const sender = email1 || email2 || email3 || email4 || email5
+            console.log({ email1, email2, email3, email4, email5, sender })
             const subject =
               document.querySelector(".ha h2")?.textContent ||
               document.querySelector("[data-message-id] .hP")?.textContent
