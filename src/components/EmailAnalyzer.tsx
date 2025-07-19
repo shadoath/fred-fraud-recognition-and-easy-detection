@@ -126,7 +126,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
               ?.getAttribute("data-hovercard-id")
             const email5 = document.querySelector(".go")?.textContent?.trim()
             const sender = email1 || email2 || email3 || email4 || email5
-            console.log({ email1, email2, email3, email4, email5, sender })
+            console.info({ email1, email2, email3, email4, email5, sender })
             const subject =
               document.querySelector(".ha h2")?.textContent ||
               document.querySelector("[data-message-id] .hP")?.textContent
