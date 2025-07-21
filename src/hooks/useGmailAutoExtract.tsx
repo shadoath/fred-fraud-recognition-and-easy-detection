@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
+import { devError } from "../lib/devUtils"
 import { extractLinksFromContent } from "../lib/fraudService"
 
 interface GmailEmailData {
   sender: string
   subject: string
   content: string
+  htmlContent: string
   timestamp: string
   links: string[]
 }
@@ -56,7 +58,9 @@ export const useGmailAutoExtract = (): UseGmailAutoExtractResult => {
           },
         })
       } catch (permissionError) {
-        throw new Error("Permission required. Please make sure you've allowed this extension to access Gmail.")
+        throw new Error(
+          "Permission required. Please make sure you've allowed this extension to access Gmail."
+        )
       }
 
       // Extract the email data using content script
@@ -86,8 +90,8 @@ export const useGmailAutoExtract = (): UseGmailAutoExtractResult => {
               document
                 .querySelector("[data-message-id] .a3s.aiL")
                 ?.textContent?.replace(/\n+/g, " ")
-                .trim() || 
-              document.querySelector(".a3s")?.textContent?.replace(/\n+/g, " ").trim()
+                .trim() || document.querySelector(".a3s")?.textContent?.replace(/\n+/g, " ").trim()
+            const htmlContent = document.querySelector("[data-message-id] .a3s.aiL")?.innerHTML
 
             if (sender && content) {
               return {
@@ -95,6 +99,7 @@ export const useGmailAutoExtract = (): UseGmailAutoExtractResult => {
                 sender,
                 subject: subject || "No Subject",
                 content,
+                htmlContent,
                 timestamp: new Date().toISOString(),
               }
             } else {
@@ -120,30 +125,39 @@ export const useGmailAutoExtract = (): UseGmailAutoExtractResult => {
         throw new Error(extractResult?.message || "Failed to extract email content from Gmail")
       }
 
-      // Extract links from the content
-      const links = extractLinksFromContent(extractResult.content || "")
+      // Extract links from the content (use HTML parsing for Gmail emails)
+      const links = extractLinksFromContent(
+        extractResult.htmlContent || extractResult.content || "",
+        true
+      )
 
       // Set the extracted data
       const emailData: GmailEmailData = {
         sender: extractResult.sender || "",
         subject: extractResult.subject || "No Subject",
         content: extractResult.content || "",
+        htmlContent: extractResult.htmlContent || extractResult.content || "",
         timestamp: extractResult.timestamp || new Date().toISOString(),
         links,
       }
 
       setExtractedData(emailData)
     } catch (error) {
-      console.error("Gmail extraction error:", error)
-      
+      devError("Gmail extraction error:", error)
+
       if (error instanceof Error) {
         const errorMsg = error.message || ""
-        
+
         if (errorMsg.includes("Permission")) {
-          setError("Permission required to access Gmail. Please reload the Gmail page and try again.")
+          setError(
+            "Permission required to access Gmail. Please reload the Gmail page and try again."
+          )
         } else if (errorMsg.includes("Could not extract email data")) {
           setError("No email content found. Please open an email in Gmail first.")
-        } else if (errorMsg.includes("Connection") || errorMsg.includes("Receiving end does not exist")) {
+        } else if (
+          errorMsg.includes("Connection") ||
+          errorMsg.includes("Receiving end does not exist")
+        ) {
           setError("Connection to Gmail failed. Try refreshing the Gmail page.")
         } else {
           setError(errorMsg)

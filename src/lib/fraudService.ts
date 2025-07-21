@@ -1,5 +1,6 @@
 import axios, { type AxiosError } from "axios"
 import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData } from "../types/fraudTypes"
+import { devInfo, devDebug } from "./devUtils"
 
 // OpenAI API URL
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
@@ -7,33 +8,187 @@ export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 /**
  * Extracts all URLs from text content
  * @param content Text content to extract links from
+ * @param isEmail Whether this content is from an email (enables HTML parsing)
  * @returns Array of unique URLs found in the content
  */
-export function extractLinksFromContent(content: string): string[] {
-  // Comprehensive URL regex that matches http, https, ftp, and common domain patterns
-  const urlRegex =
-    /(?:(?:https?:\/\/)|(?:ftp:\/\/)|(?:www\.)|(?:[a-zA-Z0-9][\w-]*\.(?:[a-zA-Z]{2,})))[^\s[\]<>"'(){}|\\^`]+/gi
+export function extractLinksFromContent(content: string, isEmail = false): string[] {
+  devInfo(
+    `[Link Extraction] Starting extraction - isEmail: ${isEmail}, content length: ${content.length}`
+  )
+  devInfo(content)
+  const allLinks: string[] = []
 
-  const matches = content.match(urlRegex) || []
+  // For email content, try to parse as HTML and extract actual <a> tags
+  if (isEmail) {
+    devInfo(`[Link Extraction] Using HTML parsing for email content`)
+    try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(content, "text/html")
 
-  // Clean up and normalize URLs
-  const cleanedLinks = matches.map((url) => {
-    // Remove trailing punctuation that might not be part of the URL
-    url = url.replace(/[.,;:!?'")\]}]+$/, "")
+      // Check if parsing was successful (no parsing errors)
+      const parserError = doc.querySelector("parsererror")
+      if (!parserError) {
+        devInfo(`[Link Extraction] HTML parsed successfully, no parsing errors detected`)
+        // Extract all <a href="..."> links
+        const linkElements = doc.querySelectorAll("a[href]")
+        devInfo(
+          `[Link Extraction] Found ${linkElements.length} <a> elements with href attributes`
+        )
+        linkElements.forEach((link) => {
+          const href = link.getAttribute("href")
+          if (href) {
+            // Clean and normalize the URL
+            let cleanUrl = href.trim()
 
-    // Add protocol if missing for domain-only matches
-    if (!url.match(/^https?:\/\//i) && !url.match(/^ftp:\/\//i)) {
-      // If it starts with www. or looks like a domain, add https://
-      if (url.match(/^www\./i) || url.match(/^[a-zA-Z0-9][\w-]*\.[a-zA-Z]{2,}/)) {
-        url = "https://" + url
+            // Skip javascript:, mailto:, tel:, and other non-http protocols
+            if (/^(?:javascript|mailto|tel|sms|fax):/i.test(cleanUrl)) {
+              devDebug(`[Link Extraction] Skipping non-http protocol: ${cleanUrl}`)
+              return
+            }
+
+            // Skip anchor links and relative paths without domain
+            if (
+              cleanUrl.startsWith("#") ||
+              (cleanUrl.startsWith("/") && !cleanUrl.startsWith("//"))
+            ) {
+              devDebug(`[Link Extraction] Skipping anchor/relative link: ${cleanUrl}`)
+              return
+            }
+
+            // Handle protocol-relative URLs
+            if (cleanUrl.startsWith("//")) {
+              cleanUrl = "https:" + cleanUrl
+            }
+
+            // Add protocol if missing for domain-only URLs
+            if (!cleanUrl.match(/^[a-z]+:/i) && cleanUrl.includes(".")) {
+              cleanUrl = "https://" + cleanUrl
+            }
+
+            // Validate that it's a proper URL
+            if (cleanUrl.match(/^https?:\/\/.+\..+/i)) {
+              devDebug(`[Link Extraction] Added link from <a> tag: ${cleanUrl}`)
+              allLinks.push(cleanUrl)
+            } else {
+              devDebug(`[Link Extraction] Invalid URL format, skipping: ${cleanUrl}`)
+            }
+          }
+        })
+
+        // Also extract URLs from other HTML elements that might contain them
+        const elementsWithUrls = [
+          { selector: "img[src]", attr: "src" },
+          { selector: "form[action]", attr: "action" },
+          { selector: "iframe[src]", attr: "src" },
+          { selector: "embed[src]", attr: "src" },
+          { selector: "object[data]", attr: "data" },
+        ]
+        devInfo(
+          `[Link Extraction] Searching for URLs in other HTML elements: ${elementsWithUrls
+            .map((e) => e.selector)
+            .join(", ")}`
+        )
+
+        elementsWithUrls.forEach(({ selector, attr }) => {
+          const elements = doc.querySelectorAll(selector)
+          devDebug(
+            `[Link Extraction] Found ${elements.length} elements for selector: ${selector}`
+          )
+          elements.forEach((element) => {
+            const url = element.getAttribute(attr)
+            if (url && url.match(/^https?:\/\/.+\..+/i)) {
+              devDebug(`[Link Extraction] Added URL from ${selector}: ${url.trim()}`)
+              allLinks.push(url.trim())
+            }
+          })
+        })
+      } else {
+        devInfo(
+          `[Link Extraction] HTML parsing detected errors, falling back to text extraction`
+        )
       }
+    } catch (error) {
+      // HTML parsing failed, continue to text-based extraction
+      devInfo(`[Link Extraction] HTML parsing failed, falling back to text extraction:`, error)
     }
+  }
 
-    return url
-  })
+  // If HTML parsing didn't find any links, or if content isn't HTML, fall back to simple text extraction
+  if (allLinks.length === 0) {
+    devInfo(
+      `[Link Extraction] ${
+        isEmail ? "HTML parsing found no links, " : ""
+      }Using text-based regex extraction`
+    )
+    // Simple but accurate regex for full URLs (including FTP, HTTP, HTTPS)
+    const urlRegex = /(?:https?|ftp):\/\/[^\s<>"'(){}|\\^`]+[^\s<>"'(){}|\\^`.,;:!?]/gi
+    const matches = content.match(urlRegex) || []
+    devInfo(`[Link Extraction] Regex found ${matches.length} potential URLs`)
+
+    matches.forEach((url) => {
+      // Basic cleanup
+      let cleanUrl = url.trim()
+
+      // Remove common trailing punctuation
+      cleanUrl = cleanUrl.replace(/[.,;:!?'")\]}]+$/, "")
+
+      // Validate it has a proper domain structure (allow HTTP/HTTPS/FTP)
+      if (cleanUrl.match(/^(?:https?|ftp):\/\/[^\/\s]+\.[^\/\s]{2,}/)) {
+        devDebug(`[Link Extraction] Added URL from regex: ${cleanUrl}`)
+        allLinks.push(cleanUrl)
+      } else {
+        devDebug(`[Link Extraction] Regex URL failed validation: ${cleanUrl}`)
+      }
+    })
+
+    // Also look for www. domains and common domains in plain text
+    const domainRegex =
+      /(?:www\.|(?:^|\s))([a-zA-Z0-9-]+\.(?:com|org|net|edu|gov|mil|co\.uk|tk|ly|me|io)\b)/gi
+    const domainMatches = content.match(domainRegex) || []
+    devInfo(`[Link Extraction] Domain regex found ${domainMatches.length} potential domains`)
+
+    domainMatches.forEach((match) => {
+      let domain = match.trim()
+
+      // Skip if it looks like a name or title
+      if (/^(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr)\./i.test(domain)) {
+        devDebug(`[Link Extraction] Skipping title/name pattern: ${domain}`)
+        return
+      }
+
+      // Clean up the domain
+      if (!domain.startsWith("www.") && !domain.match(/^https?:/)) {
+        // Extract just the domain part
+        const domainMatch = domain.match(
+          /([a-zA-Z0-9-]+\.(?:com|org|net|edu|gov|mil|co\.uk|tk|ly|me|io))/i
+        )
+        if (domainMatch) {
+          domain = domainMatch[1]
+        }
+      }
+
+      // Add protocol
+      if (!domain.match(/^https?:/)) {
+        domain = "https://" + domain
+      }
+
+      // Validate and add
+      if (domain.match(/^https?:\/\/[^\/\s]+\.[^\/\s]{2,}/)) {
+        devDebug(`[Link Extraction] Added domain as URL: ${domain}`)
+        allLinks.push(domain)
+      } else {
+        devDebug(`[Link Extraction] Domain failed final validation: ${domain}`)
+      }
+    })
+  }
 
   // Remove duplicates and return
-  return [...new Set(cleanedLinks)]
+  const uniqueLinks = [...new Set(allLinks)]
+  devInfo(
+    `[Link Extraction] Extraction complete - Found ${allLinks.length} total links, ${uniqueLinks.length} unique links`
+  )
+  devInfo(`[Link Extraction] Final links:`, uniqueLinks)
+  return uniqueLinks
 }
 
 // OpenAI API response structure
@@ -68,8 +223,8 @@ export async function checkEmailWithOpenAI(
   apiKey: string
 ): Promise<FraudCheckResponse> {
   try {
-    // Extract links from email content if not already provided
-    const extractedLinks = emailData.links || extractLinksFromContent(emailData.content)
+    // Extract links from email content if not already provided (use HTML parsing for emails)
+    const extractedLinks = emailData.links || extractLinksFromContent(emailData.content, true)
 
     const linksSection =
       extractedLinks.length > 0
@@ -192,8 +347,8 @@ export async function checkTextWithOpenAI(
   apiKey: string
 ): Promise<FraudCheckResponse> {
   try {
-    // Extract links from text content if not already provided
-    const extractedLinks = textData.links || extractLinksFromContent(textData.content)
+    // Extract links from text content if not already provided (use text parsing for general text)
+    const extractedLinks = textData.links || extractLinksFromContent(textData.content, false)
 
     const linksSection =
       extractedLinks.length > 0

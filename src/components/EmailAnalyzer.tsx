@@ -104,9 +104,9 @@ export const EmailAnalyzer = ({
         [field]: newValue,
       })
 
-      // Extract links when content changes
+      // Extract links when content changes (use HTML parsing for emails)
       if (field === "content") {
-        const links = extractLinksFromContent(newValue)
+        const links = extractLinksFromContent(newValue, true)
         setExtractedLinks(links)
       }
     }
@@ -183,6 +183,7 @@ export const EmailAnalyzer = ({
                 .querySelector("[data-message-id] .a3s.aiL")
                 ?.textContent?.replace(/\n+/g, " ")
                 .trim() || document.querySelector(".a3s")?.textContent?.replace(/\n+/g, " ").trim()
+            const htmlContent = document.querySelector("[data-message-id] .a3s.aiL")?.innerHTML
 
             if (sender && content) {
               return {
@@ -190,6 +191,7 @@ export const EmailAnalyzer = ({
                 sender,
                 subject: subject || "No Subject",
                 content,
+                htmlContent,
                 timestamp: new Date().toISOString(),
               }
             } else {
@@ -222,8 +224,8 @@ export const EmailAnalyzer = ({
         content: extractResult.content || "",
       })
 
-      // Extract links from the content
-      const links = extractLinksFromContent(extractResult.content || "")
+      // Extract links from the content (use HTML parsing for emails)
+      const links = extractLinksFromContent(extractResult.htmlContent || "", true)
       setExtractedLinks(links)
     } catch (error) {
       console.error("Gmail extraction error:", error)
