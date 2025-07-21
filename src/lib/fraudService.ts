@@ -4,6 +4,38 @@ import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData } from "
 // OpenAI API URL
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
+/**
+ * Extracts all URLs from text content
+ * @param content Text content to extract links from
+ * @returns Array of unique URLs found in the content
+ */
+export function extractLinksFromContent(content: string): string[] {
+  // Comprehensive URL regex that matches http, https, ftp, and common domain patterns
+  const urlRegex =
+    /(?:(?:https?:\/\/)|(?:ftp:\/\/)|(?:www\.)|(?:[a-zA-Z0-9][\w-]*\.(?:[a-zA-Z]{2,})))[^\s[\]<>"'(){}|\\^`]+/gi
+
+  const matches = content.match(urlRegex) || []
+
+  // Clean up and normalize URLs
+  const cleanedLinks = matches.map((url) => {
+    // Remove trailing punctuation that might not be part of the URL
+    url = url.replace(/[.,;:!?'")\]}]+$/, "")
+
+    // Add protocol if missing for domain-only matches
+    if (!url.match(/^https?:\/\//i) && !url.match(/^ftp:\/\//i)) {
+      // If it starts with www. or looks like a domain, add https://
+      if (url.match(/^www\./i) || url.match(/^[a-zA-Z0-9][\w-]*\.[a-zA-Z]{2,}/)) {
+        url = "https://" + url
+      }
+    }
+
+    return url
+  })
+
+  // Remove duplicates and return
+  return [...new Set(cleanedLinks)]
+}
+
 // OpenAI API response structure
 interface OpenAIResponse {
   id: string
@@ -36,12 +68,24 @@ export async function checkEmailWithOpenAI(
   apiKey: string
 ): Promise<FraudCheckResponse> {
   try {
+    // Extract links from email content if not already provided
+    const extractedLinks = emailData.links || extractLinksFromContent(emailData.content)
+
+    const linksSection =
+      extractedLinks.length > 0
+        ? `\nLinks found in email:\n${extractedLinks
+            .map((link, index) => `${index + 1}. ${link}`)
+            .join("\n")}`
+        : "\nNo links found in email."
+
     const prompt = `You are a cybersecurity expert analyzing an email for potential fraud or phishing. Please analyze this email:
 
 Sender: ${emailData.sender}
 Subject: ${emailData.subject || "(No subject)"}
 Content:
-${emailData.content.substring(0, 4000)} ${emailData.content.length > 4000 ? "...(truncated)" : ""}
+${emailData.content.substring(0, 3500)} ${
+      emailData.content.length > 3500 ? "...(truncated)" : ""
+    }${linksSection}
 
 Analyze this email for signs of fraud, such as:
 1. Suspicious URLs or domain names
@@ -148,10 +192,22 @@ export async function checkTextWithOpenAI(
   apiKey: string
 ): Promise<FraudCheckResponse> {
   try {
+    // Extract links from text content if not already provided
+    const extractedLinks = textData.links || extractLinksFromContent(textData.content)
+
+    const linksSection =
+      extractedLinks.length > 0
+        ? `\nLinks found in text:\n${extractedLinks
+            .map((link, index) => `${index + 1}. ${link}`)
+            .join("\n")}`
+        : "\nNo links found in text."
+
     const prompt = `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
 
 Content:
-${textData.content.substring(0, 4000)} ${textData.content.length > 4000 ? "...(truncated)" : ""}
+${textData.content.substring(0, 3500)} ${
+      textData.content.length > 3500 ? "...(truncated)" : ""
+    }${linksSection}
 
 Analyze this text for signs of fraud, such as:
 1. Suspicious URLs or domain names

@@ -18,7 +18,8 @@ import {
 import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { checkEmailWithOpenAI, type EmailData } from "../lib/fraudService"
+import { checkEmailWithOpenAI, type EmailData, extractLinksFromContent } from "../lib/fraudService"
+import { LinkDisplay } from "./LinkDisplay"
 import { ThreatRating } from "./ThreatRating"
 
 // Define types for the fraud check results for the UI
@@ -28,6 +29,7 @@ export interface EmailCheckResult {
   sender: string
   subject: string
   flags?: string[] // Optional indicators of fraud
+  links?: string[] // Optional extracted links
 }
 
 interface EmailAnalyzerProps {
@@ -48,6 +50,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
     subject: "",
     content: "",
   })
+  const [extractedLinks, setExtractedLinks] = useState<string[]>([])
 
   // Hooks
   const { apiKey, hasApiKey } = useApiKey()
@@ -58,10 +61,17 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   const handleFieldChange =
     (field: keyof typeof emailFormData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const newValue = e.target.value
       setEmailFormData({
         ...emailFormData,
-        [field]: e.target.value,
+        [field]: newValue,
       })
+
+      // Extract links when content changes
+      if (field === "content") {
+        const links = extractLinksFromContent(newValue)
+        setExtractedLinks(links)
+      }
     }
 
   // Reset form fields
@@ -71,6 +81,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       subject: "",
       content: "",
     })
+    setExtractedLinks([])
   }
 
   // API key validation
@@ -174,6 +185,10 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         content: extractResult.content || "",
       })
 
+      // Extract links from the content
+      const links = extractLinksFromContent(extractResult.content || "")
+      setExtractedLinks(links)
+
       toast.success("Email extracted from Gmail")
     } catch (error) {
       console.error("Gmail extraction error:", error)
@@ -231,6 +246,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         subject: emailFormData.subject.trim() || DEFAULT_VALUES.SUBJECT,
         content: emailFormData.content.trim(),
         timestamp: new Date().toISOString(),
+        links: extractedLinks,
       }
 
       // Use OpenAI to check the email
@@ -243,6 +259,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         sender: emailData.sender,
         subject: emailData.subject || DEFAULT_VALUES.SUBJECT,
         flags: fraudResult.flags,
+        links: extractedLinks,
       }
 
       // Update UI
@@ -274,7 +291,8 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   // Function to get color based on threat rating
   const getThreatColor = (rating: number): string => {
     if (rating <= 3) return "#4caf50" // Green for low threat
-    if (rating <= 7) return "#ff9800" // Orange for medium threat
+    if (rating <= 5) return "#ffc107" // Yellow for medium threat
+    if (rating <= 7) return "#ff9800" // Orange for medium-high threat
     return "#f44336" // Red for high threat
   }
 
@@ -350,11 +368,16 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         rows={5}
         value={emailFormData.content}
         onChange={handleFieldChange("content")}
-        sx={{ mb: 3 }}
+        sx={{ mb: extractedLinks.length > 0 ? 2 : 3 }}
         variant="outlined"
       />
 
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      {/* Show extracted links in compact form while typing */}
+      {extractedLinks.length > 0 && <LinkDisplay links={extractedLinks} variant="compact" />}
+
+      <Box
+        sx={{ display: "flex", justifyContent: "flex-end", mt: extractedLinks.length > 0 ? 2 : 0 }}
+      >
         <Button
           variant="contained"
           color="primary"
@@ -472,6 +495,11 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             {result.explanation}
           </Typography>
         </Paper>
+
+        {/* Links Display */}
+        {result.links && result.links.length > 0 && (
+          <LinkDisplay links={result.links} title="Links in Email" />
+        )}
 
         {/* Detected Indicators */}
         {result.flags && result.flags.length > 0 && (

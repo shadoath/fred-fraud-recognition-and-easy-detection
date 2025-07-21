@@ -17,7 +17,8 @@ import {
 import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { safeCheckTextWithOpenAI, type TextData } from "../lib/fraudService"
+import { extractLinksFromContent, safeCheckTextWithOpenAI, type TextData } from "../lib/fraudService"
+import { LinkDisplay } from "./LinkDisplay"
 import { ThreatRating } from "./ThreatRating"
 
 // Define types for the text check results
@@ -26,6 +27,7 @@ export interface TextCheckResult {
   explanation: string
   content: string
   flags?: string[] // Optional indicators of fraud
+  links?: string[] // Optional extracted links
 }
 
 interface TextInputAnalyzerProps {
@@ -37,9 +39,17 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   const [isChecking, setIsChecking] = useState(false)
   const [isScraping] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
+  const [extractedLinks, setExtractedLinks] = useState<string[]>([])
   const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
+
+  // Handle text content changes and extract links
+  const handleTextContentChange = (value: string) => {
+    setTextContent(value)
+    const links = extractLinksFromContent(value)
+    setExtractedLinks(links)
+  }
 
   // Function to check permission for the current tab URL
   const _checkCurrentTabPermission = async (): Promise<boolean> => {
@@ -203,6 +213,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
         content: textContent,
         source: "pasted",
         timestamp: new Date().toISOString(),
+        links: extractedLinks,
       }
 
       // Use OpenAI API for analysis
@@ -225,6 +236,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
         explanation: apiResult.explanation,
         content: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
         flags: apiResult.flags,
+        links: extractedLinks,
       }
 
       setResult(checkResult)
@@ -295,9 +307,9 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
               multiline
               rows={6}
               value={textContent}
-              onChange={(e) => setTextContent(e.target.value)}
+              onChange={(e) => handleTextContentChange(e.target.value)}
               sx={{
-                mb: 2,
+                mb: extractedLinks.length > 0 ? 1 : 2,
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
                   backgroundColor:
@@ -313,8 +325,12 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
               variant="outlined"
             />
 
+            {/* Show extracted links in compact form while typing */}
+            {extractedLinks.length > 0 && (
+              <LinkDisplay links={extractedLinks} variant="compact" />
+            )}
 
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mt: extractedLinks.length > 0 ? 2 : 0 }}>
               {onBackToHome && (
                 <Button
                   variant="outlined"
@@ -377,6 +393,11 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
           <Box sx={{ width: "100%" }}>
             {/* Using our custom ThreatRating component */}
             <ThreatRating rating={result.threatRating} />
+
+            {/* Links Display */}
+            {result.links && result.links.length > 0 && (
+              <LinkDisplay links={result.links} title="Links in Text" />
+            )}
 
             {/* Analysis */}
             <Paper

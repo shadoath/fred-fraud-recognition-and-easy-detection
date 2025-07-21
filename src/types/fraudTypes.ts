@@ -19,12 +19,14 @@ export interface EmailData {
   subject?: string
   content: string
   timestamp: string
+  links?: string[] // Optional array of extracted links from email content
 }
 
 export interface TextData {
   content: string
   source?: string // Optional source of the text (e.g., 'pasted', 'website', etc.)
   timestamp: string
+  links?: string[] // Optional array of extracted links from text content
 }
 
 // Response type
