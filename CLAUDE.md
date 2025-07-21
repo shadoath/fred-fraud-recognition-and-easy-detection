@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FRED (Fraud Recognition & Easy Detection) is a Chrome extension that analyzes emails and text for potential fraud or phishing attempts. It uses OpenAI's language models with the user's personal API key or falls back to an offline pattern-matching system when no API key is available.
+FRED (Fraud Recognition & Easy Detection) is a Chrome extension that analyzes emails and text for potential fraud or phishing attempts. It uses OpenAI's language models with the user's personal API key. The extension is built as a popup-based Chrome extension using React and TypeScript.
 
 ## Development Commands
 
@@ -12,19 +12,10 @@ FRED (Fraud Recognition & Easy Detection) is a Chrome extension that analyzes em
 # Start the development server
 npm run dev
 
-# Build the entire extension
-npm run build:extension
-
 # Build the React application
 npm run build
 
-# Build just the background script
-npm run build:background
-
-# Build just the content script
-npm run build:content
-
-# Watch for changes and rebuild (useful during development)
+# Watch for changes and rebuild
 npm run watch
 
 # Lint the code
@@ -39,87 +30,70 @@ npm run test:watch
 
 ## Project Architecture
 
-### Core Components
+### Extension Structure
 
-1. **Extension Structure**
+This is a **popup-based Chrome extension** (Manifest V3) with the following components:
 
-   - **Background Script**: Handles communication between content scripts and the popup
-   - **Content Script**: Injects into Gmail to analyze emails directly
-   - **Popup Interface**: React-based UI for user interaction
+- **Popup Interface**: React-based UI (`src/App.tsx`) that opens when clicking the extension icon
+- **Main Entry**: `src/main.tsx` renders the React app into `index.html`
+- **No Background/Content Scripts**: The current implementation works entirely through the popup interface
 
-2. **Fraud Detection Services**
+### Core Services
 
-   - **Online Mode** (`fraudService.ts`): Uses OpenAI API with user's key
-   - **Offline Mode** (`offlineFraudService.ts`): Pattern matching as fallback
+- **Fraud Detection** (`src/lib/fraudService.ts`): Integrates with OpenAI API for email and text analysis
+- **Key Management** (`src/lib/keyStorage.ts`): Handles API key storage with basic obfuscation using Chrome's `storage.local`
+- **Permissions** (`src/lib/permissionsService.ts`): Manages Chrome extension permissions
 
-3. **Key Management**
-   - API key storage with basic obfuscation (`keyStorage.ts`)
-   - Chrome's `storage.local` for persistence
+### React Architecture
+
+- **Components** (`src/components/`): Modular UI components including EmailAnalyzer, TextInputAnalyzer, ThreatRating
+- **Contexts** (`src/contexts/`): CustomThemeContext and CustomSnackbarContext for global state
+- **Hooks** (`src/hooks/`): useApiKey and useManifestHook for reusable logic
+- **Types** (`src/types/fraudTypes.ts`): Shared TypeScript type definitions
 
 ### Data Flow
 
-1. User provides their OpenAI API key which is stored locally
-2. When analyzing content, either:
-   - Email: Content is extracted from Gmail and sent to OpenAI
-   - Text: User-provided text is sent to OpenAI
-3. Results are displayed with threat ratings and explanations
-
-### TypeScript Integration
-
-The project uses TypeScript for type safety with separate configurations:
-
-- `tsconfig.json`: Main React application
-- `tsconfig.extension.json`: Chrome extension components (background & content scripts)
+1. User provides OpenAI API key through popup interface
+2. User can analyze either:
+   - Email content by pasting it into the text analyzer
+   - Any text content for fraud detection
+3. Content is sent directly to OpenAI API with user's key
+4. Results displayed with threat ratings and explanations
 
 ## Testing
 
 Tests use Jest with the following setup:
 
-- `jest.config.cjs`: Configuration including TypeScript support
-- Mock Chrome API available in tests
-- Fake timers for async test control
-- Coverage reporting enabled
+- `jest.config.cjs`: Configuration with TypeScript support and jsdom environment
+- Coverage reporting enabled in the `coverage/` directory
+- Mock Chrome API available for extension-specific tests
+- Test files located in `src/__tests__/` directory
 
 ## Build Process
 
 The build system uses:
 
-- Vite for bundling the React application
-- TypeScript compiler for extension scripts
-- Custom build process in `build.mjs` that:
-  1. Builds scripts with Vite
-  2. Copies static assets from `/public`
-  3. Updates and copies the manifest.json
+- **Vite** for bundling the React application (`vite.config.ts`)
+- **TypeScript** compilation with strict type checking
+- Static assets in `/public` directory including extension manifest and icons
+- Output to `dist/` directory for extension loading
 
-## Important Files and Directories
+## Technology Stack
 
-- `/src/lib/fraudService.ts`: Main OpenAI integration for fraud detection
-- `/src/lib/offlineFraudService.ts`: Fallback pattern-matching system
-- `/src/types/fraudTypes.ts`: Shared type definitions
-- `/src/components/`: React components for the UI
-- `/src/background/`: Extension background script
-- `/src/content/`: Gmail content script
+- **React 18** with TypeScript for the UI
+- **Material-UI (MUI)** for component styling and theming
+- **Vite** for development server and building  
+- **Jest** with Testing Library for unit tests
+- **ESLint** for code linting with TypeScript rules
 
-## Best Practices
+## API Integration
 
-1. **API Key Security**
+The extension integrates with OpenAI's chat completions API:
 
-   - Never commit API keys
-   - Use the obfuscation utilities in `keyStorage.ts`
-
-2. **Testing**
-
-   - Mock Chrome API calls for unit tests
-   - Use fake timers for async code
-
-3. **Extension Build**
-
-   - Use `npm run build:extension` for the full extension build
-   - Ensure proper file paths in `manifest.json`
-
-4. **Fraud Detection**
-   - Gracefully handle OpenAI API errors
-   - Always have offline fallback ready
+- Uses `gpt-3.5-turbo` model for cost-effectiveness
+- Sends structured prompts for fraud analysis
+- Handles API errors gracefully with user-friendly messages
+- All API communication happens directly from browser to OpenAI (no backend)
 
 ## Additional Notes
 

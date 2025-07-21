@@ -19,6 +19,7 @@ import {
 } from "@mui/material"
 import { useEffect, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
+import { useGmailAutoExtract } from "../hooks/useGmailAutoExtract"
 import { useManifestHook } from "../hooks/useManifestHook"
 import { ApiKeySettings } from "./ApiKeySettings"
 import { EmailAnalyzer } from "./EmailAnalyzer"
@@ -59,6 +60,9 @@ export const MainDisplay = () => {
   const [tabValue, setTabValue] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [emailProvider, setEmailProvider] = useState<string | null>(null)
+  
+  // Auto-extract Gmail content when extension opens
+  const { isExtracting, extractedData, error, isGmail, retryExtraction } = useGmailAutoExtract()
 
   // Email provider detection
   useEffect(() => {
@@ -107,9 +111,15 @@ export const MainDisplay = () => {
       }
     }
 
-    // Run the detection
-    detectEmailProvider()
-  }, []) // Empty dependency array means this runs once on mount
+    // Run the detection only if Gmail auto-extraction is not already handling it
+    if (!isGmail) {
+      detectEmailProvider()
+    } else {
+      // We know we're on Gmail from the auto-extract hook
+      setEmailProvider("Gmail")
+      setTabValue(0) // Email tab
+    }
+  }, [isGmail]) // Re-run when Gmail detection changes
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -232,7 +242,12 @@ export const MainDisplay = () => {
             <Box>
               <TabPanel value={tabValue} index={0}>
                 <ErrorBoundary>
-                  <EmailAnalyzer />
+                  <EmailAnalyzer 
+                    autoExtractedData={extractedData}
+                    isAutoExtracting={isExtracting}
+                    autoExtractError={error}
+                    onRetryAutoExtract={retryExtraction}
+                  />
                 </ErrorBoundary>
               </TabPanel>
               <TabPanel value={tabValue} index={1}>
