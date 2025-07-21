@@ -15,10 +15,11 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { checkEmailWithOpenAI, type EmailData } from "../lib/fraudService"
+import { checkEmailWithOpenAI, type EmailData, extractLinksFromContent } from "../lib/fraudService"
+import { LinkDisplay } from "./LinkDisplay"
 import { ThreatRating } from "./ThreatRating"
 
 // Define types for the fraud check results for the UI
@@ -28,17 +29,36 @@ export interface EmailCheckResult {
   sender: string
   subject: string
   flags?: string[] // Optional indicators of fraud
+  links?: string[] // Optional extracted links
+}
+
+interface GmailEmailData {
+  sender: string
+  subject: string
+  content: string
+  timestamp: string
+  links: string[]
 }
 
 interface EmailAnalyzerProps {
   onBackToHome?: () => void
+  autoExtractedData?: GmailEmailData | null
+  isAutoExtracting?: boolean
+  autoExtractError?: string | null
+  onRetryAutoExtract?: () => void
 }
 
 const DEFAULT_VALUES = {
   SUBJECT: "No Subject",
 }
 
-export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
+export const EmailAnalyzer = ({
+  onBackToHome,
+  autoExtractedData,
+  isAutoExtracting = false,
+  autoExtractError,
+  onRetryAutoExtract,
+}: EmailAnalyzerProps) => {
   // State management
   const [isChecking, setIsChecking] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
@@ -48,20 +68,47 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
     subject: "",
     content: "",
   })
+  const [extractedLinks, setExtractedLinks] = useState<string[]>([])
 
   // Hooks
   const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
+  // Auto-populate form when Gmail data is extracted
+  useEffect(() => {
+    if (autoExtractedData && !result) {
+      setEmailFormData({
+        sender: autoExtractedData.sender,
+        subject: autoExtractedData.subject,
+        content: autoExtractedData.content,
+      })
+      setExtractedLinks(autoExtractedData.links)
+    }
+  }, [autoExtractedData, result])
+
+  // Show error messages from auto-extraction
+  useEffect(() => {
+    if (autoExtractError) {
+      toast.error(autoExtractError)
+    }
+  }, [autoExtractError, toast])
+
   // Form field handlers
   const handleFieldChange =
     (field: keyof typeof emailFormData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const newValue = e.target.value
       setEmailFormData({
         ...emailFormData,
-        [field]: e.target.value,
+        [field]: newValue,
       })
+
+      // Extract links when content changes
+      if (field === "content") {
+        const links = extractLinksFromContent(newValue)
+        setExtractedLinks(links)
+      }
     }
 
   // Reset form fields
@@ -71,6 +118,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       subject: "",
       content: "",
     })
+    setExtractedLinks([])
   }
 
   // API key validation
@@ -174,7 +222,9 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         content: extractResult.content || "",
       })
 
-      toast.success("Email extracted from Gmail")
+      // Extract links from the content
+      const links = extractLinksFromContent(extractResult.content || "")
+      setExtractedLinks(links)
     } catch (error) {
       console.error("Gmail extraction error:", error)
 
@@ -231,6 +281,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         subject: emailFormData.subject.trim() || DEFAULT_VALUES.SUBJECT,
         content: emailFormData.content.trim(),
         timestamp: new Date().toISOString(),
+        links: extractedLinks,
       }
 
       // Use OpenAI to check the email
@@ -243,6 +294,7 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         sender: emailData.sender,
         subject: emailData.subject || DEFAULT_VALUES.SUBJECT,
         flags: fraudResult.flags,
+        links: extractedLinks,
       }
 
       // Update UI
@@ -274,13 +326,42 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   // Function to get color based on threat rating
   const getThreatColor = (rating: number): string => {
     if (rating <= 3) return "#4caf50" // Green for low threat
-    if (rating <= 7) return "#ff9800" // Orange for medium threat
+    if (rating <= 5) return "#ffc107" // Yellow for medium threat
+    if (rating <= 7) return "#ff9800" // Orange for medium-high threat
     return "#f44336" // Red for high threat
   }
 
   // UI Component: Email Input Form
   const EmailInputForm = () => (
     <Box>
+      {/* Auto-extraction status */}
+      {isAutoExtracting && (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <CircularProgress size={16} sx={{ mr: 1 }} />
+            Automatically extracting email from Gmail...
+          </Box>
+        </Alert>
+      )}
+
+      {autoExtractError && onRetryAutoExtract && (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Could not auto-extract from Gmail
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {autoExtractError}
+              </Typography>
+            </Box>
+            <Button size="small" variant="outlined" onClick={onRetryAutoExtract} sx={{ ml: 2 }}>
+              Retry
+            </Button>
+          </Box>
+        </Alert>
+      )}
+
       <Box
         sx={{
           display: "flex",
@@ -296,7 +377,9 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             color: theme.palette.text.secondary,
           }}
         >
-          Enter email details or extract from a mail client.
+          {autoExtractedData
+            ? "Email extracted from Gmail"
+            : "Enter email details or extract from a mail client."}
         </Typography>
 
         <Tooltip title="Extract email from current tab">
@@ -350,11 +433,16 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
         rows={5}
         value={emailFormData.content}
         onChange={handleFieldChange("content")}
-        sx={{ mb: 3 }}
+        sx={{ mb: extractedLinks.length > 0 ? 2 : 3 }}
         variant="outlined"
       />
 
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      {/* Show extracted links in compact form while typing */}
+      {extractedLinks.length > 0 && <LinkDisplay links={extractedLinks} variant="compact" />}
+
+      <Box
+        sx={{ display: "flex", justifyContent: "flex-end", mt: extractedLinks.length > 0 ? 2 : 0 }}
+      >
         <Button
           variant="contained"
           color="primary"
@@ -472,6 +560,11 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             {result.explanation}
           </Typography>
         </Paper>
+
+        {/* Links Display */}
+        {result.links && result.links.length > 0 && (
+          <LinkDisplay links={result.links} title="Links in Email" />
+        )}
 
         {/* Detected Indicators */}
         {result.flags && result.flags.length > 0 && (
