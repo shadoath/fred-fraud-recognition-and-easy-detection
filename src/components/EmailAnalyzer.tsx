@@ -15,7 +15,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
 import { checkEmailWithOpenAI, type EmailData, extractLinksFromContent } from "../lib/fraudService"
@@ -32,15 +32,33 @@ export interface EmailCheckResult {
   links?: string[] // Optional extracted links
 }
 
+interface GmailEmailData {
+  sender: string
+  subject: string
+  content: string
+  timestamp: string
+  links: string[]
+}
+
 interface EmailAnalyzerProps {
   onBackToHome?: () => void
+  autoExtractedData?: GmailEmailData | null
+  isAutoExtracting?: boolean
+  autoExtractError?: string | null
+  onRetryAutoExtract?: () => void
 }
 
 const DEFAULT_VALUES = {
   SUBJECT: "No Subject",
 }
 
-export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
+export const EmailAnalyzer = ({
+  onBackToHome,
+  autoExtractedData,
+  isAutoExtracting = false,
+  autoExtractError,
+  onRetryAutoExtract,
+}: EmailAnalyzerProps) => {
   // State management
   const [isChecking, setIsChecking] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
@@ -56,6 +74,25 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
+
+  // Auto-populate form when Gmail data is extracted
+  useEffect(() => {
+    if (autoExtractedData && !result) {
+      setEmailFormData({
+        sender: autoExtractedData.sender,
+        subject: autoExtractedData.subject,
+        content: autoExtractedData.content,
+      })
+      setExtractedLinks(autoExtractedData.links)
+    }
+  }, [autoExtractedData, result])
+
+  // Show error messages from auto-extraction
+  useEffect(() => {
+    if (autoExtractError) {
+      toast.error(autoExtractError)
+    }
+  }, [autoExtractError, toast])
 
   // Form field handlers
   const handleFieldChange =
@@ -188,8 +225,6 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
       // Extract links from the content
       const links = extractLinksFromContent(extractResult.content || "")
       setExtractedLinks(links)
-
-      toast.success("Email extracted from Gmail")
     } catch (error) {
       console.error("Gmail extraction error:", error)
 
@@ -299,6 +334,34 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
   // UI Component: Email Input Form
   const EmailInputForm = () => (
     <Box>
+      {/* Auto-extraction status */}
+      {isAutoExtracting && (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <CircularProgress size={16} sx={{ mr: 1 }} />
+            Automatically extracting email from Gmail...
+          </Box>
+        </Alert>
+      )}
+
+      {autoExtractError && onRetryAutoExtract && (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Could not auto-extract from Gmail
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {autoExtractError}
+              </Typography>
+            </Box>
+            <Button size="small" variant="outlined" onClick={onRetryAutoExtract} sx={{ ml: 2 }}>
+              Retry
+            </Button>
+          </Box>
+        </Alert>
+      )}
+
       <Box
         sx={{
           display: "flex",
@@ -314,7 +377,9 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
             color: theme.palette.text.secondary,
           }}
         >
-          Enter email details or extract from a mail client.
+          {autoExtractedData
+            ? "Email extracted from Gmail"
+            : "Enter email details or extract from a mail client."}
         </Typography>
 
         <Tooltip title="Extract email from current tab">
