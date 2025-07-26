@@ -16,7 +16,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import type { EmailCheckResult } from "./EmailAnalyzer"
 import type { TextCheckResult } from "./TextInputAnalyzer"
@@ -74,9 +74,16 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
-  const [tabValue, setTabValue] = useState(0)
+  const [tabValue, setTabValue] = useState(analysisData ? 1 : 0)
   const theme = useTheme()
   const { toast } = useCustomSnackbar()
+
+  // Update tab to Analysis Results when new analysis data arrives
+  useEffect(() => {
+    if (analysisData) {
+      setTabValue(1) // Switch to Analysis Results tab
+    }
+  }, [analysisData])
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)

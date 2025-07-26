@@ -235,6 +235,56 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       }
     }
 
+    // Function to analyze extracted email automatically
+    const analyzeExtractedEmail = async (emailData: { sender: string; subject: string; content: string }) => {
+      if (!validateApiKey()) return
+
+      setIsChecking(true)
+      try {
+        // Prepare email data for analysis
+        const emailDataForAnalysis: EmailData = {
+          sender: emailData.sender.trim(),
+          subject: emailData.subject.trim() || DEFAULT_VALUES.SUBJECT,
+          content: emailData.content.trim(),
+          timestamp: new Date().toISOString(),
+        }
+
+        // Use OpenAI to check the email
+        const fraudResult = await checkEmailWithOpenAI(emailDataForAnalysis, apiKey || "")
+
+        // Transform the API response to our UI result format
+        const checkResult: EmailCheckResult = {
+          threatRating: fraudResult.threatRating,
+          explanation: fraudResult.explanation,
+          sender: emailDataForAnalysis.sender,
+          subject: emailDataForAnalysis.subject || DEFAULT_VALUES.SUBJECT,
+          flags: fraudResult.flags,
+        }
+
+        // Update UI
+        setResult(checkResult)
+
+        // Call the analysis complete callback to switch to analysis tab
+        if (onAnalysisComplete) {
+          onAnalysisComplete(
+            "email",
+            {
+              sender: emailDataForAnalysis.sender,
+              subject: emailDataForAnalysis.subject,
+              content: emailDataForAnalysis.content,
+            },
+            checkResult
+          )
+        }
+
+        resetForm()
+      } catch (error) {
+        handleApiError(error)
+      } finally {
+        setIsChecking(false)
+      }
+    }
+
     // Function to check a manually entered email
     const checkEmail = async () => {
       // Validation
