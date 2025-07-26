@@ -16,7 +16,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
 import { useManifestHook } from "../hooks/useManifestHook"
 import { AnalysisTab } from "./AnalysisTab"
@@ -78,71 +78,8 @@ export const MainDisplay = () => {
   const { darkMode, toggleDarkMode } = useCustomThemeContext()
   const [tabValue, setTabValue] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
-  const [_emailProvider, setEmailProvider] = useState<string | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
   const emailAnalyzerRef = useRef<EmailAnalyzerRef>(null)
-
-  // Email provider detection
-  useEffect(() => {
-    const detectEmailProvider = async () => {
-      try {
-        // Get the active tab
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        })
-
-        if (tab?.url) {
-          const url = new URL(tab.url)
-          const hostname = url.hostname.toLowerCase()
-
-          // Define known email providers hostnames
-          const emailProviders = [
-            { domain: "mail.google.com", name: "Gmail" },
-            { domain: "outlook.live.com", name: "Outlook" },
-            { domain: "outlook.office.com", name: "Outlook" },
-            { domain: "outlook.office365.com", name: "Outlook" },
-            { domain: "mail.yahoo.com", name: "Yahoo Mail" },
-            { domain: "aol.com", name: "AOL Mail" },
-            { domain: "protonmail.com", name: "ProtonMail" },
-            { domain: "mail.proton.me", name: "ProtonMail" },
-            { domain: "zoho.com", name: "Zoho Mail" },
-          ]
-
-          // Find the matching provider
-          const matchedProvider = emailProviders.find((provider) =>
-            hostname.includes(provider.domain)
-          )
-
-          if (matchedProvider) {
-            // We're on an email provider site
-            setEmailProvider(matchedProvider.name)
-            setTabValue(0) // Email tab
-            
-            // Auto-extract email content if on Gmail
-            if (matchedProvider.name === "Gmail") {
-              // Use a small delay to ensure the EmailAnalyzer component has mounted
-              setTimeout(() => {
-                emailAnalyzerRef.current?.extractEmail()
-              }, 1000) // Increased delay to ensure component is ready
-            }
-          } else {
-            // Not on an email provider site
-            setEmailProvider(null)
-            setTabValue(1) // Text tab
-          }
-        }
-      } catch (error) {
-        console.error("Error detecting email provider:", error)
-        setEmailProvider(null)
-        // Default to text tab on error
-        setTabValue(1)
-      }
-    }
-
-    // Run the detection
-    detectEmailProvider()
-  }, []) // Empty dependency array means this runs once on mount
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
