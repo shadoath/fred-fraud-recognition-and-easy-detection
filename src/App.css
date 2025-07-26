@@ -1,87 +1,52 @@
-body {
-  width: 600px;
-  max-width: 600px;
-  height: auto;
-  max-height: 550px;
-  font-family: Arial, sans-serif;
-  display: flex;
-  align-items: flex-start;
-}
+/* Reset and base styles for Chrome extension popup */
 #root {
-  /* width: 100%; */
-  /* margin-top: 6px; */
-}
-
-label {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-.container {
-  margin-top: 10px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  padding: 10px;
-  border-radius: 5px;
-  height: auto;
-  max-height: 400px;
-  /* border: "1px solid grey"; */
-}
-ul,
-ol {
-  padding-left: 28px;
+  width: 600px;
+  height: 600px;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
   margin: 0;
-}
-li {
-  margin: 0;
-  padding: 5px 0;
-  border-bottom: 1px solid #eee;
-  justify-content: space-between;
-  align-items: center;
-  /* max-width: 400px; */
-  word-break: break-word;
-  /* overflow: hidden; */
-  white-space: nowrap;
-  text-overflow: clip;
-}
-li p {
+  padding: 0;
   overflow: hidden;
-  /* max-width: 400px; */
-  word-break: break-word;
-  white-space: nowrap;
-  text-overflow: clip;
-}
-li:last-child {
-  border-bottom: none;
-}
-button {
-  padding: 10px;
-  font-size: 16px;
-  margin-top: 10px;
-  border: none;
-  background-color: #4caf50;
-  color: white;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.3s;
 }
 
-/*
-MUI
-*/
+/* Chrome extension body override */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 600px !important;
+  height: 600px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+/* Material-UI Customizations */
 .MuiAutocomplete-paper {
   padding: 0 !important;
   margin: 0 !important;
 }
-/*
-if TextField has class of many-locations, then we want to make the inputLabel and notchedOutline font size 1.5rem
-And change the font weight to bold and give it a color
-*/
-.many-locations .MuiOutlinedInput-notchedOutline {
-  font-size: 1.1rem;
+
+/* Custom scrollbar for better UX in constrained space */
+::-webkit-scrollbar {
+  width: 6px;
 }
-.many-locations .MuiInputLabel-root {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: var(--primary-main);
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode scrollbar */
+[data-mui-color-scheme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-mui-color-scheme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

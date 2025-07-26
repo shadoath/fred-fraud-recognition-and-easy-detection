@@ -5,10 +5,8 @@ import {
   Alert,
   Box,
   Button,
-  Card,
   Chip,
   CircularProgress,
-  Fade,
   Paper,
   TextField,
   Tooltip,
@@ -32,13 +30,18 @@ export interface EmailCheckResult {
 
 interface EmailAnalyzerProps {
   onBackToHome?: () => void
+  onAnalysisComplete?: (
+    type: "email",
+    input: { sender?: string; subject?: string; content: string },
+    result: EmailCheckResult
+  ) => void
 }
 
 const DEFAULT_VALUES = {
   SUBJECT: "No Subject",
 }
 
-export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
+export const EmailAnalyzer = ({ onBackToHome, onAnalysisComplete }: EmailAnalyzerProps) => {
   // State management
   const [isChecking, setIsChecking] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
@@ -248,6 +251,16 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
 
       // Update UI
       setResult(checkResult)
+      
+      // Call the analysis complete callback if provided
+      if (onAnalysisComplete) {
+        onAnalysisComplete("email", {
+          sender: emailData.sender,
+          subject: emailData.subject,
+          content: emailData.content,
+        }, checkResult)
+      }
+      
       resetForm()
     } catch (error) {
       handleApiError(error)
@@ -558,48 +571,29 @@ export const EmailAnalyzer = ({ onBackToHome }: EmailAnalyzerProps) => {
     )
   }
 
-  // Main component rendering
   return (
-    <Card
+    <Box
       sx={{
-        borderRadius: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        boxShadow: "none",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          mb: 2,
-          pb: 1,
-          borderBottom: `1px dashed ${theme.palette.divider}`,
-        }}
-      >
-        <EmailIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-        <Typography variant="h5" sx={{ fontSize: "1.25rem", fontWeight: 600 }}>
-          Email Analysis
-        </Typography>
-      </Box>
-
-      {/* Body - Conditionally render input form or results */}
-      {!result ? (
-        <Fade in={!result} timeout={400}>
+      <Box sx={{ flex: 1, overflow: "auto" }}>
+        {!result ? (
           <Box>
             {!hasApiKey && (
-              <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+              <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
                 An OpenAI API key is required. Please add your API key in the settings.
               </Alert>
             )}
             <EmailInputForm />
           </Box>
-        </Fade>
-      ) : (
-        <Fade in={!!result} timeout={600}>
+        ) : (
           <ResultsDisplay />
-        </Fade>
-      )}
-    </Card>
+        )}
+      </Box>
+    </Box>
   )
 }

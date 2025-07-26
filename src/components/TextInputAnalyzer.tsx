@@ -1,13 +1,10 @@
-import DescriptionIcon from "@mui/icons-material/Description"
 import WarningIcon from "@mui/icons-material/Warning"
 import {
   Alert,
   Box,
   Button,
-  Card,
   Chip,
   CircularProgress,
-  Fade,
   Paper,
   TextField,
   Typography,
@@ -30,9 +27,10 @@ export interface TextCheckResult {
 
 interface TextInputAnalyzerProps {
   onBackToHome?: () => void
+  onAnalysisComplete?: (type: "text", input: { content: string }, result: TextCheckResult) => void
 }
 
-export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
+export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInputAnalyzerProps) => {
   const [textContent, setTextContent] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
   const [isScraping, setIsScraping] = useState(false)
@@ -184,7 +182,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   }
 
   // Function to scrape content from the current webpage
-  const scrapeCurrentWebpage = async () => {
+  const _scrapeCurrentWebpage = async () => {
     setIsScraping(true)
     try {
       // Check if we have permission for this site
@@ -263,6 +261,17 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
       }
 
       setResult(checkResult)
+
+      // Call the analysis complete callback if provided
+      if (onAnalysisComplete) {
+        onAnalysisComplete(
+          "text",
+          {
+            content: textContent,
+          },
+          checkResult
+        )
+      }
     } catch (error) {
       console.error("Error checking text:", error)
       toast.error("An error occurred while analyzing the text. Please try again later.")
@@ -271,7 +280,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
     }
   }
 
-  const pasteFromClipboard = () => {
+  const _pasteFromClipboard = () => {
     chrome.runtime.sendMessage({ action: "pasteFromClipboard" }, (response) => {
       if (response?.success) {
         setTextContent(response.text)
@@ -287,33 +296,19 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
   }
 
   return (
-    <Card
+    <Box
       sx={{
-        borderRadius: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        boxShadow: "none",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          mb: 2,
-          pb: 1,
-          borderBottom: `1px dashed ${theme.palette.divider}`,
-        }}
-      >
-        <DescriptionIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-        <Typography variant="h5" sx={{ fontSize: "1.25rem", fontWeight: 600 }}>
-          Text Analysis
-        </Typography>
-      </Box>
-
-      {!result ? (
-        <Fade in={!result} timeout={400}>
+      <Box sx={{ flex: 1, overflow: "auto" }}>
+        {!result ? (
           <Box>
             {!hasApiKey && (
-              <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+              <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
                 An OpenAI API key is required. Please add your API key in the settings.
               </Alert>
             )}
@@ -437,9 +432,7 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
               </Zoom>
             )}
           </Box>
-        </Fade>
-      ) : (
-        <Fade in={!!result} timeout={600}>
+        ) : (
           <Box sx={{ width: "100%" }}>
             {/* Using our custom ThreatRating component */}
             <ThreatRating rating={result.threatRating} />
@@ -561,8 +554,8 @@ export const TextInputAnalyzer = ({ onBackToHome }: TextInputAnalyzerProps) => {
               </Button>
             </Box>
           </Box>
-        </Fade>
-      )}
-    </Card>
+        )}
+      </Box>
+    </Box>
   )
 }

@@ -139,7 +139,7 @@ export const FraudChecker = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 400 }}>
+    <Box sx={{ maxWidth: 600 }}>
       {/* API Key Settings */}
       <Collapse in={showSettings}>
         <ApiKeySettings />
