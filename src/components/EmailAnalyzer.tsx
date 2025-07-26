@@ -1,5 +1,4 @@
 import ContentPasteIcon from "@mui/icons-material/ContentPaste"
-import EmailIcon from "@mui/icons-material/Email"
 import WarningIcon from "@mui/icons-material/Warning"
 import {
   Alert,
@@ -13,7 +12,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState } from "react"
+import { forwardRef, useImperativeHandle, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
 import { checkEmailWithOpenAI, type EmailData } from "../lib/fraudService"
@@ -37,11 +36,16 @@ interface EmailAnalyzerProps {
   ) => void
 }
 
+export interface EmailAnalyzerRef {
+  extractEmail: () => void
+}
+
 const DEFAULT_VALUES = {
   SUBJECT: "No Subject",
 }
 
-export const EmailAnalyzer = ({ onBackToHome, onAnalysisComplete }: EmailAnalyzerProps) => {
+export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
+  ({ onBackToHome, onAnalysisComplete }, ref) => {
   // State management
   const [isChecking, setIsChecking] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
@@ -56,6 +60,11 @@ export const EmailAnalyzer = ({ onBackToHome, onAnalysisComplete }: EmailAnalyze
   const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    extractEmail: extractCurrentEmail,
+  }))
 
   // Form field handlers
   const handleFieldChange =
@@ -117,20 +126,19 @@ export const EmailAnalyzer = ({ onBackToHome, onAnalysisComplete }: EmailAnalyze
       const [result] = await chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         func: () => {
-          // Try to find the scrapeGmail function
-          // @ts-ignore - window.scrapeGmail is added by our content script
-          if (typeof window.scrapeGmail === "function") {
-            // @ts-ignore - call the scrapeGmail function
-            return window.scrapeGmail()
-          }
-
-          // If function not found, manually extract using same logic
-          // This is a fallback in case the content script didn't load properly
-          // Extract using basic selectors
           try {
-            const sender =
-              document.querySelector(".gD [email]")?.getAttribute("email") ||
-              document.querySelector("[data-hovercard-id]")?.getAttribute("data-hovercard-id")
+            // Gmail-specific selectors
+            const email1 = document
+              .querySelector("[data-message-id] [email]")
+              ?.getAttribute("email")
+            const email2 = document.querySelector(".gE [email]")?.getAttribute("email")
+            const email3 = document.querySelector(".gD [email]")?.getAttribute("email")
+            const email4 = document
+              .querySelector("[data-hovercard-id]")
+              ?.getAttribute("data-hovercard-id")
+            const email5 = document.querySelector(".go")?.textContent?.trim()
+            const sender = email1 || email2 || email3 || email4 || email5
+            console.info({ email1, email2, email3, email4, email5, sender })
             const subject =
               document.querySelector(".ha h2")?.textContent ||
               document.querySelector("[data-message-id] .hP")?.textContent
@@ -596,4 +604,4 @@ export const EmailAnalyzer = ({ onBackToHome, onAnalysisComplete }: EmailAnalyze
       </Box>
     </Box>
   )
-}
+})

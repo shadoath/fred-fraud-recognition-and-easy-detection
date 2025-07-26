@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react"
 import { API_KEY_STORAGE_KEY } from "../components/ApiKeySettings"
-import { recoverApiKey } from "../lib/keyStorage"
+import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
+import { obfuscateApiKey, recoverApiKey } from "../lib/keyStorage"
 
 export interface ApiKeyState {
   apiKey: string | null
   setApiKey: (apiKey: string | null) => void
   hasApiKey: boolean
   isLoading: boolean
+  isSaving: boolean
+  isApiKeySaved: boolean
+  saveApiKey: () => void
+  clearApiKey: () => void
 }
 
 /**
@@ -16,6 +21,9 @@ export interface ApiKeyState {
 export const useApiKey = (): ApiKeyState => {
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [isApiKeySaved, setIsApiKeySaved] = useState<boolean>(false)
+  const { toast } = useCustomSnackbar()
 
   useEffect(() => {
     const checkApiKey = async () => {
@@ -52,10 +60,48 @@ export const useApiKey = (): ApiKeyState => {
     }
   }, [])
 
+  const saveApiKey = async () => {
+    setIsSaving(true)
+    try {
+      const trimmedKey = apiKey?.trim() || ""
+      // Obfuscate the API key before storing it
+      const obfuscatedKey = obfuscateApiKey(trimmedKey)
+      await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: obfuscatedKey })
+      toast.success("API key saved successfully")
+      setIsApiKeySaved(true)
+      // Test the API key (optional)
+      // You could add a simple test request here
+    } catch (error) {
+      console.error("Error saving API key:", error)
+      toast.error("Error saving API key")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Clear API key from Chrome storage
+  const clearApiKey = async () => {
+    setIsSaving(true)
+    try {
+      await chrome.storage.local.remove(API_KEY_STORAGE_KEY)
+      setApiKey("")
+      toast.success("API key removed")
+    } catch (error) {
+      console.error("Error removing API key:", error)
+      toast.error("Error removing API key")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return {
     apiKey,
     setApiKey,
     hasApiKey: !!apiKey,
     isLoading,
+    isSaving,
+    isApiKeySaved,
+    saveApiKey,
+    clearApiKey,
   }
 }

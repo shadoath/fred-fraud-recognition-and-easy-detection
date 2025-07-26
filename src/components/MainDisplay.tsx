@@ -16,12 +16,12 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
 import { useManifestHook } from "../hooks/useManifestHook"
 import { AnalysisTab } from "./AnalysisTab"
 import { ApiKeySettings } from "./ApiKeySettings"
-import { EmailAnalyzer, type EmailCheckResult } from "./EmailAnalyzer"
+import { EmailAnalyzer, type EmailAnalyzerRef, type EmailCheckResult } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { type TextCheckResult, TextInputAnalyzer } from "./TextInputAnalyzer"
 
@@ -80,6 +80,7 @@ export const MainDisplay = () => {
   const [showSettings, setShowSettings] = useState(false)
   const [_emailProvider, setEmailProvider] = useState<string | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
+  const emailAnalyzerRef = useRef<EmailAnalyzerRef>(null)
 
   // Email provider detection
   useEffect(() => {
@@ -117,6 +118,14 @@ export const MainDisplay = () => {
             // We're on an email provider site
             setEmailProvider(matchedProvider.name)
             setTabValue(0) // Email tab
+            
+            // Auto-extract email content if on Gmail
+            if (matchedProvider.name === "Gmail") {
+              // Use a small delay to ensure the EmailAnalyzer component has mounted
+              setTimeout(() => {
+                emailAnalyzerRef.current?.extractEmail()
+              }, 1000) // Increased delay to ensure component is ready
+            }
           } else {
             // Not on an email provider site
             setEmailProvider(null)
@@ -231,7 +240,7 @@ export const MainDisplay = () => {
           <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
             <TabPanel value={tabValue} index={0}>
               <ErrorBoundary>
-                <EmailAnalyzer onAnalysisComplete={handleAnalysisComplete} />
+                <EmailAnalyzer ref={emailAnalyzerRef} onAnalysisComplete={handleAnalysisComplete} />
               </ErrorBoundary>
             </TabPanel>
             <TabPanel value={tabValue} index={1}>
