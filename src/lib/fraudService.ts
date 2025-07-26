@@ -314,10 +314,7 @@ export async function safeCheckTextWithOpenAI(
 // Export type references for backward compatibility
 export type {
   ApiErrorResponse,
-  ApiSuccessResponse,
   EmailData,
   FraudCheckResponse,
   TextData,
 } from "../types/fraudTypes"
-
-// Offline mode has been removed - API key is now required

@@ -2,12 +2,6 @@
  * Shared type definitions for fraud detection services
  */
 
-// Base API response types
-export type ApiSuccessResponse = {
-  success: true
-  message?: string
-}
-
 export type ApiErrorResponse = {
   success: false
   message: string
@@ -28,10 +22,10 @@ export interface TextData {
 }
 
 // Response type
-export interface FraudCheckResponse extends ApiSuccessResponse {
+export interface FraudCheckResponse {
+  success: true
   threatRating: number // 1-10 scale
   explanation: string
   flags?: string[] // Optional array of specific fraud indicators
   confidence?: number // Optional confidence score
 }
-

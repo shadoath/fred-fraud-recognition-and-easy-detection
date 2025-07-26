@@ -33,153 +33,10 @@ interface TextInputAnalyzerProps {
 export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInputAnalyzerProps) => {
   const [textContent, setTextContent] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
-  const [isScraping] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
   const { apiKey, hasApiKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
-
-  // Function to check permission for the current tab URL
-  const _checkCurrentTabPermission = async (): Promise<boolean> => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-      if (!tab?.url) {
-        toast.error("No active tab found")
-        return false
-      }
-
-      const response = await chrome.runtime.sendMessage({
-        action: "checkPermission",
-        url: tab.url,
-      })
-
-      return response?.success && response?.hasPermission
-    } catch (error) {
-      console.error("Error checking tab permission:", error)
-      return false
-    }
-  }
-
-  // Function to request permission for the current tab URL
-  const _requestCurrentTabPermission = async (): Promise<boolean> => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-      if (!tab?.url) {
-        toast.error("No active tab found")
-        return false
-      }
-
-      const response = await chrome.runtime.sendMessage({
-        action: "requestPermission",
-        url: tab.url,
-      })
-
-      return response?.success && response?.granted
-    } catch (error) {
-      console.error("Error requesting tab permission:", error)
-      return false
-    }
-  }
-
-  // Function to extract text from the current webpage
-  const _extractWebpageContent = async (): Promise<string> => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-      if (!tab?.id) {
-        throw new Error("No active tab found")
-      }
-
-      // Inject and execute the content scraping script
-      const [result] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          // Helper function to check if an element is visible
-          function isVisible(element: Element): boolean {
-            const style = window.getComputedStyle(element)
-            return (
-              style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0"
-            )
-          }
-
-          // Helper function to clean text (remove extra whitespace, newlines)
-          function cleanText(text: string): string {
-            return text
-              .replace(/\\s+/g, " ") // Collapse multiple spaces, tabs, newlines
-              .trim()
-          }
-
-          // Select the main content area
-          const mainContent: Element =
-            document.querySelector("main") || // HTML5 <main> element
-            document.querySelector("article") || // HTML5 <article> element
-            document.querySelector('[role="main"]') || // ARIA role
-            document.querySelector(".content, #content, .main-content") || // Common class/ID patterns
-            document.body // Fallback to body
-
-          // Elements to exclude (menus, headers, footers, asides, etc.)
-          const excludeSelectors = [
-            "nav",
-            "header",
-            "footer",
-            "aside",
-            '[role="navigation"]',
-            '[role="banner"]',
-            '[role="contentinfo"]',
-            ".menu, .navbar, .sidebar, .widget, .ad, .advert, .footer, .header",
-          ].join(", ")
-
-          // Clone the main content to avoid modifying the original DOM
-          const contentClone = mainContent.cloneNode(true) as Element
-
-          // Remove excluded elements from the clone
-          const excludedElements = contentClone.querySelectorAll(excludeSelectors)
-          excludedElements.forEach((element) => element.remove())
-
-          // Get all visible text nodes
-          let textContent = ""
-          const walker = document.createTreeWalker(contentClone, NodeFilter.SHOW_TEXT, {
-            acceptNode: (node) => {
-              const parent = node.parentElement
-              // Only include text from visible elements, exclude script/style
-              if (parent && isVisible(parent) && !["SCRIPT", "STYLE"].includes(parent.tagName)) {
-                return NodeFilter.FILTER_ACCEPT
-              }
-              return NodeFilter.FILTER_REJECT
-            },
-          })
-
-          // Collect and clean text
-          while (walker.nextNode()) {
-            if (walker.currentNode.textContent) {
-              const text = cleanText(walker.currentNode.textContent)
-              if (text) {
-                textContent += `${text} `
-              }
-            }
-          }
-
-          // Final cleanup
-          textContent = cleanText(textContent)
-
-          return textContent || "No main content text found."
-        },
-      })
-
-      return result.result || "No content extracted"
-    } catch (error) {
-      console.error("Error extracting webpage content:", error)
-      throw error
-    }
-  }
 
   // Function to check the text for fraud
   const checkTextForFraud = async () => {
@@ -324,7 +181,7 @@ export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInpu
                 variant="contained"
                 color="primary"
                 onClick={checkTextForFraud}
-                disabled={isChecking || isScraping || !textContent.trim() || !hasApiKey}
+                disabled={isChecking || !textContent.trim() || !hasApiKey}
                 startIcon={
                   isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
                 }
