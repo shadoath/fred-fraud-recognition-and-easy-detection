@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react"
 import { API_KEY_STORAGE_KEY } from "../components/ApiKeySettings"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
-import { obfuscateApiKey, recoverApiKey } from "../lib/keyStorage"
+import {
+  obfuscateApiKey,
+  recoverApiKey,
+  validateApiKeyFormat,
+  attemptMigration
+} from "../lib/keyStorage"
 
 export interface ApiKeyState {
   apiKey: string | null
@@ -28,6 +33,12 @@ export const useApiKey = (): ApiKeyState => {
   useEffect(() => {
     const checkApiKey = async () => {
       try {
+        // First, attempt migration from old storage if needed
+        const migrated = await attemptMigration()
+        if (migrated) {
+          console.log("Successfully migrated to enhanced key storage")
+        }
+
         const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY)
         const obfuscatedKey = result[API_KEY_STORAGE_KEY]
 
@@ -64,13 +75,19 @@ export const useApiKey = (): ApiKeyState => {
     setIsSaving(true)
     try {
       const trimmedKey = apiKey?.trim() || ""
-      // Obfuscate the API key before storing it
+
+      // Validate the API key format first
+      if (!validateApiKeyFormat(trimmedKey)) {
+        toast.error("Invalid API key format. OpenAI keys should start with 'sk-'")
+        setIsSaving(false)
+        return
+      }
+
+      // Obfuscate the API key before storing it (now uses enhanced obfuscation)
       const obfuscatedKey = obfuscateApiKey(trimmedKey)
       await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: obfuscatedKey })
-      toast.success("API key saved successfully")
+      toast.success("API key saved securely")
       setIsApiKeySaved(true)
-      // Test the API key (optional)
-      // You could add a simple test request here
     } catch (error) {
       console.error("Error saving API key:", error)
       toast.error("Error saving API key")
