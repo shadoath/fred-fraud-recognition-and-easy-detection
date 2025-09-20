@@ -4,6 +4,12 @@ import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData } from "
 // OpenAI API URL
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
+// Configuration constants
+const DEFAULT_MODEL = "gpt-3.5-turbo"
+const MAX_CONTENT_LENGTH = 4000
+const DEFAULT_TEMPERATURE = 0.2
+const MAX_TOKENS = 1000
+
 // OpenAI API response structure
 interface OpenAIResponse {
   id: string
@@ -25,27 +31,34 @@ interface OpenAIResponse {
   }
 }
 
-/**
- * Calls OpenAI API to analyze an email for fraud
- * @param emailData The email data to analyze
- * @param apiKey OpenAI API key
- * @returns The fraud check results
- */
-export async function checkEmailWithOpenAI(
-  emailData: EmailData,
-  apiKey: string
-): Promise<FraudCheckResponse> {
-  try {
-    const prompt = `You are a cybersecurity expert analyzing an email for potential fraud or phishing. Please analyze this email:
+type ContentData = EmailData | TextData
 
-Sender: ${emailData.sender}
-Subject: ${emailData.subject || "(No subject)"}
+/**
+ * Helper function to determine if data is EmailData
+ */
+function isEmailData(data: ContentData): data is EmailData {
+  return "sender" in data && "subject" in data
+}
+
+/**
+ * Helper function to build the prompt based on content type
+ */
+function buildPrompt(data: ContentData): string {
+  const truncatedContent = data.content.substring(0, MAX_CONTENT_LENGTH)
+  const isTruncated = data.content.length > MAX_CONTENT_LENGTH
+  const contentDisplay = `${truncatedContent}${isTruncated ? "...(truncated)" : ""}`
+
+  if (isEmailData(data)) {
+    return `You are a cybersecurity expert analyzing an email for potential fraud or phishing. Please analyze this email:
+
+Sender: ${data.sender}
+Subject: ${data.subject || "(No subject)"}
 Content:
-${emailData.content.substring(0, 4000)} ${emailData.content.length > 4000 ? "...(truncated)" : ""}
+${contentDisplay}
 
 Analyze this email for signs of fraud, such as:
 1. Suspicious URLs or domain names
-2. Urgency language or pressure tactics 
+2. Urgency language or pressure tactics
 3. Grammar or spelling errors that could indicate a scam
 4. Requests for sensitive information
 5. Unexpected attachments or links
@@ -59,99 +72,12 @@ Provide your analysis in JSON format with the following fields:
 - flags: An array of specific suspicious elements detected
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
 
-Ensure the JSON is valid and properly formatted.
-`
-
-    const response = await axios.post<OpenAIResponse>(
-      OPENAI_API_URL,
-      {
-        model: "gpt-3.5-turbo", // Using the standard GPT model to reduce costs
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.2, // Low temperature for more deterministic responses
-        max_tokens: 1000, // Limit response size
-        response_format: { type: "json_object" }, // Request JSON format
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    )
-
-    // Parse the response content from OpenAI
-    if (response.data.choices && response.data.choices.length > 0) {
-      try {
-        const content = response.data.choices[0].message.content
-        const result = JSON.parse(content)
-
-        // Validate the response format
-        if (!result.threatRating || !result.explanation) {
-          throw new Error("Invalid response format from OpenAI")
-        }
-
-        // Ensure threatRating is within the expected range (1-10)
-        const threatRating = Math.max(1, Math.min(10, Math.round(result.threatRating)))
-
-        // Return the standardized response
-        return {
-          success: true,
-          threatRating,
-          explanation: result.explanation,
-          flags: Array.isArray(result.flags) ? result.flags : [],
-          confidence: typeof result.confidence === "number" ? result.confidence : undefined,
-        }
-      } catch (parseError) {
-        console.error("Error parsing OpenAI response:", parseError)
-        throw new Error("Failed to parse fraud analysis results")
-      }
-    } else {
-      throw new Error("No valid response from OpenAI")
-    }
-  } catch (error) {
-    console.error("Error calling OpenAI API:", error)
-
-    // Handle OpenAI API errors
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError
-      if (axiosError.response) {
-        throw {
-          success: false,
-          message: `OpenAI API error: ${axiosError.response.status}`,
-          status: axiosError.response.status,
-          error: axiosError.response.data,
-        }
-      }
-    }
-
-    // For other errors, standardize the format
-    throw {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error analyzing email",
-    } as ApiErrorResponse
-  }
-}
-
-/**
- * Calls OpenAI API to analyze generic text content for fraud
- * @param textData The text data to analyze
- * @param apiKey OpenAI API key
- * @returns The fraud check results
- */
-export async function checkTextWithOpenAI(
-  textData: TextData,
-  apiKey: string
-): Promise<FraudCheckResponse> {
-  try {
-    const prompt = `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
+Ensure the JSON is valid and properly formatted.`
+  } else {
+    return `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
 
 Content:
-${textData.content.substring(0, 4000)} ${textData.content.length > 4000 ? "...(truncated)" : ""}
+${contentDisplay}
 
 Analyze this text for signs of fraud, such as:
 1. Suspicious URLs or domain names
@@ -171,22 +97,38 @@ Provide your analysis in JSON format with the following fields:
 - flags: An array of specific suspicious elements detected
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
 
-Ensure the JSON is valid and properly formatted.
-`
+Ensure the JSON is valid and properly formatted.`
+  }
+}
+
+/**
+ * Unified function to check content for fraud using OpenAI
+ * @param data The content data (email or text) to analyze
+ * @param apiKey OpenAI API key
+ * @param model Optional model override (defaults to gpt-3.5-turbo)
+ * @returns The fraud check results
+ */
+export async function checkContentWithOpenAI(
+  data: ContentData,
+  apiKey: string,
+  model: string = DEFAULT_MODEL
+): Promise<FraudCheckResponse> {
+  try {
+    const prompt = buildPrompt(data)
 
     const response = await axios.post<OpenAIResponse>(
       OPENAI_API_URL,
       {
-        model: "gpt-3.5-turbo", // Using the standard GPT model to reduce costs
+        model,
         messages: [
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.2, // Low temperature for more deterministic responses
-        max_tokens: 1000, // Limit response size
-        response_format: { type: "json_object" }, // Request JSON format
+        temperature: DEFAULT_TEMPERATURE,
+        max_tokens: MAX_TOKENS,
+        response_format: { type: "json_object" },
       },
       {
         headers: {
@@ -197,7 +139,7 @@ Ensure the JSON is valid and properly formatted.
     )
 
     // Parse the response content from OpenAI
-    if (response.data.choices && response.data.choices.length > 0) {
+    if (response.data.choices?.length > 0) {
       try {
         const content = response.data.choices[0].message.content
         const result = JSON.parse(content)
@@ -242,15 +184,75 @@ Ensure the JSON is valid and properly formatted.
     }
 
     // For other errors, standardize the format
+    const contentType = isEmailData(data) ? "email" : "text"
     throw {
       success: false,
-      message: error instanceof Error ? error.message : "Unknown error analyzing text",
+      message: error instanceof Error ? error.message : `Unknown error analyzing ${contentType}`,
     } as ApiErrorResponse
   }
 }
 
 /**
- * Safely checks an email for fraud using OpenAI with standardized error handling
+ * Backward compatibility wrapper for email checking
+ * @param emailData The email data to analyze
+ * @param apiKey OpenAI API key
+ * @returns The fraud check results
+ */
+export async function checkEmailWithOpenAI(
+  emailData: EmailData,
+  apiKey: string
+): Promise<FraudCheckResponse> {
+  return checkContentWithOpenAI(emailData, apiKey)
+}
+
+/**
+ * Backward compatibility wrapper for text checking
+ * @param textData The text data to analyze
+ * @param apiKey OpenAI API key
+ * @returns The fraud check results
+ */
+export async function checkTextWithOpenAI(
+  textData: TextData,
+  apiKey: string
+): Promise<FraudCheckResponse> {
+  return checkContentWithOpenAI(textData, apiKey)
+}
+
+/**
+ * Unified safe check function for content analysis
+ * @param data The content data to analyze
+ * @param apiKey OpenAI API key
+ * @param model Optional model override
+ * @returns A tuple with [data, error] where only one is defined
+ */
+export async function safeCheckContentWithOpenAI(
+  data: ContentData,
+  apiKey: string,
+  model?: string
+): Promise<[FraudCheckResponse | null, ApiErrorResponse | null]> {
+  try {
+    const result = await checkContentWithOpenAI(data, apiKey, model)
+    return [result, null]
+  } catch (error) {
+    const errorResponse: ApiErrorResponse = {
+      success: false,
+      message: "An unexpected error occurred during fraud check",
+    }
+
+    if (error && typeof error === "object" && "success" in error && !error.success) {
+      return [null, error as ApiErrorResponse]
+    }
+
+    if (error instanceof Error) {
+      errorResponse.message = error.message
+    }
+
+    return [null, errorResponse]
+  }
+}
+
+/**
+ * Backward compatibility wrapper for safe email checking
  * @param emailData The email data to analyze
  * @param apiKey OpenAI API key
  * @returns A tuple with [data, error] where only one is defined
@@ -259,29 +261,11 @@ export async function safeCheckEmailWithOpenAI(
   emailData: EmailData,
   apiKey: string
 ): Promise<[FraudCheckResponse | null, ApiErrorResponse | null]> {
-  try {
-    const result = await checkEmailWithOpenAI(emailData, apiKey)
-    return [result, null]
-  } catch (error) {
-    const errorResponse: ApiErrorResponse = {
-      success: false,
-      message: "An unexpected error occurred during fraud check",
-    }
-
-    if (error && typeof error === "object" && "success" in error && !error.success) {
-      return [null, error as ApiErrorResponse]
-    }
-
-    if (error instanceof Error) {
-      errorResponse.message = error.message
-    }
-
-    return [null, errorResponse]
-  }
+  return safeCheckContentWithOpenAI(emailData, apiKey)
 }
 
 /**
- * Safely checks text for fraud using OpenAI with standardized error handling
+ * Backward compatibility wrapper for safe text checking
  * @param textData The text data to analyze
  * @param apiKey OpenAI API key
  * @returns A tuple with [data, error] where only one is defined
@@ -290,25 +274,7 @@ export async function safeCheckTextWithOpenAI(
   textData: TextData,
   apiKey: string
 ): Promise<[FraudCheckResponse | null, ApiErrorResponse | null]> {
-  try {
-    const result = await checkTextWithOpenAI(textData, apiKey)
-    return [result, null]
-  } catch (error) {
-    const errorResponse: ApiErrorResponse = {
-      success: false,
-      message: "An unexpected error occurred during fraud check",
-    }
-
-    if (error && typeof error === "object" && "success" in error && !error.success) {
-      return [null, error as ApiErrorResponse]
-    }
-
-    if (error instanceof Error) {
-      errorResponse.message = error.message
-    }
-
-    return [null, errorResponse]
-  }
+  return safeCheckContentWithOpenAI(textData, apiKey)
 }
 
 // Export type references for backward compatibility
