@@ -47,7 +47,7 @@ describe("Key Storage Utilities", () => {
     })
 
     test("should handle storage errors gracefully", async () => {
-      jest.spyOn(chrome.storage.session, "set").mockRejectedValueOnce(new Error("Storage error"))
+      ;(chrome.storage.session.set as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
 
       await expect(storeApiKey("sk-test")).rejects.toThrow("Failed to store API key")
     })
@@ -71,7 +71,7 @@ describe("Key Storage Utilities", () => {
     })
 
     test("should return null on storage error", async () => {
-      jest.spyOn(chrome.storage.session, "get").mockRejectedValueOnce(new Error("Storage error"))
+      ;(chrome.storage.session.get as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
 
       const result = await getApiKey()
 
@@ -90,7 +90,7 @@ describe("Key Storage Utilities", () => {
     })
 
     test("should handle removal errors gracefully", async () => {
-      jest.spyOn(chrome.storage.session, "remove").mockRejectedValueOnce(new Error("Storage error"))
+      ;(chrome.storage.session.remove as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
 
       await expect(removeApiKey()).rejects.toThrow("Failed to remove API key")
     })
