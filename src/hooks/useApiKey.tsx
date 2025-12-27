@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { API_KEY_STORAGE_KEY } from "../components/ApiKeySettings"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
-import { obfuscateApiKey, recoverApiKey } from "../lib/keyStorage"
+import { getApiKey, removeApiKey, storeApiKey } from "../lib/keyStorage"
 
 export interface ApiKeyState {
   apiKey: string | null
@@ -28,11 +28,8 @@ export const useApiKey = (): ApiKeyState => {
   useEffect(() => {
     const checkApiKey = async () => {
       try {
-        const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY)
-        const obfuscatedKey = result[API_KEY_STORAGE_KEY]
-
-        // If we have an obfuscated key, recover the original
-        const key = obfuscatedKey ? recoverApiKey(obfuscatedKey) : null
+        // Use the new secure storage API
+        const key = await getApiKey()
         setApiKey(key || null)
       } catch (error) {
         console.error("Error checking API key:", error)
@@ -44,13 +41,15 @@ export const useApiKey = (): ApiKeyState => {
 
     checkApiKey()
 
-    // Listen for changes to the API key in storage
-    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes[API_KEY_STORAGE_KEY]) {
-        const newObfuscatedValue = changes[API_KEY_STORAGE_KEY].newValue
-        // If we have a new obfuscated value, recover the original
-        const newKey = newObfuscatedValue ? recoverApiKey(newObfuscatedValue) : null
-        setApiKey(newKey || null)
+    // Listen for changes to the API key in session storage
+    const handleStorageChange = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => {
+      // Only respond to session storage changes
+      if (areaName === "session" && changes[API_KEY_STORAGE_KEY]) {
+        const newValue = changes[API_KEY_STORAGE_KEY].newValue
+        setApiKey(newValue || null)
       }
     }
 
@@ -64,10 +63,13 @@ export const useApiKey = (): ApiKeyState => {
     setIsSaving(true)
     try {
       const trimmedKey = apiKey?.trim() || ""
-      // Obfuscate the API key before storing it
-      const obfuscatedKey = obfuscateApiKey(trimmedKey)
-      await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: obfuscatedKey })
-      toast.success("API key saved successfully")
+      if (!trimmedKey) {
+        toast.error("API key cannot be empty")
+        return
+      }
+      // Store the API key securely in session storage
+      await storeApiKey(trimmedKey)
+      toast.success("API key saved successfully (valid until browser closes)")
       setIsApiKeySaved(true)
       // Test the API key (optional)
       // You could add a simple test request here
@@ -83,7 +85,7 @@ export const useApiKey = (): ApiKeyState => {
   const clearApiKey = async () => {
     setIsSaving(true)
     try {
-      await chrome.storage.local.remove(API_KEY_STORAGE_KEY)
+      await removeApiKey()
       setApiKey("")
       toast.success("API key removed")
     } catch (error) {

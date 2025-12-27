@@ -1,62 +1,164 @@
-import { obfuscateApiKey, recoverApiKey } from "./keyStorage"
+import { getApiKey, hasApiKey, obfuscateApiKey, recoverApiKey, removeApiKey, storeApiKey } from "./keyStorage"
+
+// Mock chrome.storage.session
+const mockStorage = new Map<string, string>()
+
+global.chrome = {
+  storage: {
+    session: {
+      get: jest.fn(async (key: string) => {
+        if (typeof key === "string") {
+          return { [key]: mockStorage.get(key) }
+        }
+        return {}
+      }),
+      set: jest.fn(async (items: Record<string, string>) => {
+        Object.entries(items).forEach(([key, value]) => {
+          mockStorage.set(key, value)
+        })
+      }),
+      remove: jest.fn(async (key: string) => {
+        mockStorage.delete(key)
+      }),
+    },
+  },
+} as any
 
 describe("Key Storage Utilities", () => {
-  // Test API key examples
-  const testCases = [
-    "sk-1234567890abcdef",
-    "sk-thisIsALongerTestKeyWithMoreCharacters",
-    "", // Empty string case
-  ]
+  beforeEach(() => {
+    // Clear mock storage before each test
+    mockStorage.clear()
+    jest.clearAllMocks()
+  })
 
-  test("should recover original API key after obfuscation", () => {
-    testCases.forEach((originalKey) => {
-      // Obfuscate the key
-      const obfuscated = obfuscateApiKey(originalKey)
+  describe("storeApiKey", () => {
+    test("should store API key in session storage", async () => {
+      const testKey = "sk-1234567890abcdef"
+      await storeApiKey(testKey)
 
-      // Should produce a non-empty string for non-empty inputs
-      if (originalKey) {
-        expect(obfuscated).toBeTruthy()
-        expect(obfuscated).not.toEqual(originalKey)
-      } else {
-        expect(obfuscated).toEqual("")
-      }
+      expect(chrome.storage.session.set).toHaveBeenCalledWith({
+        openai_api_key: testKey,
+      })
+      expect(mockStorage.get("openai_api_key")).toBe(testKey)
+    })
 
-      // Recover the key
-      const recovered = recoverApiKey(obfuscated)
+    test("should throw error for empty API key", async () => {
+      await expect(storeApiKey("")).rejects.toThrow("API key cannot be empty")
+    })
 
-      // Original and recovered should match
-      expect(recovered).toEqual(originalKey)
+    test("should handle storage errors gracefully", async () => {
+      jest.spyOn(chrome.storage.session, "set").mockRejectedValueOnce(new Error("Storage error"))
+
+      await expect(storeApiKey("sk-test")).rejects.toThrow("Failed to store API key")
     })
   })
 
-  test("should handle empty input gracefully", () => {
-    expect(obfuscateApiKey("")).toEqual("")
-    expect(recoverApiKey("")).toEqual("")
+  describe("getApiKey", () => {
+    test("should retrieve stored API key", async () => {
+      const testKey = "sk-test-key-12345"
+      mockStorage.set("openai_api_key", testKey)
+
+      const result = await getApiKey()
+
+      expect(result).toBe(testKey)
+      expect(chrome.storage.session.get).toHaveBeenCalledWith("openai_api_key")
+    })
+
+    test("should return null when no key is stored", async () => {
+      const result = await getApiKey()
+
+      expect(result).toBeNull()
+    })
+
+    test("should return null on storage error", async () => {
+      jest.spyOn(chrome.storage.session, "get").mockRejectedValueOnce(new Error("Storage error"))
+
+      const result = await getApiKey()
+
+      expect(result).toBeNull()
+    })
   })
 
-  test("should handle null/undefined input gracefully", () => {
-    // @ts-ignore - Testing invalid inputs
-    expect(obfuscateApiKey(null)).toEqual("")
-    // @ts-ignore - Testing invalid inputs
-    expect(obfuscateApiKey(undefined)).toEqual("")
-    // @ts-ignore - Testing invalid inputs
-    expect(recoverApiKey(null)).toEqual("")
-    // @ts-ignore - Testing invalid inputs
-    expect(recoverApiKey(undefined)).toEqual("")
+  describe("removeApiKey", () => {
+    test("should remove API key from session storage", async () => {
+      mockStorage.set("openai_api_key", "sk-test-key")
+
+      await removeApiKey()
+
+      expect(chrome.storage.session.remove).toHaveBeenCalledWith("openai_api_key")
+      expect(mockStorage.has("openai_api_key")).toBe(false)
+    })
+
+    test("should handle removal errors gracefully", async () => {
+      jest.spyOn(chrome.storage.session, "remove").mockRejectedValueOnce(new Error("Storage error"))
+
+      await expect(removeApiKey()).rejects.toThrow("Failed to remove API key")
+    })
   })
 
-  test("should generate different obfuscated values for different keys", () => {
-    const key1 = "sk-testKey1"
-    const key2 = "sk-testKey2"
+  describe("hasApiKey", () => {
+    test("should return true when API key exists", async () => {
+      mockStorage.set("openai_api_key", "sk-test-key")
 
-    const obfuscated1 = obfuscateApiKey(key1)
-    const obfuscated2 = obfuscateApiKey(key2)
+      const result = await hasApiKey()
 
-    expect(obfuscated1).not.toEqual(obfuscated2)
+      expect(result).toBe(true)
+    })
+
+    test("should return false when no API key exists", async () => {
+      const result = await hasApiKey()
+
+      expect(result).toBe(false)
+    })
+
+    test("should return false for empty API key", async () => {
+      mockStorage.set("openai_api_key", "")
+
+      const result = await hasApiKey()
+
+      expect(result).toBe(false)
+    })
   })
 
-  test("should handle invalid obfuscated input gracefully", () => {
-    const invalidObfuscated = "not-a-valid-obfuscated-key"
-    expect(recoverApiKey(invalidObfuscated)).toEqual("")
+  describe("Legacy functions (backward compatibility)", () => {
+    test("obfuscateApiKey should return key as-is", () => {
+      const testKey = "sk-test-key"
+      expect(obfuscateApiKey(testKey)).toBe(testKey)
+    })
+
+    test("recoverApiKey should return key as-is", () => {
+      const testKey = "sk-test-key"
+      expect(recoverApiKey(testKey)).toBe(testKey)
+    })
+
+    test("recoverApiKey should handle null/undefined", () => {
+      expect(recoverApiKey(null)).toBe("")
+      expect(recoverApiKey(undefined)).toBe("")
+      expect(recoverApiKey("")).toBe("")
+    })
+  })
+
+  describe("Integration tests", () => {
+    test("should store and retrieve API key", async () => {
+      const testKey = "sk-integration-test-key"
+
+      await storeApiKey(testKey)
+      const retrieved = await getApiKey()
+
+      expect(retrieved).toBe(testKey)
+    })
+
+    test("should store, check existence, and remove API key", async () => {
+      const testKey = "sk-full-cycle-test"
+
+      // Store
+      await storeApiKey(testKey)
+      expect(await hasApiKey()).toBe(true)
+
+      // Remove
+      await removeApiKey()
+      expect(await hasApiKey()).toBe(false)
+      expect(await getApiKey()).toBeNull()
+    })
   })
 })

@@ -5,7 +5,7 @@ import { Box, Button, Card, CircularProgress, Collapse, Divider, Typography } fr
 import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { checkEmailWithOpenAI, type EmailData } from "../lib/fraudService"
-import { recoverApiKey } from "../lib/keyStorage"
+import { getApiKey } from "../lib/keyStorage"
 import { API_KEY_STORAGE_KEY, ApiKeySettings } from "./ApiKeySettings"
 import { threatLevels, ThreatRating } from "./ThreatRating"
 // Define types for the fraud check results for the UI
@@ -27,10 +27,10 @@ export const FraudChecker = () => {
 
   // Check if API key exists on component mount
   useEffect(() => {
-    const checkApiKey = async () => {
+    const checkForApiKey = async () => {
       try {
-        const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY)
-        setHasApiKey(!!result[API_KEY_STORAGE_KEY])
+        const key = await getApiKey()
+        setHasApiKey(!!key)
       } catch (error) {
         console.error("Error checking API key:", error)
       } finally {
@@ -38,13 +38,17 @@ export const FraudChecker = () => {
       }
     }
 
-    checkApiKey()
+    checkForApiKey()
   }, [])
 
   // Listen for changes to the API key in storage
   useEffect(() => {
-    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes[API_KEY_STORAGE_KEY]) {
+    const handleStorageChange = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => {
+      // Only respond to session storage changes
+      if (areaName === "session" && changes[API_KEY_STORAGE_KEY]) {
         setHasApiKey(!!changes[API_KEY_STORAGE_KEY].newValue)
       }
     }
@@ -60,11 +64,9 @@ export const FraudChecker = () => {
     setIsChecking(true)
     try {
       // First check if we have an API key
-      const result = await chrome.storage.local.get(API_KEY_STORAGE_KEY)
-      const apiKey = result[API_KEY_STORAGE_KEY]
-      const recoveredKey = recoverApiKey(apiKey)
+      const apiKey = await getApiKey()
 
-      if (!recoveredKey) {
+      if (!apiKey) {
         setShowSettings(true)
 
         throw new Error("No OpenAI API key found. Please add your API key in settings.")
@@ -92,7 +94,7 @@ export const FraudChecker = () => {
 
         try {
           // Use OpenAI to check the email
-          const fraudResult = await checkEmailWithOpenAI(emailData, recoveredKey)
+          const fraudResult = await checkEmailWithOpenAI(emailData, apiKey)
 
           // Transform the API response to our UI result format
           const checkResult: FraudCheckResult = {
