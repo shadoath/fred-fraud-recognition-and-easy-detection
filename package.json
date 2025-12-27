@@ -27,7 +27,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "watch": "tsc && vite build --watch",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --max-warnings 0",
     "test": "jest",
     "test:watch": "npm run test --watch",
     "preview": "vite preview"
@@ -47,6 +47,7 @@
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
+    "@eslint/js": "^9.39.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
