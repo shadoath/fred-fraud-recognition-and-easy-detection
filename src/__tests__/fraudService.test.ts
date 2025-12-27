@@ -296,8 +296,8 @@ describe("Fraud Detection Service API Integration", () => {
         })
       )
       if (error) {
-        // The actual error is "Unknown error analyzing text"
-        expect(error.message).toContain("analyzing text")
+        // The actual error is "Unknown error during fraud analysis" (generic for both email and text)
+        expect(error.message).toContain("fraud analysis")
       } else {
         fail("Error should not be null")
       }

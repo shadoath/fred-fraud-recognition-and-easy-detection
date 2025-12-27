@@ -4,6 +4,14 @@ import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData } from "
 // OpenAI API URL
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
+// Configuration constants
+export const FRAUD_DETECTION_CONFIG = {
+  model: "gpt-3.5-turbo",
+  temperature: 0.2,
+  maxTokens: 1000,
+  contentMaxLength: 4000,
+} as const
+
 // OpenAI API response structure
 interface OpenAIResponse {
   id: string
@@ -26,26 +34,31 @@ interface OpenAIResponse {
 }
 
 /**
- * Calls OpenAI API to analyze an email for fraud
- * @param emailData The email data to analyze
- * @param apiKey OpenAI API key
- * @returns The fraud check results
+ * Configuration options for OpenAI API calls
  */
-export async function checkEmailWithOpenAI(
-  emailData: EmailData,
-  apiKey: string
-): Promise<FraudCheckResponse> {
-  try {
-    const prompt = `You are a cybersecurity expert analyzing an email for potential fraud or phishing. Please analyze this email:
+interface OpenAIConfig {
+  model?: string
+  temperature?: number
+  maxTokens?: number
+}
+
+/**
+ * Builds the fraud analysis prompt for email content
+ */
+function buildEmailPrompt(emailData: EmailData): string {
+  const truncatedContent = emailData.content.substring(0, FRAUD_DETECTION_CONFIG.contentMaxLength)
+  const truncationNotice = emailData.content.length > FRAUD_DETECTION_CONFIG.contentMaxLength ? "...(truncated)" : ""
+
+  return `You are a cybersecurity expert analyzing an email for potential fraud or phishing. Please analyze this email:
 
 Sender: ${emailData.sender}
 Subject: ${emailData.subject || "(No subject)"}
 Content:
-${emailData.content.substring(0, 4000)} ${emailData.content.length > 4000 ? "...(truncated)" : ""}
+${truncatedContent} ${truncationNotice}
 
 Analyze this email for signs of fraud, such as:
 1. Suspicious URLs or domain names
-2. Urgency language or pressure tactics 
+2. Urgency language or pressure tactics
 3. Grammar or spelling errors that could indicate a scam
 4. Requests for sensitive information
 5. Unexpected attachments or links
@@ -61,97 +74,19 @@ Provide your analysis in JSON format with the following fields:
 
 Ensure the JSON is valid and properly formatted.
 `
-
-    const response = await axios.post<OpenAIResponse>(
-      OPENAI_API_URL,
-      {
-        model: "gpt-3.5-turbo", // Using the standard GPT model to reduce costs
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.2, // Low temperature for more deterministic responses
-        max_tokens: 1000, // Limit response size
-        response_format: { type: "json_object" }, // Request JSON format
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    )
-
-    // Parse the response content from OpenAI
-    if (response.data.choices && response.data.choices.length > 0) {
-      try {
-        const content = response.data.choices[0].message.content
-        const result = JSON.parse(content)
-
-        // Validate the response format
-        if (!result.threatRating || !result.explanation) {
-          throw new Error("Invalid response format from OpenAI")
-        }
-
-        // Ensure threatRating is within the expected range (1-10)
-        const threatRating = Math.max(1, Math.min(10, Math.round(result.threatRating)))
-
-        // Return the standardized response
-        return {
-          success: true,
-          threatRating,
-          explanation: result.explanation,
-          flags: Array.isArray(result.flags) ? result.flags : [],
-          confidence: typeof result.confidence === "number" ? result.confidence : undefined,
-        }
-      } catch (parseError) {
-        console.error("Error parsing OpenAI response:", parseError)
-        throw new Error("Failed to parse fraud analysis results")
-      }
-    } else {
-      throw new Error("No valid response from OpenAI")
-    }
-  } catch (error) {
-    console.error("Error calling OpenAI API:", error)
-
-    // Handle OpenAI API errors
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError
-      if (axiosError.response) {
-        throw {
-          success: false,
-          message: `OpenAI API error: ${axiosError.response.status}`,
-          status: axiosError.response.status,
-          error: axiosError.response.data,
-        }
-      }
-    }
-
-    // For other errors, standardize the format
-    throw {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error analyzing email",
-    } as ApiErrorResponse
-  }
 }
 
 /**
- * Calls OpenAI API to analyze generic text content for fraud
- * @param textData The text data to analyze
- * @param apiKey OpenAI API key
- * @returns The fraud check results
+ * Builds the fraud analysis prompt for generic text content
  */
-export async function checkTextWithOpenAI(
-  textData: TextData,
-  apiKey: string
-): Promise<FraudCheckResponse> {
-  try {
-    const prompt = `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
+function buildTextPrompt(textData: TextData): string {
+  const truncatedContent = textData.content.substring(0, FRAUD_DETECTION_CONFIG.contentMaxLength)
+  const truncationNotice = textData.content.length > FRAUD_DETECTION_CONFIG.contentMaxLength ? "...(truncated)" : ""
+
+  return `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
 
 Content:
-${textData.content.substring(0, 4000)} ${textData.content.length > 4000 ? "...(truncated)" : ""}
+${truncatedContent} ${truncationNotice}
 
 Analyze this text for signs of fraud, such as:
 1. Suspicious URLs or domain names
@@ -173,20 +108,37 @@ Provide your analysis in JSON format with the following fields:
 
 Ensure the JSON is valid and properly formatted.
 `
+}
+
+/**
+ * Core function to call OpenAI API for fraud analysis
+ * This eliminates code duplication between email and text analysis
+ */
+async function callOpenAIForAnalysis(
+  prompt: string,
+  apiKey: string,
+  config?: OpenAIConfig
+): Promise<FraudCheckResponse> {
+  try {
+    const requestConfig = {
+      model: config?.model || FRAUD_DETECTION_CONFIG.model,
+      temperature: config?.temperature ?? FRAUD_DETECTION_CONFIG.temperature,
+      maxTokens: config?.maxTokens || FRAUD_DETECTION_CONFIG.maxTokens,
+    }
 
     const response = await axios.post<OpenAIResponse>(
       OPENAI_API_URL,
       {
-        model: "gpt-3.5-turbo", // Using the standard GPT model to reduce costs
+        model: requestConfig.model,
         messages: [
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.2, // Low temperature for more deterministic responses
-        max_tokens: 1000, // Limit response size
-        response_format: { type: "json_object" }, // Request JSON format
+        temperature: requestConfig.temperature,
+        max_tokens: requestConfig.maxTokens,
+        response_format: { type: "json_object" },
       },
       {
         headers: {
@@ -196,57 +148,99 @@ Ensure the JSON is valid and properly formatted.
       }
     )
 
-    // Parse the response content from OpenAI
-    if (response.data.choices && response.data.choices.length > 0) {
-      try {
-        const content = response.data.choices[0].message.content
-        const result = JSON.parse(content)
-
-        // Validate the response format
-        if (!result.threatRating || !result.explanation) {
-          throw new Error("Invalid response format from OpenAI")
-        }
-
-        // Ensure threatRating is within the expected range (1-10)
-        const threatRating = Math.max(1, Math.min(10, Math.round(result.threatRating)))
-
-        // Return the standardized response
-        return {
-          success: true,
-          threatRating,
-          explanation: result.explanation,
-          flags: Array.isArray(result.flags) ? result.flags : [],
-          confidence: typeof result.confidence === "number" ? result.confidence : undefined,
-        }
-      } catch (parseError) {
-        console.error("Error parsing OpenAI response:", parseError)
-        throw new Error("Failed to parse fraud analysis results")
-      }
-    } else {
-      throw new Error("No valid response from OpenAI")
-    }
+    // Parse and validate the response
+    return parseOpenAIResponse(response.data)
   } catch (error) {
-    console.error("Error calling OpenAI API:", error)
+    throw handleOpenAIError(error)
+  }
+}
 
-    // Handle OpenAI API errors
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError
-      if (axiosError.response) {
-        throw {
-          success: false,
-          message: `OpenAI API error: ${axiosError.response.status}`,
-          status: axiosError.response.status,
-          error: axiosError.response.data,
-        }
-      }
+/**
+ * Parses and validates OpenAI API response
+ */
+function parseOpenAIResponse(data: OpenAIResponse): FraudCheckResponse {
+  if (!data.choices || data.choices.length === 0) {
+    throw new Error("No valid response from OpenAI")
+  }
+
+  try {
+    const content = data.choices[0].message.content
+    const result = JSON.parse(content)
+
+    // Validate the response format
+    if (!result.threatRating || !result.explanation) {
+      throw new Error("Invalid response format from OpenAI")
     }
 
-    // For other errors, standardize the format
-    throw {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error analyzing text",
-    } as ApiErrorResponse
+    // Ensure threatRating is within the expected range (1-10)
+    const threatRating = Math.max(1, Math.min(10, Math.round(result.threatRating)))
+
+    // Return the standardized response
+    return {
+      success: true,
+      threatRating,
+      explanation: result.explanation,
+      flags: Array.isArray(result.flags) ? result.flags : [],
+      confidence: typeof result.confidence === "number" ? result.confidence : undefined,
+    }
+  } catch (parseError) {
+    console.error("Error parsing OpenAI response:", parseError)
+    throw new Error("Failed to parse fraud analysis results")
   }
+}
+
+/**
+ * Handles OpenAI API errors and converts them to ApiErrorResponse
+ */
+function handleOpenAIError(error: unknown): ApiErrorResponse {
+  console.error("Error calling OpenAI API:", error)
+
+  // Handle Axios errors (API errors)
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError
+    if (axiosError.response) {
+      return {
+        success: false,
+        message: `OpenAI API error: ${axiosError.response.status}`,
+        status: axiosError.response.status,
+        error: axiosError.response.data,
+      } as ApiErrorResponse
+    }
+  }
+
+  // Handle other errors
+  return {
+    success: false,
+    message: error instanceof Error ? error.message : "Unknown error during fraud analysis",
+  } as ApiErrorResponse
+}
+
+/**
+ * Calls OpenAI API to analyze an email for fraud
+ * @param emailData The email data to analyze
+ * @param apiKey OpenAI API key
+ * @returns The fraud check results
+ */
+export async function checkEmailWithOpenAI(
+  emailData: EmailData,
+  apiKey: string
+): Promise<FraudCheckResponse> {
+  const prompt = buildEmailPrompt(emailData)
+  return callOpenAIForAnalysis(prompt, apiKey)
+}
+
+/**
+ * Calls OpenAI API to analyze generic text content for fraud
+ * @param textData The text data to analyze
+ * @param apiKey OpenAI API key
+ * @returns The fraud check results
+ */
+export async function checkTextWithOpenAI(
+  textData: TextData,
+  apiKey: string
+): Promise<FraudCheckResponse> {
+  const prompt = buildTextPrompt(textData)
+  return callOpenAIForAnalysis(prompt, apiKey)
 }
 
 /**
@@ -263,20 +257,7 @@ export async function safeCheckEmailWithOpenAI(
     const result = await checkEmailWithOpenAI(emailData, apiKey)
     return [result, null]
   } catch (error) {
-    const errorResponse: ApiErrorResponse = {
-      success: false,
-      message: "An unexpected error occurred during fraud check",
-    }
-
-    if (error && typeof error === "object" && "success" in error && !error.success) {
-      return [null, error as ApiErrorResponse]
-    }
-
-    if (error instanceof Error) {
-      errorResponse.message = error.message
-    }
-
-    return [null, errorResponse]
+    return [null, convertToApiError(error)]
   }
 }
 
@@ -294,20 +275,31 @@ export async function safeCheckTextWithOpenAI(
     const result = await checkTextWithOpenAI(textData, apiKey)
     return [result, null]
   } catch (error) {
-    const errorResponse: ApiErrorResponse = {
+    return [null, convertToApiError(error)]
+  }
+}
+
+/**
+ * Converts any error to ApiErrorResponse format
+ */
+function convertToApiError(error: unknown): ApiErrorResponse {
+  // If it's already an ApiErrorResponse, return it
+  if (error && typeof error === "object" && "success" in error && !error.success) {
+    return error as ApiErrorResponse
+  }
+
+  // Convert Error objects
+  if (error instanceof Error) {
+    return {
       success: false,
-      message: "An unexpected error occurred during fraud check",
+      message: error.message,
     }
+  }
 
-    if (error && typeof error === "object" && "success" in error && !error.success) {
-      return [null, error as ApiErrorResponse]
-    }
-
-    if (error instanceof Error) {
-      errorResponse.message = error.message
-    }
-
-    return [null, errorResponse]
+  // Fallback for unknown error types
+  return {
+    success: false,
+    message: "An unexpected error occurred during fraud check",
   }
 }
 
