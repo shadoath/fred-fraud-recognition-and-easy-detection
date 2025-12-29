@@ -47,8 +47,8 @@ export const FraudChecker = () => {
       changes: { [key: string]: chrome.storage.StorageChange },
       areaName: string
     ) => {
-      // Only respond to session storage changes
-      if (areaName === "session" && changes[API_KEY_STORAGE_KEY]) {
+      // Only respond to local storage changes
+      if (areaName === "local" && changes[API_KEY_STORAGE_KEY]) {
         setHasApiKey(!!changes[API_KEY_STORAGE_KEY].newValue)
       }
     }

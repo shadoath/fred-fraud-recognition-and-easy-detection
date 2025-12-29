@@ -41,13 +41,13 @@ export const useApiKey = (): ApiKeyState => {
 
     checkApiKey()
 
-    // Listen for changes to the API key in session storage
+    // Listen for changes to the API key in local storage
     const handleStorageChange = (
       changes: { [key: string]: chrome.storage.StorageChange },
       areaName: string
     ) => {
-      // Only respond to session storage changes
-      if (areaName === "session" && changes[API_KEY_STORAGE_KEY]) {
+      // Only respond to local storage changes
+      if (areaName === "local" && changes[API_KEY_STORAGE_KEY]) {
         const newValue = changes[API_KEY_STORAGE_KEY].newValue
         setApiKey(newValue || null)
       }
@@ -67,9 +67,9 @@ export const useApiKey = (): ApiKeyState => {
         toast.error("API key cannot be empty")
         return
       }
-      // Store the API key securely in session storage
+      // Store the API key securely in local storage
       await storeApiKey(trimmedKey)
-      toast.success("API key saved successfully (valid until browser closes)")
+      toast.success("API key saved successfully")
       setIsApiKeySaved(true)
       // Test the API key (optional)
       // You could add a simple test request here

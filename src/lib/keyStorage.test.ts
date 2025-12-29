@@ -1,11 +1,11 @@
-import { getApiKey, hasApiKey, obfuscateApiKey, recoverApiKey, removeApiKey, storeApiKey } from "./keyStorage"
+import { getApiKey, hasApiKey, removeApiKey, storeApiKey } from "./keyStorage"
 
-// Mock chrome.storage.session
+// Mock chrome.storage.local
 const mockStorage = new Map<string, string>()
 
 global.chrome = {
   storage: {
-    session: {
+    local: {
       get: jest.fn(async (key: string) => {
         if (typeof key === "string") {
           return { [key]: mockStorage.get(key) }
@@ -32,11 +32,11 @@ describe("Key Storage Utilities", () => {
   })
 
   describe("storeApiKey", () => {
-    test("should store API key in session storage", async () => {
+    test("should store API key in local storage", async () => {
       const testKey = "sk-1234567890abcdef"
       await storeApiKey(testKey)
 
-      expect(chrome.storage.session.set).toHaveBeenCalledWith({
+      expect(chrome.storage.local.set).toHaveBeenCalledWith({
         openai_api_key: testKey,
       })
       expect(mockStorage.get("openai_api_key")).toBe(testKey)
@@ -47,7 +47,7 @@ describe("Key Storage Utilities", () => {
     })
 
     test("should handle storage errors gracefully", async () => {
-      ;(chrome.storage.session.set as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
+      ;(chrome.storage.local.set as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
 
       await expect(storeApiKey("sk-test")).rejects.toThrow("Failed to store API key")
     })
@@ -61,7 +61,7 @@ describe("Key Storage Utilities", () => {
       const result = await getApiKey()
 
       expect(result).toBe(testKey)
-      expect(chrome.storage.session.get).toHaveBeenCalledWith("openai_api_key")
+      expect(chrome.storage.local.get).toHaveBeenCalledWith("openai_api_key")
     })
 
     test("should return null when no key is stored", async () => {
@@ -71,7 +71,7 @@ describe("Key Storage Utilities", () => {
     })
 
     test("should return null on storage error", async () => {
-      ;(chrome.storage.session.get as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
+      ;(chrome.storage.local.get as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
 
       const result = await getApiKey()
 
@@ -80,17 +80,17 @@ describe("Key Storage Utilities", () => {
   })
 
   describe("removeApiKey", () => {
-    test("should remove API key from session storage", async () => {
+    test("should remove API key from local storage", async () => {
       mockStorage.set("openai_api_key", "sk-test-key")
 
       await removeApiKey()
 
-      expect(chrome.storage.session.remove).toHaveBeenCalledWith("openai_api_key")
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith("openai_api_key")
       expect(mockStorage.has("openai_api_key")).toBe(false)
     })
 
     test("should handle removal errors gracefully", async () => {
-      ;(chrome.storage.session.remove as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
+      ;(chrome.storage.local.remove as jest.Mock).mockRejectedValueOnce(new Error("Storage error"))
 
       await expect(removeApiKey()).rejects.toThrow("Failed to remove API key")
     })
@@ -117,24 +117,6 @@ describe("Key Storage Utilities", () => {
       const result = await hasApiKey()
 
       expect(result).toBe(false)
-    })
-  })
-
-  describe("Legacy functions (backward compatibility)", () => {
-    test("obfuscateApiKey should return key as-is", () => {
-      const testKey = "sk-test-key"
-      expect(obfuscateApiKey(testKey)).toBe(testKey)
-    })
-
-    test("recoverApiKey should return key as-is", () => {
-      const testKey = "sk-test-key"
-      expect(recoverApiKey(testKey)).toBe(testKey)
-    })
-
-    test("recoverApiKey should handle null/undefined", () => {
-      expect(recoverApiKey(null)).toBe("")
-      expect(recoverApiKey(undefined)).toBe("")
-      expect(recoverApiKey("")).toBe("")
     })
   })
 
