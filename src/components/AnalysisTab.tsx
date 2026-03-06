@@ -1,7 +1,11 @@
 import AnalyticsIcon from "@mui/icons-material/Analytics"
 import ContentCopyIcon from "@mui/icons-material/ContentCopy"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz"
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -366,14 +370,36 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
               </Paper>
             )}
 
-            {analysisData.result.tokenUsage && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "block", mt: 2 }}
+            {(analysisData.result.confidence !== undefined || analysisData.result.tokenUsage) && (
+              <Accordion
+                defaultExpanded={false}
+                disableGutters
+                elevation={0}
+                sx={{
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: "8px !important",
+                  mt: 1,
+                  "&:before": { display: "none" },
+                }}
               >
-                ~{analysisData.result.tokenUsage.totalTokens} tokens used (prompt: {analysisData.result.tokenUsage.promptTokens}, response: {analysisData.result.tokenUsage.completionTokens})
-              </Typography>
+                <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />}>
+                  <Typography variant="caption" color="text.secondary">
+                    Technical Details
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {analysisData.result.confidence !== undefined && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      AI Confidence: {Math.round(analysisData.result.confidence * 100)}%
+                    </Typography>
+                  )}
+                  {analysisData.result.tokenUsage && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Tokens used: {analysisData.result.tokenUsage.totalTokens} (prompt: {analysisData.result.tokenUsage.promptTokens} + response: {analysisData.result.tokenUsage.completionTokens})
+                    </Typography>
+                  )}
+                </AccordionDetails>
+              </Accordion>
             )}
 
             <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
