@@ -1,11 +1,11 @@
 {
   "name": "fred-fraud-recognition-and-easy-detection",
   "private": false,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "module",
   "author": {
     "name": "Skylar Bolton",
-    "email": "skylar@example.com"
+    "email": "skylar.bolton@gmail.com"
   },
   "description": "FRED: Fraud Recognition & Easy Detection - Chrome extension that analyzes emails and text for potential fraud using OpenAI API",
   "homepage": "https://github.com/shadoath/fred-fraud-recognition-and-easy-detection",
