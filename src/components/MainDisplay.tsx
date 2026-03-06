@@ -116,6 +116,13 @@ export const MainDisplay = () => {
 
     // Run the detection
     detectEmailProvider()
+
+    // Restore last analysis from session storage
+    chrome.storage.session.get("fredLastAnalysis").then((stored) => {
+      if (stored.fredLastAnalysis) {
+        setAnalysisData(stored.fredLastAnalysis as AnalysisData)
+      }
+    }).catch(() => {})
   }, []) // Empty dependency array means this runs once on mount
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -139,6 +146,7 @@ export const MainDisplay = () => {
       timestamp: new Date().toISOString(),
     }
     setAnalysisData(newAnalysisData)
+    chrome.storage.session.set({ fredLastAnalysis: newAnalysisData }).catch(() => {})
     setResultKey((k) => k + 1)
     setTabValue(3) // Switch to analysis tab
 
@@ -166,10 +174,14 @@ export const MainDisplay = () => {
     }
     const restoredResult: EmailCheckResult | TextCheckResult | URLCheckResult =
       entry.type === "email"
-        ? ({ ...baseResult, sender: entry.input.sender ?? "", subject: entry.input.subject ?? "" } as EmailCheckResult)
+        ? ({
+            ...baseResult,
+            sender: entry.input.sender ?? "",
+            subject: entry.input.subject ?? "",
+          } as EmailCheckResult)
         : entry.type === "url"
-        ? ({ ...baseResult, url: entry.input.content } as URLCheckResult)
-        : ({ ...baseResult, content: entry.input.content } as TextCheckResult)
+          ? ({ ...baseResult, url: entry.input.content } as URLCheckResult)
+          : ({ ...baseResult, content: entry.input.content } as TextCheckResult)
     const restoredData: AnalysisData = {
       type: entry.type,
       input: entry.input,
@@ -177,6 +189,7 @@ export const MainDisplay = () => {
       timestamp: entry.timestamp,
     }
     setAnalysisData(restoredData)
+    chrome.storage.session.set({ fredLastAnalysis: restoredData }).catch(() => {})
     setTabValue(3) // Switch to analysis tab
   }
 
@@ -205,22 +218,26 @@ export const MainDisplay = () => {
               : "linear-gradient(45deg, #2979ff 30%, #2196f3 90%)",
         }}
       >
-        <Toolbar variant="dense" sx={{ minHeight: 56, justifyContent: "space-between" }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+        <Toolbar variant="dense" sx={{ minHeight: 40, justifyContent: "space-between", px: 1 }}>
+          <Typography variant="body1" sx={{ fontWeight: 700, letterSpacing: "0.05em" }}>
             FRED
           </Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton color="inherit" onClick={toggleDarkMode} size="small">
-              {darkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-            </IconButton>
-            <Tooltip title={largeText ? "Switch to normal text size" : "Switch to larger text"}>
-              <IconButton color="inherit" onClick={toggleLargeText} size="small">
-                {largeText ? <TextDecreaseIcon fontSize="small" /> : <TextIncreaseIcon fontSize="small" />}
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            <Tooltip title={darkMode ? "Switch to light mode" : "Switch to dark mode"}>
+              <IconButton color="inherit" onClick={toggleDarkMode} size="medium">
+                {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
             </Tooltip>
-            <IconButton color="inherit" onClick={toggleSettings} size="small">
-              <SettingsIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title={largeText ? "Switch to normal text size" : "Switch to larger text"}>
+              <IconButton color="inherit" onClick={toggleLargeText} size="medium">
+                {largeText ? <TextDecreaseIcon /> : <TextIncreaseIcon />}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Settings & Help">
+              <IconButton color="inherit" onClick={toggleSettings} size="medium">
+                <SettingsIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Toolbar>
       </AppBar>
@@ -266,7 +283,11 @@ export const MainDisplay = () => {
           <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
             <TabPanel value={tabValue} index={0} idPrefix="fred" timeout={500}>
               <ErrorBoundary>
-                <EmailAnalyzer key={resultKey} ref={emailAnalyzerRef} onAnalysisComplete={handleAnalysisComplete} />
+                <EmailAnalyzer
+                  key={resultKey}
+                  ref={emailAnalyzerRef}
+                  onAnalysisComplete={handleAnalysisComplete}
+                />
               </ErrorBoundary>
             </TabPanel>
             <TabPanel value={tabValue} index={1} idPrefix="fred" timeout={500}>

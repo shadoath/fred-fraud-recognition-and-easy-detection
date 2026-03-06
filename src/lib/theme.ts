@@ -132,8 +132,11 @@ const darkTheme: ThemeOptions = {
 const getTheme = (darkMode: boolean, largeText = false): ThemeOptions => ({
   ...(darkMode ? darkTheme : lightTheme),
   typography: {
-    ...baseTheme.typography,
-    fontSize: largeText ? 16 : 14,
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontSize: largeText ? 17 : 14,
+    button: {
+      textTransform: "none" as const,
+    },
   },
 })
 
