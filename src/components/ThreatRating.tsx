@@ -1,14 +1,9 @@
 import SecurityIcon from "@mui/icons-material/Security"
-import ShieldIcon from "@mui/icons-material/Shield"
 import WarningIcon from "@mui/icons-material/Warning"
-import { Box, LinearProgress, Paper, Rating, Tooltip, Typography, useTheme } from "@mui/material"
-import { useState } from "react"
+import { Box, LinearProgress, Paper, Typography, useTheme } from "@mui/material"
 
 interface ThreatRatingProps {
   rating: number // 1-100 scale
-  readOnly?: boolean
-  onRatingChange?: (newRating: number) => void
-  confidence?: number
 }
 
 export const getThreatColor = (rating: number): string => {
@@ -30,26 +25,29 @@ export const getThreatLevelFromScore = (score: number): string => {
   return "Very Dangerous"
 }
 
-export const ThreatRating = ({ rating, readOnly = true, onRatingChange, confidence }: ThreatRatingProps) => {
-  const [hover, setHover] = useState(-1)
+export const ThreatRating = ({ rating }: ThreatRatingProps) => {
   const theme = useTheme()
 
-  // Convert 1-100 scale to 1-5 for MUI Rating component
-  const normalizedRating = Math.ceil(rating / 20)
-
-  // Get threat level text
   const getThreatLevelText = (rating: number): string => {
-    if (rating <= 30) return "Low Threat"
-    if (rating <= 70) return "Medium Threat"
-    return "High Threat"
+    if (rating <= 30) return "Low Risk"
+    if (rating <= 70) return "Medium Risk"
+    return "High Risk"
   }
 
-  // Handle rating change (if not read-only)
-  const handleRatingChange = (_: React.SyntheticEvent, newValue: number | null) => {
-    if (!readOnly && onRatingChange && newValue) {
-      // Convert back to 1-100 scale
-      onRatingChange(newValue * 20)
+  const getVerdictText = (rating: number): string => {
+    if (rating <= 30) return "✓ Looks Safe"
+    if (rating <= 70) return "⚠ Be Careful"
+    return "✗ Likely a Scam"
+  }
+
+  const getActionableAdvice = (rating: number): string => {
+    if (rating <= 30) {
+      return "This content appears safe. No action needed, but always stay alert."
     }
+    if (rating <= 70) {
+      return "Proceed carefully. Do not click links unless you are certain where they lead. Do not share personal information. When in doubt, contact the sender using a phone number you already know."
+    }
+    return "Do not click any links. Do not reply. Never share passwords, account numbers, or personal details. If this claims to be from your bank or government, call them directly using the number on the back of your card or their official website."
   }
 
   const ratingColor = getThreatColor(rating)
@@ -67,6 +65,29 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange, confiden
       }}
     >
       <Box sx={{ width: "100%" }}>
+        {/* Verdict Banner */}
+        <Box
+          sx={{
+            borderRadius: 2,
+            p: 1.5,
+            mb: 2,
+            backgroundColor: `${ratingColor}25`,
+            border: `1px solid ${ratingColor}60`,
+            textAlign: "center",
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: ratingColor,
+            }}
+          >
+            {getVerdictText(rating)}
+          </Typography>
+        </Box>
+
+        {/* Threat Level Label and Score */}
         <Box
           sx={{
             display: "flex",
@@ -75,44 +96,38 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange, confiden
             mb: 1.5,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <ShieldIcon sx={{ color: ratingColor, fontSize: "1.5rem" }} />
-            <Typography
-              variant="body1"
-              sx={{
-                fontWeight: 500,
-                fontSize: "1rem",
-              }}
-            >
-              {getThreatLevelText(rating)}
-            </Typography>
-          </Box>
+          <Typography
+            variant="body1"
+            sx={{
+              fontWeight: 500,
+              fontSize: "1rem",
+            }}
+          >
+            {getThreatLevelText(rating)}
+          </Typography>
 
-          <Tooltip title={ratingText} arrow placement="top">
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: "bold",
-                color: ratingColor,
-                display: "flex",
-                alignItems: "center",
-                px: 1.5,
-                py: 0.5,
-                borderRadius: 2,
-                backgroundColor: `${ratingColor}15`,
-                border: `1px solid ${ratingColor}30`,
-                fontSize: "1.125rem",
-              }}
-            >
-              {rating}/100
-            </Typography>
-          </Tooltip>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: "bold",
+              color: ratingColor,
+              display: "flex",
+              alignItems: "center",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 2,
+              backgroundColor: `${ratingColor}15`,
+              border: `1px solid ${ratingColor}30`,
+              fontSize: "1.125rem",
+            }}
+          >
+            {rating}/100
+          </Typography>
         </Box>
 
+        {/* Progress Bar */}
         <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
-          <Tooltip title="Safe" arrow placement="top">
-            <SecurityIcon sx={{ color: "#4caf50", mr: 1 }} />
-          </Tooltip>
+          <SecurityIcon sx={{ color: "#4caf50", mr: 1 }} />
           <LinearProgress
             variant="determinate"
             value={rating}
@@ -129,53 +144,10 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange, confiden
               },
             }}
           />
-          <Tooltip title="Dangerous" arrow placement="top">
-            <WarningIcon sx={{ color: "#f44336", ml: 1 }} />
-          </Tooltip>
+          <WarningIcon sx={{ color: "#f44336", ml: 1 }} />
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            mt: 1,
-            p: 0.5,
-            borderRadius: 1,
-            backgroundColor:
-              theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
-          }}
-        >
-          <Rating
-            value={normalizedRating}
-            readOnly={readOnly}
-            onChange={handleRatingChange}
-            onChangeActive={(_, newHover) => {
-              if (!readOnly) {
-                setHover(newHover)
-              }
-            }}
-            icon={
-              <WarningIcon
-                style={{
-                  width: "24px",
-                  height: "24px",
-                  color: getThreatColor(hover !== -1 ? hover * 20 : rating),
-                }}
-              />
-            }
-            emptyIcon={
-              <WarningIcon
-                style={{
-                  width: "24px",
-                  height: "24px",
-                  color:
-                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)",
-                }}
-              />
-            }
-          />
-        </Box>
-
+        {/* Rating Caption */}
         <Typography
           variant="body2"
           align="center"
@@ -189,22 +161,39 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange, confiden
           {ratingText}
         </Typography>
 
-        {typeof confidence === "number" && (
+        {/* What should you do? Box */}
+        <Box
+          sx={{
+            mt: 2,
+            borderRadius: 2,
+            p: 1.5,
+            backgroundColor: `${ratingColor}15`,
+            border: `1px solid ${ratingColor}40`,
+          }}
+        >
           <Typography
-            variant="caption"
-            align="center"
+            variant="body2"
             sx={{
-              display: "block",
-              mt: 0.5,
-              color: "text.secondary",
-              fontStyle: "italic",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              mb: 0.5,
+              color: ratingColor,
             }}
           >
-            Confidence: {Math.round(confidence * 100)}%
+            What should you do?
           </Typography>
-        )}
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: "0.85rem",
+              lineHeight: 1.5,
+              color: theme.palette.text.primary,
+            }}
+          >
+            {getActionableAdvice(rating)}
+          </Typography>
+        </Box>
       </Box>
     </Paper>
   )
 }
-

@@ -211,7 +211,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
         ) : (
           <Box sx={{ width: "100%" }}>
             {/* Using our custom ThreatRating component */}
-            <ThreatRating rating={result.threatRating} confidence={result.confidence} />
+            <ThreatRating rating={result.threatRating} />
 
             {/* Analysis */}
             <Paper

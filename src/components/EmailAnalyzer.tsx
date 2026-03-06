@@ -421,7 +421,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       return (
         <Box sx={{ width: "100%" }}>
           {/* Using our custom ThreatRating component */}
-          <ThreatRating rating={result.threatRating} confidence={result.confidence} />
+          <ThreatRating rating={result.threatRating} />
 
           {/* Email Summary */}
           <Paper

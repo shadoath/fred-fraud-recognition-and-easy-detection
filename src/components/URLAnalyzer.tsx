@@ -184,7 +184,7 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
           </Box>
         ) : (
           <Box sx={{ width: "100%" }}>
-            <ThreatRating rating={result.threatRating} confidence={result.confidence} />
+            <ThreatRating rating={result.threatRating} />
 
             <Paper
               elevation={0}

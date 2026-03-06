@@ -271,7 +271,7 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
         <TabPanel value={tabValue} index={1} idPrefix="analysis">
           {/* Analysis Results Panel */}
           <Box>
-            <ThreatRating rating={analysisData.result.threatRating} confidence={analysisData.result.confidence} />
+            <ThreatRating rating={analysisData.result.threatRating} />
 
             <Paper
               elevation={0}
