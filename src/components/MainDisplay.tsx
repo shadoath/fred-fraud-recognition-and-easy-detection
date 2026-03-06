@@ -1,5 +1,6 @@
 import AnalyticsIcon from "@mui/icons-material/Analytics"
 import DarkModeIcon from "@mui/icons-material/DarkMode"
+import HistoryIcon from "@mui/icons-material/History"
 import LightModeIcon from "@mui/icons-material/LightMode"
 import MailOutlineIcon from "@mui/icons-material/MailOutline"
 import SettingsIcon from "@mui/icons-material/Settings"
@@ -7,7 +8,6 @@ import TextSnippetIcon from "@mui/icons-material/TextSnippet"
 import {
   AppBar,
   Box,
-  Fade,
   IconButton,
   Paper,
   Tab,
@@ -19,17 +19,14 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
 import { useManifestHook } from "../hooks/useManifestHook"
+import { saveHistoryEntry, type HistoryEntry } from "../lib/historyStorage"
 import { AnalysisTab } from "./AnalysisTab"
 import { ApiKeySettings } from "./ApiKeySettings"
 import { EmailAnalyzer, type EmailAnalyzerRef, type EmailCheckResult } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
+import { HistoryTab } from "./HistoryTab"
+import { TabPanel } from "./TabPanel"
 import { type TextCheckResult, TextInputAnalyzer } from "./TextInputAnalyzer"
-
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
 
 interface AnalysisData {
   type: "email" | "text"
@@ -42,36 +39,6 @@ interface AnalysisData {
   timestamp: string
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`fred-tabpanel-${index}`}
-      aria-labelledby={`fred-tab-${index}`}
-      {...other}
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        overflow: "auto",
-      }}
-    >
-      {value === index && (
-        <Fade in={value === index} timeout={500}>
-          <Box sx={{ p: 2, height: "100%", boxSizing: "border-box" }}>{children}</Box>
-        </Fade>
-      )}
-    </div>
-  )
-}
-
 export const MainDisplay = () => {
   const manifest = useManifestHook()
   const theme = useTheme()
@@ -80,6 +47,7 @@ export const MainDisplay = () => {
   const [showSettings, setShowSettings] = useState(false)
   const [emailProvider, setEmailProvider] = useState<string | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
+  const [resultKey, setResultKey] = useState(0)
   const emailAnalyzerRef = useRef<EmailAnalyzerRef>(null)
 
   // Email provider detection
@@ -165,6 +133,42 @@ export const MainDisplay = () => {
       timestamp: new Date().toISOString(),
     }
     setAnalysisData(newAnalysisData)
+    setResultKey((k) => k + 1)
+    setTabValue(2) // Switch to analysis tab
+
+    const historyEntry: HistoryEntry = {
+      id: crypto.randomUUID(),
+      type,
+      input,
+      result: {
+        threatRating: result.threatRating,
+        explanation: result.explanation,
+        flags: result.flags,
+        confidence: result.confidence,
+      },
+      timestamp: newAnalysisData.timestamp,
+    }
+    saveHistoryEntry(historyEntry)
+  }
+
+  const handleHistorySelect = (entry: HistoryEntry) => {
+    const baseResult = {
+      threatRating: entry.result.threatRating,
+      explanation: entry.result.explanation,
+      flags: entry.result.flags,
+      confidence: entry.result.confidence,
+    }
+    const restoredResult: EmailCheckResult | TextCheckResult =
+      entry.type === "email"
+        ? ({ ...baseResult, sender: entry.input.sender ?? "", subject: entry.input.subject ?? "" } as EmailCheckResult)
+        : ({ ...baseResult, content: entry.input.content } as TextCheckResult)
+    const restoredData: AnalysisData = {
+      type: entry.type,
+      input: entry.input,
+      result: restoredResult,
+      timestamp: entry.timestamp,
+    }
+    setAnalysisData(restoredData)
     setTabValue(2) // Switch to analysis tab
   }
 
@@ -239,22 +243,28 @@ export const MainDisplay = () => {
             />
             <Tab icon={<TextSnippetIcon fontSize="small" />} label="Text" iconPosition="start" />
             <Tab icon={<AnalyticsIcon fontSize="small" />} label="Analysis" iconPosition="start" />
+            <Tab icon={<HistoryIcon fontSize="small" />} label="History" iconPosition="start" />
           </Tabs>
 
           <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
-            <TabPanel value={tabValue} index={0}>
+            <TabPanel value={tabValue} index={0} idPrefix="fred" timeout={500}>
               <ErrorBoundary>
-                <EmailAnalyzer ref={emailAnalyzerRef} onAnalysisComplete={handleAnalysisComplete} />
+                <EmailAnalyzer key={resultKey} ref={emailAnalyzerRef} onAnalysisComplete={handleAnalysisComplete} />
               </ErrorBoundary>
             </TabPanel>
-            <TabPanel value={tabValue} index={1}>
+            <TabPanel value={tabValue} index={1} idPrefix="fred" timeout={500}>
               <ErrorBoundary>
-                <TextInputAnalyzer onAnalysisComplete={handleAnalysisComplete} />
+                <TextInputAnalyzer key={resultKey} onAnalysisComplete={handleAnalysisComplete} />
               </ErrorBoundary>
             </TabPanel>
-            <TabPanel value={tabValue} index={2}>
+            <TabPanel value={tabValue} index={2} idPrefix="fred" timeout={500}>
               <ErrorBoundary>
                 <AnalysisTab analysisData={analysisData} />
+              </ErrorBoundary>
+            </TabPanel>
+            <TabPanel value={tabValue} index={3} idPrefix="fred" timeout={500}>
+              <ErrorBoundary>
+                <HistoryTab onSelectEntry={handleHistorySelect} />
               </ErrorBoundary>
             </TabPanel>
           </Box>
