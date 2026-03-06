@@ -39,7 +39,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
   const [textContent, setTextContent] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
-  const { apiKey, hasApiKey, selectedModel } = useApiKey()
+  const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
@@ -50,7 +50,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
       return
     }
 
-    if (!hasApiKey || !apiKey) {
+    if (connectionMode !== "proxy" && (!hasApiKey || !apiKey)) {
       toast.error("API key required. Please add an OpenAI API key in the settings.")
       return
     }
@@ -65,7 +65,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
       }
 
       // Use OpenAI API for analysis
-      const [apiResult, error] = await safeCheckContentWithOpenAI(textData, apiKey, selectedModel)
+      const [apiResult, error] = await safeCheckContentWithOpenAI(textData, apiKey ?? "", selectedModel, connectionMode, deviceId)
 
       if (error) {
         if (error.status === 401) {
@@ -123,7 +123,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
       <Box sx={{ flex: 1, overflow: "auto" }}>
         {!result ? (
           <Box>
-            {!hasApiKey && (
+            {connectionMode !== "proxy" && !hasApiKey && (
               <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
                 An OpenAI API key is required. Please add your API key in the settings.
               </Alert>
@@ -170,7 +170,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
                 variant="contained"
                 color="primary"
                 onClick={checkTextForFraud}
-                disabled={isChecking || !textContent.trim() || !hasApiKey}
+                disabled={isChecking || !textContent.trim() || (connectionMode !== "proxy" && !hasApiKey)}
                 startIcon={
                   isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
                 }

@@ -39,13 +39,17 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
   const [isChecking, setIsChecking] = useState(false)
   const [isLoadingCurrentPage, setIsLoadingCurrentPage] = useState(false)
   const [result, setResult] = useState<URLCheckResult | null>(null)
-  const { apiKey, hasApiKey, selectedModel } = useApiKey()
+  const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
-  const analyzeUrl = async (urlToCheck: string) => {
-    if (!hasApiKey || !apiKey) {
+  const analyzeUrl = async (urlToCheck?: string) => {
+    if (connectionMode !== "proxy" && (!hasApiKey || !apiKey)) {
       toast.error("API key required. Please add an OpenAI API key in the settings.")
+      return
+    }
+    if (!urlToCheck) {
+      toast.error("No URL to analyze")
       return
     }
 
@@ -62,7 +66,7 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
         timestamp: new Date().toISOString(),
       }
 
-      const [apiResult, error] = await safeCheckContentWithOpenAI(urlData, apiKey, selectedModel)
+      const [apiResult, error] = await safeCheckContentWithOpenAI(urlData, apiKey ?? "", selectedModel, connectionMode, deviceId)
 
       if (error) {
         if (error.status === 401) {
@@ -143,7 +147,7 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
       <Box sx={{ flex: 1, overflow: "auto" }}>
         {!result ? (
           <Box>
-            {!hasApiKey && (
+            {connectionMode !== "proxy" && !hasApiKey && (
               <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
                 An OpenAI API key is required. Please add your API key in the settings.
               </Alert>
@@ -192,7 +196,7 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !isChecking && url.trim() && hasApiKey) {
+                if (e.key === "Enter" && !isChecking && url.trim() && (connectionMode === "proxy" || hasApiKey)) {
                   checkUrl()
                 }
               }}
@@ -218,7 +222,7 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
                 variant="contained"
                 color="primary"
                 onClick={checkUrl}
-                disabled={isChecking || !url.trim() || !hasApiKey}
+                disabled={isChecking || !url.trim() || (connectionMode !== "proxy" && !hasApiKey)}
                 startIcon={
                   isChecking ? <CircularProgress size={18} color="inherit" /> : <LinkIcon />
                 }

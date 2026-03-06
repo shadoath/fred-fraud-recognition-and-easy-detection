@@ -62,7 +62,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
     })
 
     // Hooks
-    const { apiKey, hasApiKey, selectedModel } = useApiKey()
+    const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId } = useApiKey()
     const { toast } = useCustomSnackbar()
     const theme = useTheme()
 
@@ -92,7 +92,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
 
     // API key validation
     const validateApiKey = (): boolean => {
-      if (!hasApiKey) {
+      if (connectionMode !== "proxy" && !hasApiKey) {
         toast.error("API key required. Please add an OpenAI API key in the settings.")
         return false
       }
@@ -253,7 +253,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           timestamp: new Date().toISOString(),
         }
 
-        const [fraudResult, error] = await safeCheckContentWithOpenAI(emailDataForAnalysis, apiKey || "", selectedModel)
+        const [fraudResult, error] = await safeCheckContentWithOpenAI(emailDataForAnalysis, apiKey || "", selectedModel, connectionMode, deviceId)
 
         if (error) {
           handleApiError(error)
@@ -397,7 +397,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
               isExtracting ||
               !emailFormData.sender.trim() ||
               !emailFormData.content.trim() ||
-              !hasApiKey
+              (connectionMode !== "proxy" && !hasApiKey)
             }
             onClick={checkEmail}
             startIcon={
@@ -590,7 +590,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
         <Box sx={{ flex: 1, overflow: "auto" }}>
           {!result ? (
             <Box>
-              {!hasApiKey && (
+              {connectionMode !== "proxy" && !hasApiKey && (
                 <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
                   An OpenAI API key is required. Please add your API key in the settings.
                 </Alert>

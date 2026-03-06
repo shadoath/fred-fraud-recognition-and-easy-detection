@@ -3,13 +3,18 @@ import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import {
   API_KEY_STORAGE_KEY,
   DEFAULT_MODEL,
+  DEFAULT_CONNECTION_MODE,
   attemptMigration,
   getSelectedModel,
+  getConnectionMode,
   obfuscateApiKey,
   recoverApiKey,
   saveSelectedModel as persistSelectedModel,
-  validateApiKeyFormat
+  saveConnectionMode as persistSaveConnectionMode,
+  validateApiKeyFormat,
+  type ConnectionMode,
 } from "../lib/keyStorage"
+import { getDeviceId } from "../lib/deviceId"
 
 export interface ApiKeyState {
   apiKey: string | null
@@ -23,6 +28,10 @@ export interface ApiKeyState {
   selectedModel: string
   setSelectedModel: (model: string) => void
   saveSelectedModel: (model: string) => Promise<void>
+  connectionMode: ConnectionMode
+  setConnectionMode: (mode: ConnectionMode) => void
+  saveConnectionMode: (mode: ConnectionMode) => Promise<void>
+  deviceId: string
 }
 
 /**
@@ -35,6 +44,8 @@ export const useApiKey = (): ApiKeyState => {
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [isApiKeySaved, setIsApiKeySaved] = useState<boolean>(false)
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL)
+  const [connectionMode, setConnectionMode] = useState<ConnectionMode>(DEFAULT_CONNECTION_MODE)
+  const [deviceId, setDeviceId] = useState<string>("")
   const { toast } = useCustomSnackbar()
 
   useEffect(() => {
@@ -56,6 +67,14 @@ export const useApiKey = (): ApiKeyState => {
         // Load the saved model
         const model = await getSelectedModel()
         setSelectedModel(model)
+
+        // Load the connection mode
+        const mode = await getConnectionMode()
+        setConnectionMode(mode)
+
+        // Load the device ID
+        const id = await getDeviceId()
+        setDeviceId(id)
       } catch (error) {
         console.error("Error checking API key:", error)
         setApiKey(null)
@@ -113,6 +132,12 @@ export const useApiKey = (): ApiKeyState => {
     await persistSelectedModel(model)
   }
 
+  // Save the connection mode to Chrome storage
+  const saveConnectionMode = async (mode: ConnectionMode): Promise<void> => {
+    setConnectionMode(mode)
+    await persistSaveConnectionMode(mode)
+  }
+
   // Clear API key from Chrome storage
   const clearApiKey = async () => {
     setIsSaving(true)
@@ -140,5 +165,9 @@ export const useApiKey = (): ApiKeyState => {
     selectedModel,
     setSelectedModel,
     saveSelectedModel,
+    connectionMode,
+    setConnectionMode,
+    saveConnectionMode,
+    deviceId,
   }
 }

@@ -138,5 +138,22 @@ export const getSelectedModel = async (): Promise<string> => {
   return result[SELECTED_MODEL_STORAGE_KEY] ?? DEFAULT_MODEL
 }
 
+/** Chrome storage key for connection mode */
+export const CONNECTION_MODE_STORAGE_KEY = "fredConnectionMode"
+
+export type ConnectionMode = "proxy" | "byok"
+
+/** Default: use FRED's proxy (no API key needed) */
+export const DEFAULT_CONNECTION_MODE: ConnectionMode = "proxy"
+
+export const saveConnectionMode = async (mode: ConnectionMode): Promise<void> => {
+  await chrome.storage.local.set({ [CONNECTION_MODE_STORAGE_KEY]: mode })
+}
+
+export const getConnectionMode = async (): Promise<ConnectionMode> => {
+  const result = await chrome.storage.local.get(CONNECTION_MODE_STORAGE_KEY)
+  return (result[CONNECTION_MODE_STORAGE_KEY] as ConnectionMode) ?? DEFAULT_CONNECTION_MODE
+}
+
 // Export additional utilities
 export { validateApiKeyFormat } from "./simpleEnhancedStorage"

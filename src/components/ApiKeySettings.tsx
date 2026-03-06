@@ -1,3 +1,4 @@
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import KeyIcon from "@mui/icons-material/Key"
 import LinkIcon from "@mui/icons-material/Link"
@@ -22,6 +23,8 @@ import {
   Select,
   type SelectChangeEvent,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   useTheme,
 } from "@mui/material"
@@ -30,7 +33,7 @@ import { useApiKey } from "../hooks/useApiKey"
 
 export const ApiKeySettings = () => {
   const theme = useTheme()
-  const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey, selectedModel, saveSelectedModel } =
+  const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey, selectedModel, saveSelectedModel, connectionMode, saveConnectionMode } =
     useApiKey()
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
 
@@ -63,128 +66,154 @@ export const ApiKeySettings = () => {
         </Box>
 
         <Box sx={{ px: 0.5 }}>
-          {!isApiKeySaved && (
-            <Typography
-              variant="body2"
-              sx={{
-                mb: 2,
-                color: theme.palette.text.secondary,
-                fontSize: "0.875rem",
-                lineHeight: 1.5,
-              }}
-            >
-              FRED uses OpenAI's AI service to analyze content for you. To get started, you need a
-              free OpenAI account and a personal API key. Your key is stored only on your device and
-              is never shared with anyone.
-            </Typography>
-          )}
-
           {isLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 2 }}>
               <CircularProgress size={24} />
             </Box>
           ) : (
             <>
-              <TextField
+              <ToggleButtonGroup
+                exclusive
                 fullWidth
-                label="OpenAI API Key"
-                variant="outlined"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                type={showApiKey ? "text" : "password"}
-                placeholder="sk-..."
-                sx={{
-                  mb: 2,
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    backgroundColor: theme.palette.background.paper,
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: `${theme.palette.primary.main}80`,
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderWidth: "1px",
-                    },
-                  },
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <KeyIcon color="primary" fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        edge="end"
-                        size="small"
-                      >
-                        {showApiKey ? (
-                          <VisibilityOffIcon fontSize="small" />
-                        ) : (
-                          <VisibilityIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+                size="small"
+                value={connectionMode}
+                onChange={(_e, newMode) => { if (newMode) saveConnectionMode(newMode) }}
+                sx={{ mb: 2 }}
+              >
+                <ToggleButton value="proxy">Free (5/week)</ToggleButton>
+                <ToggleButton value="byok">My Own Key</ToggleButton>
+              </ToggleButtonGroup>
 
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="model-select-label">AI Analysis Level</InputLabel>
-                <Select
-                  labelId="model-select-label"
-                  value={selectedModel}
-                  label="AI Analysis Level"
-                  onChange={(e: SelectChangeEvent) => saveSelectedModel(e.target.value)}
-                  sx={{
-                    borderRadius: 2,
-                    backgroundColor: theme.palette.background.paper,
-                  }}
+              {connectionMode === "proxy" && (
+                <Alert
+                  severity="success"
+                  icon={<CheckCircleOutlineIcon fontSize="inherit" />}
+                  sx={{ mb: 2, borderRadius: 1.5 }}
                 >
-                  <MenuItem value="gpt-4o-mini">Standard (recommended)</MenuItem>
-                  <MenuItem value="gpt-4o">More Thorough (slower, higher cost)</MenuItem>
-                  <MenuItem value="gpt-3.5-turbo">Basic (fastest, lower cost)</MenuItem>
-                </Select>
-              </FormControl>
+                  5 free checks per week included. No API key needed.
+                </Alert>
+              )}
 
-              <Box sx={{ display: "flex", gap: 1.5 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={saveApiKey}
-                  disabled={isSaving || !apiKey?.trim().startsWith("sk-")}
-                  sx={{
-                    flex: 1,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    py: 0.8,
-                    boxShadow: 2,
-                    fontSize: "0.875rem",
-                  }}
-                  size="medium"
-                >
-                  {isSaving ? <CircularProgress size={20} color="inherit" /> : "Save API Key"}
-                </Button>
+              {connectionMode === "byok" && (
+                <>
+                  {!isApiKeySaved && (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        mb: 2,
+                        color: theme.palette.text.secondary,
+                        fontSize: "0.875rem",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      FRED uses OpenAI's AI service to analyze content for you. To get started, you need a
+                      free OpenAI account and a personal API key. Your key is stored only on your device and
+                      is never shared with anyone.
+                    </Typography>
+                  )}
 
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={clearApiKey}
-                  disabled={isSaving || !apiKey}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                    minWidth: "80px",
-                    fontSize: "0.875rem",
-                  }}
-                  size="medium"
-                >
-                  Clear
-                </Button>
-              </Box>
+                  <TextField
+                    fullWidth
+                    label="OpenAI API Key"
+                    variant="outlined"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    type={showApiKey ? "text" : "password"}
+                    placeholder="sk-..."
+                    sx={{
+                      mb: 2,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        backgroundColor: theme.palette.background.paper,
+                        "&:hover .MuiOutlinedInput-notchedOutline": {
+                          borderColor: `${theme.palette.primary.main}80`,
+                        },
+                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                          borderWidth: "1px",
+                        },
+                      },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <KeyIcon color="primary" fontSize="small" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            edge="end"
+                            size="small"
+                          >
+                            {showApiKey ? (
+                              <VisibilityOffIcon fontSize="small" />
+                            ) : (
+                              <VisibilityIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
 
-              {!isApiKeySaved && <HowToGetApiKey />}
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel id="model-select-label">AI Analysis Level</InputLabel>
+                    <Select
+                      labelId="model-select-label"
+                      value={selectedModel}
+                      label="AI Analysis Level"
+                      onChange={(e: SelectChangeEvent) => saveSelectedModel(e.target.value)}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: theme.palette.background.paper,
+                      }}
+                    >
+                      <MenuItem value="gpt-4o-mini">Standard (recommended)</MenuItem>
+                      <MenuItem value="gpt-4o">More Thorough (slower, higher cost)</MenuItem>
+                      <MenuItem value="gpt-3.5-turbo">Basic (fastest, lower cost)</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <Box sx={{ display: "flex", gap: 1.5 }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={saveApiKey}
+                      disabled={isSaving || !apiKey?.trim().startsWith("sk-")}
+                      sx={{
+                        flex: 1,
+                        borderRadius: 2,
+                        textTransform: "none",
+                        py: 0.8,
+                        boxShadow: 2,
+                        fontSize: "0.875rem",
+                      }}
+                      size="medium"
+                    >
+                      {isSaving ? <CircularProgress size={20} color="inherit" /> : "Save API Key"}
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={clearApiKey}
+                      disabled={isSaving || !apiKey}
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: "none",
+                        minWidth: "80px",
+                        fontSize: "0.875rem",
+                      }}
+                      size="medium"
+                    >
+                      Clear
+                    </Button>
+                  </Box>
+
+                  {!isApiKeySaved && <HowToGetApiKey />}
+                </>
+              )}
             </>
           )}
 

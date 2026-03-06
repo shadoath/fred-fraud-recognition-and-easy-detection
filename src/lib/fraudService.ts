@@ -1,8 +1,15 @@
 import axios, { type AxiosError } from "axios"
 import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData, URLData } from "../types/fraudTypes"
+import type { ConnectionMode } from "./keyStorage"
 
-// OpenAI API URL
+// OpenAI API URL (used in BYOK mode)
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+
+// Proxy URL — update after deploying the Cloudflare Worker
+export const PROXY_URL = "https://fred-proxy.YOUR_SUBDOMAIN.workers.dev/analyze"
+
+// Shared secret sent with proxy requests (must match FRED_SECRET worker secret)
+export const PROXY_SECRET = "REPLACE_WITH_YOUR_FRED_SECRET"
 
 // Configuration constants
 const DEFAULT_MODEL = "gpt-3.5-turbo"
@@ -132,42 +139,61 @@ Ensure the JSON is valid and properly formatted.`
   }
 }
 
+interface CheckOptions {
+  apiKey?: string
+  model?: string
+  connectionMode?: ConnectionMode
+  deviceId?: string
+}
+
 /**
- * Unified function to check content for fraud using OpenAI
- * @param data The content data (email or text) to analyze
- * @param apiKey OpenAI API key
- * @param model Optional model override (defaults to gpt-3.5-turbo)
- * @returns The fraud check results
+ * Unified function to check content for fraud using OpenAI (BYOK or proxy)
  */
 export async function checkContentWithOpenAI(
   data: ContentData,
   apiKey: string,
-  model: string = DEFAULT_MODEL
+  model: string = DEFAULT_MODEL,
+  connectionMode: ConnectionMode = "byok",
+  deviceId?: string
 ): Promise<FraudCheckResponse> {
   try {
     const prompt = buildPrompt(data)
 
-    const response = await axios.post<OpenAIResponse>(
-      OPENAI_API_URL,
-      {
-        model,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
+    const openaiPayload = {
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: DEFAULT_TEMPERATURE,
+      max_tokens: MAX_TOKENS,
+      response_format: { type: "json_object" },
+    }
+
+    let response: { data: OpenAIResponse }
+
+    if (connectionMode === "proxy") {
+      // Route through FRED's Cloudflare Worker proxy
+      response = await axios.post<OpenAIResponse>(
+        PROXY_URL,
+        { deviceId, payload: openaiPayload },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-FRED-Secret": PROXY_SECRET,
           },
-        ],
-        temperature: DEFAULT_TEMPERATURE,
-        max_tokens: MAX_TOKENS,
-        response_format: { type: "json_object" },
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    )
+        }
+      )
+    } else {
+      // Direct BYOK call to OpenAI
+      response = await axios.post<OpenAIResponse>(
+        OPENAI_API_URL,
+        openaiPayload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      )
+    }
 
     // Parse the response content from OpenAI
     if (response.data.choices?.length > 0) {
@@ -264,10 +290,12 @@ export async function checkTextWithOpenAI(
 export async function safeCheckContentWithOpenAI(
   data: ContentData,
   apiKey: string,
-  model?: string
+  model?: string,
+  connectionMode: ConnectionMode = "byok",
+  deviceId?: string
 ): Promise<[FraudCheckResponse | null, ApiErrorResponse | null]> {
   try {
-    const result = await checkContentWithOpenAI(data, apiKey, model)
+    const result = await checkContentWithOpenAI(data, apiKey, model, connectionMode, deviceId)
     return [result, null]
   } catch (error) {
     const errorResponse: ApiErrorResponse = {
