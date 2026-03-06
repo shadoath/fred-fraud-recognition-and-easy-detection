@@ -1,5 +1,6 @@
 import LinkIcon from "@mui/icons-material/Link"
 import PageviewIcon from "@mui/icons-material/Pageview"
+import SearchIcon from "@mui/icons-material/Search"
 import {
   Alert,
   Box,
@@ -15,6 +16,7 @@ import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
 import { safeCheckContentWithOpenAI, type URLData } from "../lib/fraudService"
+import { scrapeCurrentPage } from "../lib/pageScraper"
 import { getThreatColor, ThreatRating } from "./ThreatRating"
 
 export interface URLCheckResult {
@@ -38,9 +40,11 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
   const [url, setUrl] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
   const [isLoadingCurrentPage, setIsLoadingCurrentPage] = useState(false)
+  const [isScanning, setIsScanning] = useState(false)
   const [result, setResult] = useState<URLCheckResult | null>(null)
   const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId } = useApiKey()
   const { toast } = useCustomSnackbar()
+
   const theme = useTheme()
 
   const analyzeUrl = async (urlToCheck?: string) => {
@@ -66,7 +70,13 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
         timestamp: new Date().toISOString(),
       }
 
-      const [apiResult, error] = await safeCheckContentWithOpenAI(urlData, apiKey ?? "", selectedModel, connectionMode, deviceId)
+      const [apiResult, error] = await safeCheckContentWithOpenAI(
+        urlData,
+        apiKey ?? "",
+        selectedModel,
+        connectionMode,
+        deviceId
+      )
 
       if (error) {
         if (error.status === 401) {
@@ -135,6 +145,61 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
     }
   }
 
+  const scanCurrentPage = async () => {
+    if (connectionMode !== "proxy" && (!hasApiKey || !apiKey)) {
+      toast.error("API key required. Please add an OpenAI API key in the settings.")
+      return
+    }
+    setIsScanning(true)
+    try {
+      const pageData = await scrapeCurrentPage()
+      setUrl(pageData.url)
+
+      const [apiResult, error] = await safeCheckContentWithOpenAI(
+        pageData,
+        apiKey ?? "",
+        selectedModel,
+        connectionMode,
+        deviceId
+      )
+
+      if (error) {
+        if (error.status === 401) {
+          toast.error("Invalid API key. Please check your OpenAI API key.")
+        } else {
+          toast.error(error.message ?? "Failed to scan page. Please try again later.")
+        }
+        return
+      }
+
+      if (!apiResult) {
+        toast.error("Failed to scan page. Please try again later.")
+        return
+      }
+
+      const checkResult: URLCheckResult = {
+        threatRating: apiResult.threatRating,
+        explanation: apiResult.explanation,
+        url: pageData.url,
+        flags: apiResult.flags,
+        confidence: apiResult.confidence,
+        tokenUsage: apiResult.tokenUsage,
+      }
+
+      setResult(checkResult)
+
+      if (onAnalysisComplete) {
+        onAnalysisComplete("url", { content: pageData.url }, checkResult)
+      }
+    } catch (err) {
+      console.error("Error scanning page:", err)
+      const msg = err instanceof Error ? err.message : "Could not scan the current page"
+      toast.error(msg)
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -153,39 +218,35 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
               </Alert>
             )}
 
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                mb: 1.5,
-              }}
+            <Typography
+              variant="body2"
+              sx={{ fontSize: "0.9rem", color: theme.palette.text.secondary, mb: 1.5 }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  fontSize: "0.9rem",
-                  color: theme.palette.text.secondary,
-                }}
-              >
-                Paste a web address below, or check the page you're currently viewing:
-              </Typography>
+              Paste a web address below, or scan the page you're currently viewing:
+            </Typography>
+
+            <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
               <Button
                 variant="outlined"
                 size="small"
                 color="primary"
                 onClick={checkCurrentPage}
-                disabled={isLoadingCurrentPage || isChecking}
+                disabled={isLoadingCurrentPage || isChecking || isScanning}
                 startIcon={isLoadingCurrentPage ? <CircularProgress size={14} /> : <PageviewIcon />}
-                sx={{
-                  ml: 1.5,
-                  whiteSpace: "nowrap",
-                  textTransform: "none",
-                  borderRadius: 2,
-                  flexShrink: 0,
-                }}
+                sx={{ flex: 1, whiteSpace: "nowrap", textTransform: "none", borderRadius: 2 }}
               >
-                {isLoadingCurrentPage ? "Loading..." : "Check This Page"}
+                {isLoadingCurrentPage ? "Loading..." : "Check URL"}
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                color="secondary"
+                onClick={scanCurrentPage}
+                disabled={isScanning || isChecking || isLoadingCurrentPage}
+                startIcon={isScanning ? <CircularProgress size={14} /> : <SearchIcon />}
+                sx={{ flex: 1, whiteSpace: "nowrap", textTransform: "none", borderRadius: 2 }}
+              >
+                {isScanning ? "Scanning..." : "Scan Page Content"}
               </Button>
             </Box>
 
@@ -196,7 +257,12 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !isChecking && url.trim() && (connectionMode === "proxy" || hasApiKey)) {
+                if (
+                  e.key === "Enter" &&
+                  !isChecking &&
+                  url.trim() &&
+                  (connectionMode === "proxy" || hasApiKey)
+                ) {
                   checkUrl()
                 }
               }}
@@ -353,7 +419,7 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
                 }}
                 size="medium"
               >
-                Check Another URL
+                Check Another
               </Button>
             </Box>
           </Box>

@@ -27,6 +27,19 @@ export interface URLData {
   timestamp: string
 }
 
+export interface PageData {
+  url: string
+  title: string
+  metaDescription: string
+  visibleText: string
+  links: { href: string; text: string }[]
+  externalDomains: string[]
+  forms: { fieldTypes: string[]; fieldNames: string[] }[]
+  iframeSources: string[]
+  phoneNumbers: string[]
+  timestamp: string
+}
+
 // Response type
 export interface FraudCheckResponse {
   success: true

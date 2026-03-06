@@ -3,6 +3,7 @@ import type {
   ApiErrorResponse,
   EmailData,
   FraudCheckResponse,
+  PageData,
   TextData,
   URLData,
 } from "../types/fraudTypes"
@@ -12,7 +13,7 @@ import type { ConnectionMode } from "./keyStorage"
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
 // Proxy URL — update after deploying the Cloudflare Worker
-export const PROXY_URL = "https://fred-proxy.skylar-bolton.workers.dev/analyze"
+export const PROXY_URL = "https://fred-proxy.skylar-bolton.workers.dev"
 
 // Shared secret sent with proxy requests (must match FRED_SECRET worker secret)
 export const PROXY_SECRET = "8ca9bd89-9b8b-4b36-8578-a9ba2e3c69b0"
@@ -44,7 +45,7 @@ interface OpenAIResponse {
   }
 }
 
-type ContentData = EmailData | TextData | URLData
+type ContentData = EmailData | TextData | URLData | PageData
 
 /**
  * Helper function to determine if data is EmailData
@@ -57,7 +58,14 @@ function isEmailData(data: ContentData): data is EmailData {
  * Helper function to determine if data is URLData
  */
 function isURLData(data: ContentData): data is URLData {
-  return "url" in data
+  return "url" in data && !("visibleText" in data)
+}
+
+/**
+ * Helper function to determine if data is PageData
+ */
+function isPageData(data: ContentData): data is PageData {
+  return "visibleText" in data
 }
 
 /**
@@ -83,6 +91,61 @@ Provide your analysis in JSON format with the following fields:
 - threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this URL is or isn't suspicious
 - flags: An array of suspicious things found, each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')
+- confidence: A number between 0 and 1 indicating your confidence in the assessment
+
+Ensure the JSON is valid and properly formatted.`
+  }
+
+  if (isPageData(data)) {
+    const sensitiveFieldNames = ["password", "ssn", "social", "card", "cvv", "cvc", "account", "routing", "pin", "dob", "birth"]
+    const hasSensitiveForms = data.forms.some((f) =>
+      f.fieldTypes.includes("password") ||
+      f.fieldNames.some((n) => sensitiveFieldNames.some((s) => n.includes(s)))
+    )
+    const hasIframes = data.iframeSources.length > 0
+
+    const formSummary = data.forms.length === 0
+      ? "None"
+      : data.forms.map((f, i) =>
+          `Form ${i + 1}: field types [${f.fieldTypes.join(", ")}], field names [${f.fieldNames.join(", ")}]`
+        ).join("\n")
+
+    return `You are a cybersecurity expert analyzing a web page for potential fraud, scams, or phishing. Here is the page data:
+
+URL: ${data.url}
+Title: ${data.title}
+Meta description: ${data.metaDescription || "(none)"}
+
+Visible text (first 6000 chars):
+${data.visibleText}
+
+External domains linked from this page (${data.externalDomains.length}):
+${data.externalDomains.join(", ") || "None"}
+
+Forms on the page:
+${formSummary}
+Sensitive form fields detected: ${hasSensitiveForms ? "YES" : "No"}
+
+Embedded iframes: ${hasIframes ? data.iframeSources.join(", ") : "None"}
+
+Phone numbers found on page: ${data.phoneNumbers.join(", ") || "None"}
+
+Analyze this page for signs of fraud such as:
+1. Fake login pages designed to steal passwords or account credentials
+2. Tech support scams (fake warnings, prominent phone numbers, urgency)
+3. Fake prize, lottery, or giveaway pages
+4. Impersonation of banks, government agencies, or well-known brands
+5. Scam shopping sites with unrealistic deals
+6. Unexpected forms asking for sensitive personal or financial information
+7. Suspicious embedded content or iframes hiding malicious material
+8. Investment or cryptocurrency fraud
+9. Urgency tactics designed to pressure you into acting fast
+10. Mismatch between what the page claims to be and its actual domain
+
+Provide your analysis in JSON format with the following fields:
+- threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
+- explanation: A detailed explanation of why this page is or isn't suspicious, written so a non-technical person can understand
+- flags: An array of suspicious things found, each written in plain simple language (avoid jargon — say 'the page has a login form but the web address is not the real company' rather than 'credential phishing')
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
 
 Ensure the JSON is valid and properly formatted.`
@@ -250,7 +313,7 @@ export async function checkContentWithOpenAI(
     }
 
     // For other errors, standardize the format
-    const contentType = isEmailData(data) ? "email" : isURLData(data) ? "url" : "text"
+    const contentType = isEmailData(data) ? "email" : isURLData(data) ? "url" : isPageData(data) ? "page" : "text"
     throw {
       success: false,
       message: error instanceof Error ? error.message : `Unknown error analyzing ${contentType}`,
@@ -350,6 +413,7 @@ export type {
   ApiErrorResponse,
   EmailData,
   FraudCheckResponse,
+  PageData,
   TextData,
   URLData,
 } from "../types/fraudTypes"
