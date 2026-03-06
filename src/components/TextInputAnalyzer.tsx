@@ -31,11 +31,10 @@ export interface TextCheckResult {
 }
 
 interface TextInputAnalyzerProps {
-  onBackToHome?: () => void
   onAnalysisComplete?: (type: "text", input: { content: string }, result: TextCheckResult) => void
 }
 
-export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInputAnalyzerProps) => {
+export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps) => {
   const [textContent, setTextContent] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
@@ -164,21 +163,7 @@ export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInpu
               variant="outlined"
             />
 
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              {onBackToHome && (
-                <Button
-                  variant="outlined"
-                  onClick={onBackToHome}
-                  size="medium"
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                  }}
-                >
-                  Back
-                </Button>
-              )}
-
+            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -312,21 +297,7 @@ export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInpu
               </Paper>
             )}
 
-            <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-              {onBackToHome && (
-                <Button
-                  variant="outlined"
-                  onClick={onBackToHome}
-                  size="medium"
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: "none",
-                  }}
-                >
-                  Back
-                </Button>
-              )}
-
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
               <Button
                 variant="contained"
                 color="primary"

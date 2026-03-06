@@ -33,7 +33,6 @@ export interface EmailCheckResult {
 }
 
 interface EmailAnalyzerProps {
-  onBackToHome?: () => void
   onAnalysisComplete?: (
     type: "email",
     input: { sender?: string; subject?: string; content: string },
@@ -50,7 +49,7 @@ const DEFAULT_VALUES = {
 }
 
 export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
-  ({ onBackToHome, onAnalysisComplete }, ref) => {
+  ({ onAnalysisComplete }, ref) => {
     // State management
     const [isChecking, setIsChecking] = useState(false)
     const [isExtracting, setIsExtracting] = useState(false)
@@ -114,7 +113,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
         // Check if we're on Gmail
         const url = tabs[0].url || ""
         if (!url.includes("mail.google.com")) {
-          throw new Error("Please open Gmail to extract email content")
+          throw new Error("Email extraction is only supported for Gmail. Please manually enter the email details above.")
         }
 
         // Execute the scrapeGmail function from our injected content script
@@ -198,7 +197,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
         // Auto-analyze the extracted email
         if (emailData.sender && emailData.content) {
           // Immediately analyze the extracted email
-          await analyzeExtractedEmail(emailData)
+          await analyzeEmail(emailData)
         }
       } catch (error) {
         console.error("Gmail extraction error:", error)
@@ -240,8 +239,8 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       }
     }
 
-    // Function to analyze extracted email automatically
-    const analyzeExtractedEmail = async (emailData: { sender: string; subject: string; content: string }) => {
+    // Shared analysis handler for both extracted and manually entered emails
+    const analyzeEmail = async (emailData: { sender: string; subject: string; content: string }) => {
       if (!validateApiKey()) return
 
       setIsChecking(true)
@@ -294,63 +293,13 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       }
     }
 
-    // Function to check a manually entered email
+    // Submit handler for manual form entry — validates inputs then delegates to analyzeEmail
     const checkEmail = async () => {
       if (!emailFormData.sender.trim() || !emailFormData.content.trim()) {
         toast.error("Please enter at least sender and content information")
         return
       }
-
-      if (!validateApiKey()) return
-
-      setIsChecking(true)
-      try {
-        const emailData: EmailData = {
-          sender: emailFormData.sender.trim(),
-          subject: emailFormData.subject.trim() || DEFAULT_VALUES.SUBJECT,
-          content: emailFormData.content.trim(),
-          timestamp: new Date().toISOString(),
-        }
-
-        const [fraudResult, error] = await safeCheckEmailWithOpenAI(emailData, apiKey || "")
-
-        if (error) {
-          handleApiError(error)
-          return
-        }
-
-        if (!fraudResult) {
-          toast.error("Failed to analyze email. Please try again later.")
-          return
-        }
-
-        const checkResult: EmailCheckResult = {
-          threatRating: fraudResult.threatRating,
-          explanation: fraudResult.explanation,
-          sender: emailData.sender,
-          subject: emailData.subject || DEFAULT_VALUES.SUBJECT,
-          flags: fraudResult.flags,
-          tokenUsage: fraudResult.tokenUsage,
-        }
-
-        setResult(checkResult)
-
-        if (onAnalysisComplete) {
-          onAnalysisComplete(
-            "email",
-            {
-              sender: emailData.sender,
-              subject: emailData.subject,
-              content: emailData.content,
-            },
-            checkResult
-          )
-        }
-
-        resetForm()
-      } finally {
-        setIsChecking(false)
-      }
+      await analyzeEmail(emailFormData)
     }
 
     const handleApiError = (error: { status?: number; message?: string }) => {
@@ -608,27 +557,12 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
             </Paper>
           )}
 
-          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-            {onBackToHome && (
-              <Button
-                variant="outlined"
-                onClick={onBackToHome}
-                size="medium"
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                }}
-              >
-                Back
-              </Button>
-            )}
-
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
             <Button
               variant="contained"
               color="primary"
               onClick={() => setResult(null)}
               sx={{
-                ml: "auto",
                 borderRadius: 2,
                 textTransform: "none",
                 boxShadow: 2,
