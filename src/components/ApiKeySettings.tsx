@@ -12,22 +12,25 @@ import {
   CircularProgress,
   Divider,
   Fade,
+  FormControl,
   IconButton,
   InputAdornment,
+  InputLabel,
   Link,
+  MenuItem,
   Paper,
+  Select,
+  type SelectChangeEvent,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material"
 import { useState } from "react"
 import { useApiKey } from "../hooks/useApiKey"
-// API Key storage key in Chrome storage
-export const API_KEY_STORAGE_KEY = "openai_api_key"
 
 export const ApiKeySettings = () => {
   const theme = useTheme()
-  const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey } =
+  const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey, selectedModel, saveSelectedModel } =
     useApiKey()
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
 
@@ -126,6 +129,24 @@ export const ApiKeySettings = () => {
                   ),
                 }}
               />
+
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="model-select-label">Analysis Model</InputLabel>
+                <Select
+                  labelId="model-select-label"
+                  value={selectedModel}
+                  label="Analysis Model"
+                  onChange={(e: SelectChangeEvent) => saveSelectedModel(e.target.value)}
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: theme.palette.background.paper,
+                  }}
+                >
+                  <MenuItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</MenuItem>
+                  <MenuItem value="gpt-4o">GPT-4o (More Accurate)</MenuItem>
+                  <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</MenuItem>
+                </Select>
+              </FormControl>
 
               <Box sx={{ display: "flex", gap: 1.5 }}>
                 <Button

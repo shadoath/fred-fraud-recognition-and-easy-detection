@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react"
-import { API_KEY_STORAGE_KEY } from "../components/ApiKeySettings"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import {
+  API_KEY_STORAGE_KEY,
+  DEFAULT_MODEL,
+  attemptMigration,
+  getSelectedModel,
   obfuscateApiKey,
   recoverApiKey,
-  validateApiKeyFormat,
-  attemptMigration
+  saveSelectedModel as persistSelectedModel,
+  validateApiKeyFormat
 } from "../lib/keyStorage"
 
 export interface ApiKeyState {
@@ -17,6 +20,9 @@ export interface ApiKeyState {
   isApiKeySaved: boolean
   saveApiKey: () => void
   clearApiKey: () => void
+  selectedModel: string
+  setSelectedModel: (model: string) => void
+  saveSelectedModel: (model: string) => Promise<void>
 }
 
 /**
@@ -28,6 +34,7 @@ export const useApiKey = (): ApiKeyState => {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [isApiKeySaved, setIsApiKeySaved] = useState<boolean>(false)
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL)
   const { toast } = useCustomSnackbar()
 
   useEffect(() => {
@@ -45,6 +52,10 @@ export const useApiKey = (): ApiKeyState => {
         // If we have an obfuscated key, recover the original
         const key = obfuscatedKey ? recoverApiKey(obfuscatedKey) : null
         setApiKey(key || null)
+
+        // Load the saved model
+        const model = await getSelectedModel()
+        setSelectedModel(model)
       } catch (error) {
         console.error("Error checking API key:", error)
         setApiKey(null)
@@ -96,12 +107,18 @@ export const useApiKey = (): ApiKeyState => {
     }
   }
 
+  // Save the selected model to Chrome storage
+  const saveSelectedModel = async (model: string): Promise<void> => {
+    setSelectedModel(model)
+    await persistSelectedModel(model)
+  }
+
   // Clear API key from Chrome storage
   const clearApiKey = async () => {
     setIsSaving(true)
     try {
       await chrome.storage.local.remove(API_KEY_STORAGE_KEY)
-      setApiKey("")
+      setApiKey(null)
       toast.success("API key removed")
     } catch (error) {
       console.error("Error removing API key:", error)
@@ -120,5 +137,8 @@ export const useApiKey = (): ApiKeyState => {
     isApiKeySaved,
     saveApiKey,
     clearApiKey,
+    selectedModel,
+    setSelectedModel,
+    saveSelectedModel,
   }
 }

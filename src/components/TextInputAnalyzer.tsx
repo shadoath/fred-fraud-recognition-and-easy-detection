@@ -14,7 +14,7 @@ import {
 import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { safeCheckTextWithOpenAI, type TextData } from "../lib/fraudService"
+import { safeCheckContentWithOpenAI, type TextData } from "../lib/fraudService"
 import { getThreatColor, ThreatRating } from "./ThreatRating"
 
 // Define types for the text check results
@@ -23,6 +23,7 @@ export interface TextCheckResult {
   explanation: string
   content: string
   flags?: string[] // Optional indicators of fraud
+  confidence?: number
   tokenUsage?: {
     promptTokens: number
     completionTokens: number
@@ -38,7 +39,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
   const [textContent, setTextContent] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
   const [result, setResult] = useState<TextCheckResult | null>(null)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, selectedModel } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
@@ -64,7 +65,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
       }
 
       // Use OpenAI API for analysis
-      const [apiResult, error] = await safeCheckTextWithOpenAI(textData, apiKey)
+      const [apiResult, error] = await safeCheckContentWithOpenAI(textData, apiKey, selectedModel)
 
       if (error) {
         if (error.status === 401) {
@@ -86,6 +87,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
         explanation: apiResult.explanation,
         content: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
         flags: apiResult.flags,
+        confidence: apiResult.confidence,
         tokenUsage: apiResult.tokenUsage,
       }
 
@@ -209,7 +211,7 @@ export const TextInputAnalyzer = ({ onAnalysisComplete }: TextInputAnalyzerProps
         ) : (
           <Box sx={{ width: "100%" }}>
             {/* Using our custom ThreatRating component */}
-            <ThreatRating rating={result.threatRating} />
+            <ThreatRating rating={result.threatRating} confidence={result.confidence} />
 
             {/* Analysis */}
             <Paper

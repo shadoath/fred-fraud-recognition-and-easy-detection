@@ -15,7 +15,7 @@ import {
 import { forwardRef, useImperativeHandle, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { safeCheckEmailWithOpenAI, type EmailData } from "../lib/fraudService"
+import { safeCheckContentWithOpenAI, type EmailData } from "../lib/fraudService"
 import { getThreatColor, ThreatRating } from "./ThreatRating"
 
 // Define types for the fraud check results for the UI
@@ -25,6 +25,7 @@ export interface EmailCheckResult {
   sender: string
   subject: string
   flags?: string[] // Optional indicators of fraud
+  confidence?: number
   tokenUsage?: {
     promptTokens: number
     completionTokens: number
@@ -61,7 +62,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
     })
 
     // Hooks
-    const { apiKey, hasApiKey } = useApiKey()
+    const { apiKey, hasApiKey, selectedModel } = useApiKey()
     const { toast } = useCustomSnackbar()
     const theme = useTheme()
 
@@ -252,7 +253,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           timestamp: new Date().toISOString(),
         }
 
-        const [fraudResult, error] = await safeCheckEmailWithOpenAI(emailDataForAnalysis, apiKey || "")
+        const [fraudResult, error] = await safeCheckContentWithOpenAI(emailDataForAnalysis, apiKey || "", selectedModel)
 
         if (error) {
           handleApiError(error)
@@ -270,6 +271,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           sender: emailDataForAnalysis.sender,
           subject: emailDataForAnalysis.subject || DEFAULT_VALUES.SUBJECT,
           flags: fraudResult.flags,
+          confidence: fraudResult.confidence,
           tokenUsage: fraudResult.tokenUsage,
         }
 
@@ -419,7 +421,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       return (
         <Box sx={{ width: "100%" }}>
           {/* Using our custom ThreatRating component */}
-          <ThreatRating rating={result.threatRating} />
+          <ThreatRating rating={result.threatRating} confidence={result.confidence} />
 
           {/* Email Summary */}
           <Paper

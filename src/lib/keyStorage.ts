@@ -1,10 +1,5 @@
 /**
- * Enhanced key storage utility with improved security for API keys.
- *
- * This module now provides:
- * - API key format validation
- * - Multi-layer obfuscation (better than simple XOR)
- * - Backward compatibility with legacy storage
+ * API key storage utility with obfuscation and legacy migration.
  */
 
 import {
@@ -12,6 +7,9 @@ import {
   enhancedRecover,
   validateApiKeyFormat
 } from "./simpleEnhancedStorage"
+
+/** Chrome storage key for the API key */
+export const API_KEY_STORAGE_KEY = "openai_api_key"
 
 // Legacy obfuscation key for migration purposes
 const LEGACY_OBFUSCATION_KEY = "FRED-2025-PROTECTION"
@@ -79,8 +77,8 @@ export const obfuscateApiKey = (apiKey: string): string => {
 export const recoverApiKey = (obfuscated: string): string => {
   if (!obfuscated) return ""
 
-  // Check if it's enhanced obfuscation (V3 or V2)
-  if (obfuscated.startsWith("V3.") || obfuscated.startsWith("V2_")) {
+  // Check if it's enhanced obfuscation (V3 format)
+  if (obfuscated.startsWith("V3.")) {
     return enhancedRecover(obfuscated)
   }
 
@@ -96,28 +94,48 @@ export const recoverApiKey = (obfuscated: string): string => {
 }
 
 /**
- * Attempts to migrate from old storage format to new enhanced format
+ * Migrates from legacy "apiKey" storage to current format.
  */
 export async function attemptMigration(): Promise<boolean> {
   try {
-    // Check if old key exists
     const oldStorage = await chrome.storage.local.get("apiKey")
     if (!oldStorage.apiKey) return false
 
-    // Try to recover using legacy method
     const apiKey = legacyRecover(oldStorage.apiKey)
     if (!apiKey || !validateApiKeyFormat(apiKey)) return false
 
-    // Store using new method
     const newObfuscated = enhancedObfuscate(apiKey)
-    await chrome.storage.local.set({ apiKey: newObfuscated })
+    await chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: newObfuscated })
+    await chrome.storage.local.remove("apiKey")
 
-    console.log("Successfully migrated to enhanced storage")
     return true
   } catch (error) {
     console.error("Migration failed:", error)
     return false
   }
+}
+
+/** Chrome storage key for the selected model */
+export const SELECTED_MODEL_STORAGE_KEY = "fredSelectedModel"
+
+/** Default model to use if none is saved */
+export const DEFAULT_MODEL = "gpt-4o-mini"
+
+/**
+ * Saves the selected model to Chrome storage.
+ * @param model The model identifier to save.
+ */
+export const saveSelectedModel = async (model: string): Promise<void> => {
+  await chrome.storage.local.set({ [SELECTED_MODEL_STORAGE_KEY]: model })
+}
+
+/**
+ * Retrieves the selected model from Chrome storage.
+ * @returns The saved model identifier, or the default if not set.
+ */
+export const getSelectedModel = async (): Promise<string> => {
+  const result = await chrome.storage.local.get(SELECTED_MODEL_STORAGE_KEY)
+  return result[SELECTED_MODEL_STORAGE_KEY] ?? DEFAULT_MODEL
 }
 
 // Export additional utilities
