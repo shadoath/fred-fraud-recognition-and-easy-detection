@@ -5,42 +5,55 @@ import { Box, LinearProgress, Paper, Rating, Tooltip, Typography, useTheme } fro
 import { useState } from "react"
 
 interface ThreatRatingProps {
-  rating: number // 1-10 scale
+  rating: number // 1-100 scale
   readOnly?: boolean
   onRatingChange?: (newRating: number) => void
+  confidence?: number
 }
 
-export const ThreatRating = ({ rating, readOnly = true, onRatingChange }: ThreatRatingProps) => {
+export const getThreatColor = (rating: number): string => {
+  if (rating <= 30) return "#4caf50"
+  if (rating <= 70) return "#ff9800"
+  return "#f44336"
+}
+
+export const getThreatLevelFromScore = (score: number): string => {
+  if (score <= 10) return "Very Safe"
+  if (score <= 20) return "Safe"
+  if (score <= 30) return "Likely Safe"
+  if (score <= 40) return "Mild Concern"
+  if (score <= 50) return "Some Concern"
+  if (score <= 60) return "Moderate Concern"
+  if (score <= 70) return "Concerning"
+  if (score <= 80) return "Highly Suspicious"
+  if (score <= 90) return "Dangerous"
+  return "Very Dangerous"
+}
+
+export const ThreatRating = ({ rating, readOnly = true, onRatingChange, confidence }: ThreatRatingProps) => {
   const [hover, setHover] = useState(-1)
   const theme = useTheme()
 
-  // Convert 1-10 scale to 1-5 for MUI Rating component
-  const normalizedRating = Math.ceil(rating / 2)
-
-  // Get color based on threat level
-  const getThreatColor = (rating: number): string => {
-    if (rating <= 3) return "#4caf50" // Green for low threat
-    if (rating <= 7) return "#ff9800" // Orange for medium threat
-    return "#f44336" // Red for high threat
-  }
+  // Convert 1-100 scale to 1-5 for MUI Rating component
+  const normalizedRating = Math.ceil(rating / 20)
 
   // Get threat level text
   const getThreatLevelText = (rating: number): string => {
-    if (rating <= 3) return "Low Threat"
-    if (rating <= 7) return "Medium Threat"
+    if (rating <= 30) return "Low Threat"
+    if (rating <= 70) return "Medium Threat"
     return "High Threat"
   }
 
   // Handle rating change (if not read-only)
   const handleRatingChange = (_: React.SyntheticEvent, newValue: number | null) => {
     if (!readOnly && onRatingChange && newValue) {
-      // Convert back to 1-10 scale
-      onRatingChange(newValue * 2)
+      // Convert back to 1-100 scale
+      onRatingChange(newValue * 20)
     }
   }
 
   const ratingColor = getThreatColor(rating)
-  const ratingText = threatLevels[rating as keyof typeof threatLevels]
+  const ratingText = getThreatLevelFromScore(rating)
 
   return (
     <Paper
@@ -91,7 +104,7 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange }: Threat
                 fontSize: "1.125rem",
               }}
             >
-              {rating}/10
+              {rating}/100
             </Typography>
           </Tooltip>
         </Box>
@@ -102,7 +115,7 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange }: Threat
           </Tooltip>
           <LinearProgress
             variant="determinate"
-            value={rating * 10}
+            value={rating}
             sx={{
               height: 12,
               borderRadius: 6,
@@ -146,7 +159,7 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange }: Threat
                 style={{
                   width: "24px",
                   height: "24px",
-                  color: getThreatColor(hover !== -1 ? hover * 2 : rating),
+                  color: getThreatColor(hover !== -1 ? hover * 20 : rating),
                 }}
               />
             }
@@ -175,21 +188,23 @@ export const ThreatRating = ({ rating, readOnly = true, onRatingChange }: Threat
         >
           {ratingText}
         </Typography>
+
+        {typeof confidence === "number" && (
+          <Typography
+            variant="caption"
+            align="center"
+            sx={{
+              display: "block",
+              mt: 0.5,
+              color: "text.secondary",
+              fontStyle: "italic",
+            }}
+          >
+            Confidence: {Math.round(confidence * 100)}%
+          </Typography>
+        )}
       </Box>
     </Paper>
   )
 }
 
-// Threat level descriptors for reference
-export const threatLevels = {
-  1: "Very Safe",
-  2: "Safe",
-  3: "Likely Safe",
-  4: "Mild Concern",
-  5: "Some Concern",
-  6: "Moderate Concern",
-  7: "Concerning",
-  8: "Highly Suspicious",
-  9: "Dangerous",
-  10: "Very Dangerous",
-}
