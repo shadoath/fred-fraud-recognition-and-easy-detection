@@ -7,20 +7,30 @@ export const CustomThemeContext = createContext<{
   theme: Theme
   darkMode: boolean
   toggleDarkMode: () => void
+  largeText: boolean
+  toggleLargeText: () => void
 }>({
   theme: createTheme(darkTheme),
   darkMode: false,
   toggleDarkMode: () => {},
+  largeText: false,
+  toggleLargeText: () => {},
 })
 
 export const CustomThemeContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [darkMode, setDarkMode] = useState(() => {
     return true
   })
+  const [largeText, setLargeText] = useState(false)
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
   }
+
+  const toggleLargeText = () => {
+    setLargeText(!largeText)
+  }
+
   // Run once on load to get theme if set in localStorage
   useEffect(() => {
     const preferredTheme = localStorage.getItem("preferred-theme")
@@ -31,6 +41,8 @@ export const CustomThemeContextProvider = ({ children }: { children: React.React
         setDarkMode(false)
       }
     }
+    const preferredTextSize = localStorage.getItem("preferred-text-size")
+    setLargeText(preferredTextSize === "large")
   }, [])
 
   const firstUpdate = useRef(true)
@@ -42,7 +54,16 @@ export const CustomThemeContextProvider = ({ children }: { children: React.React
     localStorage.setItem("preferred-theme", darkMode ? "dark" : "light")
   }, [darkMode])
 
-  const theme = React.useMemo(() => createTheme(getTheme(darkMode)), [darkMode]) as Theme
+  const firstTextUpdate = useRef(true)
+  useEffect(() => {
+    if (firstTextUpdate.current) {
+      firstTextUpdate.current = false
+      return
+    }
+    localStorage.setItem("preferred-text-size", largeText ? "large" : "normal")
+  }, [largeText])
+
+  const theme = React.useMemo(() => createTheme(getTheme(darkMode, largeText)), [darkMode, largeText]) as Theme
 
   return (
     <CustomThemeContext.Provider
@@ -50,6 +71,8 @@ export const CustomThemeContextProvider = ({ children }: { children: React.React
         theme,
         darkMode,
         toggleDarkMode,
+        largeText,
+        toggleLargeText,
       }}
     >
       <ThemeProvider theme={theme}>

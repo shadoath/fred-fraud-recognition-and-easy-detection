@@ -5,6 +5,8 @@ import LightModeIcon from "@mui/icons-material/LightMode"
 import LinkIcon from "@mui/icons-material/Link"
 import MailOutlineIcon from "@mui/icons-material/MailOutline"
 import SettingsIcon from "@mui/icons-material/Settings"
+import TextDecreaseIcon from "@mui/icons-material/TextDecrease"
+import TextIncreaseIcon from "@mui/icons-material/TextIncrease"
 import TextSnippetIcon from "@mui/icons-material/TextSnippet"
 import {
   AppBar,
@@ -14,6 +16,7 @@ import {
   Tab,
   Tabs,
   Toolbar,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material"
@@ -23,6 +26,7 @@ import { useManifestHook } from "../hooks/useManifestHook"
 import { saveHistoryEntry, type HistoryEntry } from "../lib/historyStorage"
 import { AnalysisTab } from "./AnalysisTab"
 import { ApiKeySettings } from "./ApiKeySettings"
+import { HelpContent } from "./HelpContent"
 import { EmailAnalyzer, type EmailAnalyzerRef, type EmailCheckResult } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { HistoryTab } from "./HistoryTab"
@@ -44,7 +48,7 @@ interface AnalysisData {
 export const MainDisplay = () => {
   const manifest = useManifestHook()
   const theme = useTheme()
-  const { darkMode, toggleDarkMode } = useCustomThemeContext()
+  const { darkMode, toggleDarkMode, largeText, toggleLargeText } = useCustomThemeContext()
   const [tabValue, setTabValue] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [emailProvider, setEmailProvider] = useState<string | null>(null)
@@ -209,6 +213,11 @@ export const MainDisplay = () => {
             <IconButton color="inherit" onClick={toggleDarkMode} size="small">
               {darkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
+            <Tooltip title={largeText ? "Switch to normal text size" : "Switch to larger text"}>
+              <IconButton color="inherit" onClick={toggleLargeText} size="small">
+                {largeText ? <TextDecreaseIcon fontSize="small" /> : <TextIncreaseIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
             <IconButton color="inherit" onClick={toggleSettings} size="small">
               <SettingsIcon fontSize="small" />
             </IconButton>
@@ -220,6 +229,9 @@ export const MainDisplay = () => {
         <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
           <ErrorBoundary>
             <ApiKeySettings />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <HelpContent />
           </ErrorBoundary>
         </Box>
       ) : (
@@ -282,7 +294,7 @@ export const MainDisplay = () => {
       )}
 
       <Box sx={{ p: 1, textAlign: "center", borderTop: 1, borderColor: "divider" }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
           F.R.E.D. • v{manifest?.version || "?"}
         </Typography>
       </Box>

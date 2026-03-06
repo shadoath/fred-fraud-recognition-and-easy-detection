@@ -129,8 +129,12 @@ const darkTheme: ThemeOptions = {
   palette: darkPalette,
 }
 
-const getTheme = (darkMode: boolean): ThemeOptions => ({
+const getTheme = (darkMode: boolean, largeText = false): ThemeOptions => ({
   ...(darkMode ? darkTheme : lightTheme),
+  typography: {
+    ...baseTheme.typography,
+    fontSize: largeText ? 16 : 14,
+  },
 })
 
 export { darkTheme, getTheme, lightTheme }
