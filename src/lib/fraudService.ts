@@ -22,7 +22,7 @@ export const PROXY_SECRET = "8ca9bd89-9b8b-4b36-8578-a9ba2e3c69b0"
 const DEFAULT_MODEL = "gpt-3.5-turbo"
 const MAX_CONTENT_LENGTH = 12000
 const DEFAULT_TEMPERATURE = 0.2
-const MAX_TOKENS = 1000
+const MAX_TOKENS = 4000
 
 // OpenAI API response structure
 interface OpenAIResponse {
