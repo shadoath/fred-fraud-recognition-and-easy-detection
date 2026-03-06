@@ -2,12 +2,12 @@
   "manifest_version": 3,
   "name": "FRED: Fraud Recognition & Easy Detection",
   "short_name": "FRED",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "author": "Skylar Bolton",
   "description": "Analyzes emails and text for potential fraud using OpenAI.",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "optional_host_permissions": ["<all_urls>"],
-  "host_permissions": ["*://mail.google.com/*"],
+  "host_permissions": ["*://mail.google.com/*", "https://*.workers.dev/*"],
   "action": {
     "default_popup": "index.html",
     "default_icon": {
