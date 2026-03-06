@@ -15,14 +15,19 @@ import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
 import { safeCheckTextWithOpenAI, type TextData } from "../lib/fraudService"
-import { ThreatRating } from "./ThreatRating"
+import { getThreatColor, ThreatRating } from "./ThreatRating"
 
 // Define types for the text check results
 export interface TextCheckResult {
-  threatRating: number // 1-10 scale
+  threatRating: number // 1-100 scale
   explanation: string
   content: string
   flags?: string[] // Optional indicators of fraud
+  tokenUsage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 interface TextInputAnalyzerProps {
@@ -63,8 +68,11 @@ export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInpu
       const [apiResult, error] = await safeCheckTextWithOpenAI(textData, apiKey)
 
       if (error) {
-        console.error("OpenAI API error:", error)
-        toast.error(`OpenAI API error: ${error.message || "Unknown error"}`)
+        if (error.status === 401) {
+          toast.error("Invalid API key. Please check your OpenAI API key.")
+        } else {
+          toast.error(error.message ?? "Failed to analyze text. Please try again later.")
+        }
         return
       }
 
@@ -79,6 +87,7 @@ export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInpu
         explanation: apiResult.explanation,
         content: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
         flags: apiResult.flags,
+        tokenUsage: apiResult.tokenUsage,
       }
 
       setResult(checkResult)
@@ -99,13 +108,6 @@ export const TextInputAnalyzer = ({ onBackToHome, onAnalysisComplete }: TextInpu
     } finally {
       setIsChecking(false)
     }
-  }
-
-  // Function to get color based on threat rating
-  const getThreatColor = (rating: number): string => {
-    if (rating <= 3) return "#4caf50" // Green for low threat
-    if (rating <= 7) return "#ff9800" // Orange for medium threat
-    return "#f44336" // Red for high threat
   }
 
   return (

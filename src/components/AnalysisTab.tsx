@@ -7,7 +7,6 @@ import {
   Button,
   Chip,
   Divider,
-  Fade,
   IconButton,
   Paper,
   Tab,
@@ -20,7 +19,8 @@ import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import type { EmailCheckResult } from "./EmailAnalyzer"
 import type { TextCheckResult } from "./TextInputAnalyzer"
-import { ThreatRating } from "./ThreatRating"
+import { TabPanel } from "./TabPanel"
+import { getThreatColor, ThreatRating } from "./ThreatRating"
 
 interface AnalysisData {
   type: "email" | "text"
@@ -35,42 +35,6 @@ interface AnalysisData {
 
 interface AnalysisTabProps {
   analysisData: AnalysisData | null
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: number
-  value: number
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`analysis-tabpanel-${index}`}
-      aria-labelledby={`analysis-tab-${index}`}
-      {...other}
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        overflow: "auto",
-      }}
-    >
-      {value === index && (
-        <Fade in={value === index} timeout={300}>
-          <Box sx={{ p: 2, height: "100%", boxSizing: "border-box" }}>{children}</Box>
-        </Fade>
-      )}
-    </div>
-  )
 }
 
 export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
@@ -98,12 +62,6 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
       .catch(() => {
         toast.error("Failed to copy to clipboard")
       })
-  }
-
-  const getThreatColor = (rating: number): string => {
-    if (rating <= 3) return "#4caf50"
-    if (rating <= 7) return "#ff9800"
-    return "#f44336"
   }
 
   if (!analysisData) {
@@ -176,7 +134,7 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
       </Tabs>
 
       <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
-        <TabPanel value={tabValue} index={0}>
+        <TabPanel value={tabValue} index={0} idPrefix="analysis">
           {/* Input Data Panel */}
           <Paper
             elevation={0}
@@ -309,7 +267,7 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
           </Paper>
         </TabPanel>
 
-        <TabPanel value={tabValue} index={1}>
+        <TabPanel value={tabValue} index={1} idPrefix="analysis">
           {/* Analysis Results Panel */}
           <Box>
             <ThreatRating rating={analysisData.result.threatRating} />
@@ -407,6 +365,16 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
               </Paper>
             )}
 
+            {analysisData.result.tokenUsage && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mt: 2 }}
+              >
+                ~{analysisData.result.tokenUsage.totalTokens} tokens used (prompt: {analysisData.result.tokenUsage.promptTokens}, response: {analysisData.result.tokenUsage.completionTokens})
+              </Typography>
+            )}
+
             <Box sx={{ mt: 3, display: "flex", justifyContent: "space-between" }}>
               <Button
                 size="small"
@@ -418,7 +386,7 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
                 View Input
               </Button>
               <Typography variant="caption" color="textSecondary" sx={{ alignSelf: "center" }}>
-                Threat Level: {analysisData.result.threatRating}/10
+                Threat Level: {analysisData.result.threatRating}/100
               </Typography>
             </Box>
           </Box>

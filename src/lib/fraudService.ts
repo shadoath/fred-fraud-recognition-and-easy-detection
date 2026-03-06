@@ -6,7 +6,7 @@ export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
 // Configuration constants
 const DEFAULT_MODEL = "gpt-3.5-turbo"
-const MAX_CONTENT_LENGTH = 4000
+const MAX_CONTENT_LENGTH = 12000
 const DEFAULT_TEMPERATURE = 0.2
 const MAX_TOKENS = 1000
 
@@ -67,7 +67,7 @@ Analyze this email for signs of fraud, such as:
 8. Suspicious offers, deals, or requests
 
 Provide your analysis in JSON format with the following fields:
-- threatRating: A number from 1 to 10 where 1 is completely safe and 10 is highly dangerous
+- threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this email is or isn't suspicious
 - flags: An array of specific suspicious elements detected
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
@@ -92,7 +92,7 @@ Analyze this text for signs of fraud, such as:
 10. Fear-based or threatening language
 
 Provide your analysis in JSON format with the following fields:
-- threatRating: A number from 1 to 10 where 1 is completely safe and 10 is highly dangerous
+- threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this content is or isn't suspicious
 - flags: An array of specific suspicious elements detected
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
@@ -149,8 +149,8 @@ export async function checkContentWithOpenAI(
           throw new Error("Invalid response format from OpenAI")
         }
 
-        // Ensure threatRating is within the expected range (1-10)
-        const threatRating = Math.max(1, Math.min(10, Math.round(result.threatRating)))
+        // Ensure threatRating is within the expected range (1-100)
+        const threatRating = Math.max(1, Math.min(100, Math.round(result.threatRating)))
 
         // Return the standardized response
         return {
@@ -159,6 +159,11 @@ export async function checkContentWithOpenAI(
           explanation: result.explanation,
           flags: Array.isArray(result.flags) ? result.flags : [],
           confidence: typeof result.confidence === "number" ? result.confidence : undefined,
+          tokenUsage: response.data.usage ? {
+            promptTokens: response.data.usage.prompt_tokens,
+            completionTokens: response.data.usage.completion_tokens,
+            totalTokens: response.data.usage.total_tokens,
+          } : undefined,
         }
       } catch (parseError) {
         console.error("Error parsing OpenAI response:", parseError)

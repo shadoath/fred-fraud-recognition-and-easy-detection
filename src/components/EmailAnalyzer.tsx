@@ -15,16 +15,21 @@ import {
 import { forwardRef, useImperativeHandle, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { checkEmailWithOpenAI, type EmailData } from "../lib/fraudService"
-import { ThreatRating } from "./ThreatRating"
+import { safeCheckEmailWithOpenAI, type EmailData } from "../lib/fraudService"
+import { getThreatColor, ThreatRating } from "./ThreatRating"
 
 // Define types for the fraud check results for the UI
 export interface EmailCheckResult {
-  threatRating: number // 1-10 scale
+  threatRating: number // 1-100 scale
   explanation: string
   sender: string
   subject: string
   flags?: string[] // Optional indicators of fraud
+  tokenUsage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 interface EmailAnalyzerProps {
@@ -241,7 +246,6 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
 
       setIsChecking(true)
       try {
-        // Prepare email data for analysis
         const emailDataForAnalysis: EmailData = {
           sender: emailData.sender.trim(),
           subject: emailData.subject.trim() || DEFAULT_VALUES.SUBJECT,
@@ -249,22 +253,29 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           timestamp: new Date().toISOString(),
         }
 
-        // Use OpenAI to check the email
-        const fraudResult = await checkEmailWithOpenAI(emailDataForAnalysis, apiKey || "")
+        const [fraudResult, error] = await safeCheckEmailWithOpenAI(emailDataForAnalysis, apiKey || "")
 
-        // Transform the API response to our UI result format
+        if (error) {
+          handleApiError(error)
+          return
+        }
+
+        if (!fraudResult) {
+          toast.error("Failed to analyze email. Please try again later.")
+          return
+        }
+
         const checkResult: EmailCheckResult = {
           threatRating: fraudResult.threatRating,
           explanation: fraudResult.explanation,
           sender: emailDataForAnalysis.sender,
           subject: emailDataForAnalysis.subject || DEFAULT_VALUES.SUBJECT,
           flags: fraudResult.flags,
+          tokenUsage: fraudResult.tokenUsage,
         }
 
-        // Update UI
         setResult(checkResult)
 
-        // Call the analysis complete callback to switch to analysis tab
         if (onAnalysisComplete) {
           onAnalysisComplete(
             "email",
@@ -278,8 +289,6 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
         }
 
         resetForm()
-      } catch (error) {
-        handleApiError(error)
       } finally {
         setIsChecking(false)
       }
@@ -287,7 +296,6 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
 
     // Function to check a manually entered email
     const checkEmail = async () => {
-      // Validation
       if (!emailFormData.sender.trim() || !emailFormData.content.trim()) {
         toast.error("Please enter at least sender and content information")
         return
@@ -297,7 +305,6 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
 
       setIsChecking(true)
       try {
-        // Prepare email data
         const emailData: EmailData = {
           sender: emailFormData.sender.trim(),
           subject: emailFormData.subject.trim() || DEFAULT_VALUES.SUBJECT,
@@ -305,22 +312,29 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           timestamp: new Date().toISOString(),
         }
 
-        // Use OpenAI to check the email
-        const fraudResult = await checkEmailWithOpenAI(emailData, apiKey || "")
+        const [fraudResult, error] = await safeCheckEmailWithOpenAI(emailData, apiKey || "")
 
-        // Transform the API response to our UI result format
+        if (error) {
+          handleApiError(error)
+          return
+        }
+
+        if (!fraudResult) {
+          toast.error("Failed to analyze email. Please try again later.")
+          return
+        }
+
         const checkResult: EmailCheckResult = {
           threatRating: fraudResult.threatRating,
           explanation: fraudResult.explanation,
           sender: emailData.sender,
           subject: emailData.subject || DEFAULT_VALUES.SUBJECT,
           flags: fraudResult.flags,
+          tokenUsage: fraudResult.tokenUsage,
         }
 
-        // Update UI
         setResult(checkResult)
 
-        // Call the analysis complete callback if provided
         if (onAnalysisComplete) {
           onAnalysisComplete(
             "email",
@@ -334,34 +348,17 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
         }
 
         resetForm()
-      } catch (error) {
-        handleApiError(error)
       } finally {
         setIsChecking(false)
       }
     }
 
-    // Handle API errors
-    const handleApiError = (error: unknown) => {
-      console.error("Email analysis error:", error)
-
-      if (error && typeof error === "object" && "status" in error) {
-        // Handle specific API errors
-        if ((error as any).status === 401) {
-          toast.error("Invalid API key. Please check your OpenAI API key.")
-        } else {
-          toast.error(`OpenAI API error: ${(error as any).message || "Unknown error"}`)
-        }
+    const handleApiError = (error: { status?: number; message?: string }) => {
+      if (error?.status === 401) {
+        toast.error("Invalid API key. Please check your OpenAI API key.")
       } else {
-        toast.error("Failed to analyze email. Please try again later.")
+        toast.error(error?.message ?? "Failed to analyze email. Please try again later.")
       }
-    }
-
-    // Function to get color based on threat rating
-    const getThreatColor = (rating: number): string => {
-      if (rating <= 3) return "#4caf50" // Green for low threat
-      if (rating <= 7) return "#ff9800" // Orange for medium threat
-      return "#f44336" // Red for high threat
     }
 
     // UI Component: Email Input Form

@@ -5,6 +5,7 @@
 export type ApiErrorResponse = {
   success: false
   message: string
+  status?: number
 }
 
 // Input data types
@@ -24,8 +25,13 @@ export interface TextData {
 // Response type
 export interface FraudCheckResponse {
   success: true
-  threatRating: number // 1-10 scale
+  threatRating: number // 1-100 scale
   explanation: string
   flags?: string[] // Optional array of specific fraud indicators
   confidence?: number // Optional confidence score
+  tokenUsage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
