@@ -1,8 +1,12 @@
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline"
+import DarkModeIcon from "@mui/icons-material/DarkMode"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import KeyIcon from "@mui/icons-material/Key"
+import LightModeIcon from "@mui/icons-material/LightMode"
 import LinkIcon from "@mui/icons-material/Link"
 import SettingsIcon from "@mui/icons-material/Settings"
+import TextDecreaseIcon from "@mui/icons-material/TextDecrease"
+import TextIncreaseIcon from "@mui/icons-material/TextIncrease"
 import VisibilityIcon from "@mui/icons-material/Visibility"
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff"
 import {
@@ -29,12 +33,14 @@ import {
   useTheme,
 } from "@mui/material"
 import { useState } from "react"
+import { useCustomThemeContext } from "../contexts/CustomThemeContext"
 import { useApiKey } from "../hooks/useApiKey"
 
 export const ApiKeySettings = () => {
   const theme = useTheme()
   const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey, selectedModel, saveSelectedModel, connectionMode, saveConnectionMode } =
     useApiKey()
+  const { darkMode, toggleDarkMode, largeText, toggleLargeText } = useCustomThemeContext()
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
 
   return (
@@ -216,6 +222,34 @@ export const ApiKeySettings = () => {
               )}
             </>
           )}
+
+          <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 1 }}>
+              Display
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                size="small"
+                onClick={toggleDarkMode}
+                startIcon={darkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+                sx={{ textTransform: "none", borderRadius: 2 }}
+              >
+                {darkMode ? "Light Mode" : "Dark Mode"}
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                size="small"
+                onClick={toggleLargeText}
+                startIcon={largeText ? <TextDecreaseIcon fontSize="small" /> : <TextIncreaseIcon fontSize="small" />}
+                sx={{ textTransform: "none", borderRadius: 2 }}
+              >
+                {largeText ? "Normal Text" : "Larger Text"}
+              </Button>
+            </Box>
+          </Box>
 
           <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
             <Typography
