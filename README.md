@@ -6,22 +6,23 @@
   <h3>Protect yourself from fraud, scams, and phishing attempts</h3>
 </div>
 
-FRED (Fraud Recognition & Easy Detection) is a Chrome extension that helps you analyze emails, text, and URLs for potential fraud or phishing attempts using OpenAI's powerful language models. It's designed with privacy in mind - your content never reaches our servers, as analysis happens directly between your browser and OpenAI using your personal API key.
+FRED (Fraud Recognition & Easy Detection) is a Chrome extension that helps you analyze emails, text, and URLs for potential fraud or phishing attempts using OpenAI's powerful language models. No API key required to get started — FRED includes **5 free checks per week** for everyone.
 
 ## Features
 
+- **Free Tier**: 5 free checks per week with no API key or account needed
 - **Email Analysis**: Examines Gmail email content, sender details, and formatting for fraud indicators
 - **Text Analysis**: Analyze any pasted text for potential scams or suspicious content
-- **URL/Link Analysis**: Check suspicious links before clicking them
-- **Threat Rating**: Provides a 1-100 scale threat assessment with color-coded risk levels
-- **AI Confidence Score**: See how confident the model is in its assessment
-- **Detailed Explanations**: Explains why content might be suspicious with specific reasoning
+- **URL/Link Analysis**: Check suspicious links before clicking them, or scan the current page with one click
+- **Threat Rating**: Clear verdict banner — "Looks Safe", "Be Careful", or "Likely a Scam" — with a 1–100 risk score
+- **Actionable Advice**: Tells you exactly what to do based on the threat level
+- **Detailed Explanations**: Explains why content might be suspicious in plain, non-technical language
 - **Fraud Indicators**: Highlights specific elements that triggered warnings
 - **Analysis History**: Stores your last 20 analyses for easy reference
+- **Result Persistence**: Last result is restored when you reopen the popup
 - **Dark Mode**: Toggle between light and dark themes
-- **Privacy-Focused**: Your content is only shared with OpenAI, never stored on our servers
-- **User-Supplied API Key**: Use your own OpenAI API key (no subscription required)
-- **Simple UI**: Easy-to-understand tabbed interface with clear visual indicators
+- **Large Text Mode**: Increase font size for easier reading
+- **Bring Your Own Key**: Use your own OpenAI API key for unlimited checks
 
 ## Installation
 
@@ -51,54 +52,49 @@ FRED (Fraud Recognition & Easy Detection) is a Chrome extension that helps you a
    - Enable "Developer mode" by toggling the switch in the top-right corner
    - Click "Load unpacked" and select the `dist` folder from the project directory
 
-## 🔑 Setting Up Your OpenAI API Key
+## Getting Started
 
-This extension requires an OpenAI API key to function. Your API key is stored locally on your device and is only used to communicate with OpenAI.
+FRED works immediately with no setup. Open the extension and start checking — you get **5 free checks per week** powered by FRED's servers.
+
+When you've used your free checks, or if you want unlimited access, you can add your own OpenAI API key in Settings:
 
 1. Sign up for an OpenAI account at [platform.openai.com](https://platform.openai.com)
 2. Navigate to [API Keys](https://platform.openai.com/account/api-keys)
 3. Click "Create new secret key" and copy the key
-4. Open the FRED extension popup
-5. Click the "Settings" tab
-6. Paste your API key and click "Save API Key"
+4. Open FRED → Settings → switch to "My Own Key"
+5. Paste your API key and click "Save API Key"
 
-**Note**: Using OpenAI's API will incur charges based on your usage. Costs are typically fractions of a cent per analysis. Check [OpenAI's pricing page](https://openai.com/pricing) for current rates.
+**Note**: Using your own OpenAI key incurs small charges — typically fractions of a cent per check. Most users spend less than $1/month.
 
 ## How to Use
 
 ### Gmail Email Analysis
-1. Make sure you've added your OpenAI API key in the extension settings
-2. Open any email in Gmail
-3. Click the FRED icon in your browser extension toolbar and use the "Email" tab
-4. Click "Check Current Email" to analyze the open email
-5. Review the threat assessment, AI confidence score, explanation, and detected indicators
-6. Use this information to make an informed decision about the email
+1. Open any email in Gmail
+2. Click the FRED icon in your browser toolbar
+3. FRED will automatically extract and analyze the open email
+4. Review the verdict, explanation, and any warning flags
 
 ### Text Analysis
-1. Make sure you've added your OpenAI API key in the extension settings
-2. Click the FRED icon in your browser extension toolbar
-3. Switch to the "Text" tab
-4. Paste any text you want to analyze for potential fraud
-5. Click "Check For Fraud" to analyze the text
-6. Review the threat assessment, explanation, and detected indicators
+1. Click the FRED icon in your browser toolbar
+2. Switch to the "Text" tab
+3. Paste any suspicious text (SMS, message, letter, etc.)
+4. Click "Check For Fraud"
 
 ### URL / Link Analysis
-1. Click the FRED icon in your browser extension toolbar
+1. Click the FRED icon in your browser toolbar
 2. Switch to the "URL" tab
-3. Paste a suspicious link or URL
-4. Click "Check URL" to analyze it
-5. Review the threat assessment and any flags raised about the link
+3. Paste a suspicious link, or click "Check This Page" to scan the current tab's URL
+4. Review the threat assessment and any flags
 
 ## Privacy
 
-We take your privacy seriously:
+- **Free tier**: Content is routed through FRED's Cloudflare Worker to OpenAI. The worker does not log or store your content — it only tracks a per-device check count for rate limiting.
+- **BYOK mode**: Content goes directly from your browser to OpenAI. FRED's servers are never involved.
+- Your OpenAI API key is stored only on your device and never transmitted to FRED's servers.
+- No tracking or analytics are collected about your content.
+- The extension requests only the minimum permissions needed to function.
 
-- Your email and text content never passes through our servers
-- All data is sent directly from your browser to OpenAI
-- Your OpenAI API key is stored only in your browser's local storage
-- No tracking or analytics are collected about your content
-- The extension requests minimal permissions (only what's needed to function)
-- Text you paste for analysis is never stored persistently
+See [PRIVACY.md](PRIVACY.md) for the full privacy policy.
 
 ## Development
 
@@ -109,6 +105,7 @@ This extension is built with:
 - Material UI
 - Vite
 - Chrome Extension Manifest V3
+- Cloudflare Workers + Cloudflare KV (proxy/rate limiting)
 
 ### Development Commands
 
@@ -119,7 +116,7 @@ npm run dev
 # Build the extension
 npm run build
 
-# Watch for changes and rebuild (useful during development)
+# Watch for changes and rebuild
 npm run watch
 
 # Lint the code
@@ -128,6 +125,10 @@ npm run lint
 # Run tests
 npm run test
 ```
+
+### Cloudflare Worker (Proxy)
+
+The free tier proxy lives in `fred-proxy/`. See the source for deployment instructions, or refer to the setup steps in `fred-proxy/wrangler.toml`.
 
 ## Contributing
 
@@ -139,15 +140,13 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-Please ensure your code follows the project's style guidelines and passes all tests.
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Disclaimer
 
-This extension provides an automated analysis of emails for potentially fraudulent content, but it is not infallible. Always use your best judgment when dealing with suspicious emails. The extension's analysis is provided as a tool to assist you, not as a definitive assessment of an email's legitimacy.
+FRED provides an automated analysis to help identify potentially fraudulent content, but it is not infallible. Always use your best judgment. The analysis is a tool to assist you, not a definitive verdict.
 
 ## Contact
 
@@ -159,6 +158,6 @@ If you have any questions or feedback, please open an issue on GitHub.
   Made with ❤️ to help protect people from scams
 </div>
 
-## 🤖 Development Note
+## Development Note
 
 This project was built with assistance from Claude AI using Claude Code. Many components, features, and improvements were developed through collaboration with an AI assistant, including code organization, feature implementation, and security enhancements.

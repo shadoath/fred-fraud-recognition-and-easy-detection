@@ -1,99 +1,120 @@
 # Privacy Policy for FRED: Fraud Recognition & Easy Detection
 
-*Last Updated: May 10, 2025*
+*Last Updated: March 6, 2026*
 
 ## Introduction
 
 FRED: Fraud Recognition & Easy Detection ("we", "our", or "extension") is committed to protecting your privacy. This Privacy Policy explains how your information is collected, used, and disclosed when you use our Chrome extension.
 
+## Two Modes of Operation
+
+FRED operates in one of two modes, each with different data flows:
+
+### Free Tier (Proxy Mode — default)
+
+Content you submit for analysis is routed through FRED's Cloudflare Worker (serverless proxy) to OpenAI's API. The worker:
+- Does **not** log or store the content of your analysis
+- Records only a **per-device check count** (a random device ID paired with the current week number) for rate limiting purposes
+- Forwards your content to OpenAI and returns the result
+
+### Bring Your Own Key (BYOK Mode)
+
+When you provide your own OpenAI API key, content is sent **directly from your browser to OpenAI**. FRED's servers are not involved at any point.
+
+---
+
 ## What Information We Collect
 
 ### Information You Provide
 
-- **OpenAI API Key**: You provide your personal OpenAI API key, which is required for the extension to function.
+- **OpenAI API Key** (BYOK mode only): Your personal OpenAI API key, stored only on your device.
+- **Content for Analysis**: Email content, pasted text, or URLs you submit for fraud checking.
 
 ### Information Collected Automatically
 
-- **Email Content**: When you use the extension to analyze an email, we temporarily process the following data:
-  - Email sender address
-  - Email subject
-  - Email content (body)
-  - Timestamp
+- **Device ID** (Proxy mode only): A randomly generated UUID stored in your browser's local storage. This is used solely to track your weekly check count for rate limiting. It is never linked to your identity and is never sent to OpenAI.
+- **Weekly check count**: The number of checks used in the current week, stored in Cloudflare KV against your device ID. This data expires automatically after 14 days.
 
-- **Text Content**: When you use the extension to analyze pasted text, we temporarily process the following data:
-  - The text content you paste
-  - Timestamp
+---
 
 ## How We Use Your Information
 
-We use the information we collect for the following purposes:
+- **Content**: Sent to OpenAI for fraud analysis. Not logged or retained by FRED.
+- **Device ID**: Used only to enforce the 5 free checks per week limit.
+- **OpenAI API Key**: Used only to authenticate requests to OpenAI on your behalf (BYOK mode). Never transmitted to FRED's servers.
 
-- **OpenAI API Key**: To authenticate with OpenAI's API on your behalf.
-- **Email Content**: To send to OpenAI for fraud analysis through their API.
-- **Text Content**: To send to OpenAI for fraud analysis through their API.
+---
 
 ## Data Storage and Sharing
 
-### Local Storage
+### On Your Device (chrome.storage.local)
 
-- **OpenAI API Key**: Stored securely in your browser's local storage on your device only.
-- **Email Content**: Not stored persistently. It is only held in memory temporarily during analysis and then discarded.
-- **Text Content**: Not stored persistently. It is only held in memory temporarily during analysis and then discarded.
+- OpenAI API key (obfuscated, BYOK mode only)
+- Device ID (proxy mode)
+- Selected model preference
+- Connection mode preference
+- Analysis history (last 20 entries, stored locally)
+
+### On FRED's Cloudflare Worker (Proxy Mode)
+
+- Device ID + week number → check count. No content is stored. Entries expire after 14 days.
 
 ### Third-Party Sharing
 
-- **OpenAI**: Email content and pasted text is shared with OpenAI solely for the purpose of fraud analysis. This processing is governed by [OpenAI's Privacy Policy](https://openai.com/policies/privacy-policy).
+- **OpenAI**: Content you submit is sent to OpenAI for analysis. Governed by [OpenAI's Privacy Policy](https://openai.com/policies/privacy-policy).
 
-### Important Privacy Notes
+### What We Do NOT Do
 
-- We **do not** operate our own servers to process your content
-- We **do not** store copies of your emails or text submissions
-- We **do not** track your browsing or email history
-- We **do not** use analytics tools to collect usage data
-- All data is sent directly from your browser to OpenAI's API
+- We do **not** log or store the content of your analyses
+- We do **not** store copies of your emails, text, or URLs
+- We do **not** track your browsing or email history
+- We do **not** use analytics tools to collect usage data
+- We do **not** sell or share your data with third parties
+
+---
 
 ## User Control and Rights
 
-You have full control over your data:
+- **Stop using**: Uninstall the extension at any time to stop all data processing
+- **Clear API key**: Remove your API key via Settings at any time
+- **Clear history**: Clear your local analysis history via the History tab
+- **Switch modes**: Change between Free and BYOK mode in Settings at any time
 
-- **Opt-Out**: You can stop using the extension at any time
-- **Delete Data**: You can clear your API key from local storage through the extension settings
-- **Access**: You can view what information is stored by the extension in your browser's local storage
+---
 
 ## Security
 
-We implement appropriate technical and organizational measures to protect your personal information:
+- Your OpenAI API key is stored with obfuscation in browser local storage and never leaves your device (BYOK mode)
+- All communication with OpenAI and FRED's proxy uses HTTPS
+- The proxy uses a shared secret header to prevent unauthorized use
 
-- Your OpenAI API key is stored only in your browser's local storage
-- No user data is transferred to any servers operated by us
-- Communication with OpenAI's API is conducted over secure HTTPS connections
+---
 
 ## Changes to This Privacy Policy
 
-We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy in the extension's documentation and updating the "Last Updated" date.
+We may update this Privacy Policy from time to time. We will update the "Last Updated" date above when changes are made.
 
-## Contact Us
+---
 
-If you have any questions about this Privacy Policy, please open an issue on our GitHub repository.
+## Contact
 
-## Disclosure for Google Chrome Web Store
+If you have any questions about this Privacy Policy, please open an issue on our [GitHub repository](https://github.com/shadoath/fred-fraud-recognition-and-easy-detection).
 
-This extension requires the following permissions for the specified purposes:
+---
+
+## Chrome Web Store Permission Disclosure
+
+This extension requires the following permissions:
 
 - **activeTab**: To access the currently open Gmail email for analysis
-- **storage**: To store your OpenAI API key on your device
-- **tabs**: To communicate with the Gmail tab
+- **storage**: To store your API key, preferences, and analysis history on your device
+- **tabs**: To read the current tab URL for the "Check This Page" feature
 - **scripting**: To extract email content from the Gmail interface
 - **host_permissions** (mail.google.com): To operate within Gmail
+- **host_permissions** (*.workers.dev): To connect to FRED's free-tier analysis proxy
+
+---
 
 ## Children's Privacy
 
 This extension is not intended for use by individuals under the age of 13. We do not knowingly collect personal information from children under 13.
-
-## Compliance with Legal Requirements
-
-We may disclose your information if required to do so by law or in response to valid requests by public authorities (e.g., a court or government agency).
-
----
-
-By using the Gmail Fraud Detector extension, you agree to the collection and use of information in accordance with this policy.
