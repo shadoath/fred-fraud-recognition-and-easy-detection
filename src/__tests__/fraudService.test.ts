@@ -35,7 +35,7 @@ describe("Fraud Detection Service API Integration", () => {
             {
               message: {
                 content: JSON.stringify({
-                  threatRating: 2,
+                  threatRating: 20,
                   explanation: "This email appears to be safe.",
                   flags: [],
                   confidence: 0.9,
@@ -77,7 +77,7 @@ describe("Fraud Detection Service API Integration", () => {
             {
               message: {
                 content: JSON.stringify({
-                  threatRating: 8,
+                  threatRating: 80,
                   explanation: "This email shows signs of fraud.",
                   flags: ["Suspicious sender", "Urgent language"],
                   confidence: 0.85,
@@ -92,7 +92,7 @@ describe("Fraud Detection Service API Integration", () => {
 
       expect(result).toEqual({
         success: true,
-        threatRating: 8,
+        threatRating: 80,
         explanation: "This email shows signs of fraud.",
         flags: ["Suspicious sender", "Urgent language"],
         confidence: 0.85,
@@ -167,7 +167,7 @@ describe("Fraud Detection Service API Integration", () => {
             {
               message: {
                 content: JSON.stringify({
-                  threatRating: 3,
+                  threatRating: 30,
                   explanation: "This is a safe email.",
                   flags: [],
                   confidence: 0.95,
@@ -184,7 +184,7 @@ describe("Fraud Detection Service API Integration", () => {
       expect(result).toEqual(
         expect.objectContaining({
           success: true,
-          threatRating: 3,
+          threatRating: 30,
           explanation: "This is a safe email.",
         })
       )
@@ -220,7 +220,7 @@ describe("Fraud Detection Service API Integration", () => {
             {
               message: {
                 content: JSON.stringify({
-                  threatRating: 1,
+                  threatRating: 10,
                   explanation: "This text appears completely benign.",
                   flags: [],
                   confidence: 0.99,

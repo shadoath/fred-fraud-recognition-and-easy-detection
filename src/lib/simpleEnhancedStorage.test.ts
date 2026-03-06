@@ -17,6 +17,8 @@ describe("Simple Enhanced Storage", () => {
       expect(validateApiKeyFormat("sk-1234567890abcdefghijk")).toBe(true)
       expect(validateApiKeyFormat("sk-proj-1234567890abcdefghijk")).toBe(true)
       expect(validateApiKeyFormat("sk-" + "a".repeat(48))).toBe(true)
+      expect(validateApiKeyFormat("sk-proj-abc_123_def_456_ghi_789_xyz")).toBe(true)
+      expect(validateApiKeyFormat("sk-abc-123-def-456-ghi-789-xyz")).toBe(true)
     })
 
     it("should reject invalid API key formats", () => {

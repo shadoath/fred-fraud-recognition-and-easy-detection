@@ -7,20 +7,21 @@ This document outlines the essential files and components required for the Gmail
 ### Extension Configuration
 
 - `/public/manifest.json` - Extension manifest file
-- `/public/gmail-content-script-enhanced.js` - Content script for Gmail integration
 - `/public/web-icon-*.png` - Extension icons in various sizes
 
 ### UI Components
 
-- `/src/components/ApiKeySettings.tsx` - Component for managing the OpenAI API key
-- `/src/components/FraudChecker.tsx` - Main component for email fraud checking
-- `/src/components/MainDisplay.tsx` - Root component for the extension popup
-- `/src/components/ThreatRating.tsx` - Component for displaying threat ratings
+- `/src/components/ApiKeySettings.tsx` - API key management
+- `/src/components/AnalysisTab.tsx` - Analysis results display
+- `/src/components/EmailAnalyzer.tsx` - Email fraud analysis
+- `/src/components/MainDisplay.tsx` - Root popup with tabs
+- `/src/components/TabPanel.tsx` - Shared tab panel component
+- `/src/components/TextInputAnalyzer.tsx` - Text fraud analysis
+- `/src/components/ThreatRating.tsx` - Threat rating display
 
 ### Services
 
 - `/src/lib/fraudService.ts` - Service for OpenAI API integration
-- `/src/lib/apiService.ts` - Core API client utilities (reused from original project)
 
 ### Contexts
 
@@ -53,14 +54,14 @@ When developing this extension:
 
 1. **Main Extension Functionality**:
 
-   - `FraudChecker.tsx` handles the main UI for analyzing emails
+   - `MainDisplay.tsx` orchestrates the popup with Email/Text/Analysis tabs
    - `ApiKeySettings.tsx` manages the OpenAI API key storage and retrieval
    - `fraudService.ts` handles the OpenAI API integration
 
 2. **Gmail Integration**:
 
-   - `gmail-content-script.js` injects functionality into Gmail
-   - Uses message passing to communicate with the extension popup
+   - `chrome.scripting.executeScript` extracts email content from Gmail tabs
+   - Popup communicates with active tab for extraction
 
 3. **UI Components**:
    - Material UI for consistent design

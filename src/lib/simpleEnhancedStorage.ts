@@ -13,8 +13,8 @@ const STORAGE_SEPARATOR = "."
 export function validateApiKeyFormat(apiKey: string): boolean {
   if (!apiKey || apiKey.length < 20) return false
   const patterns = [
-    /^sk-[a-zA-Z0-9]{20,}$/,
-    /^sk-proj-[a-zA-Z0-9]{20,}$/
+    /^sk-[a-zA-Z0-9_-]{20,}$/,
+    /^sk-proj-[a-zA-Z0-9_-]{20,}$/
   ]
   return patterns.some(pattern => pattern.test(apiKey))
 }

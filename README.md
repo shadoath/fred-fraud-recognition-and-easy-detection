@@ -12,7 +12,7 @@ FRED (Fraud Recognition & Easy Detection) is a Chrome extension that helps you a
 
 - **Email Analysis**: Examines Gmail email content, sender details, and formatting for fraud indicators
 - **Text Analysis**: Analyze any pasted text for potential scams or suspicious content
-- **Threat Rating**: Provides a 1-10 scale threat assessment with color-coded risk levels
+- **Threat Rating**: Provides a 1-100 scale threat assessment with color-coded risk levels
 - **Detailed Explanations**: Explains why content might be suspicious with specific reasoning
 - **Fraud Indicators**: Highlights specific elements that triggered warnings
 - **Privacy-Focused**: Your content is only shared with OpenAI, never stored on our servers

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FRED (Fraud Recognition & Easy Detection) is a Chrome extension that analyzes emails and text for potential fraud or phishing attempts. It uses OpenAI's language models with the user's personal API key or falls back to an offline pattern-matching system when no API key is available.
+FRED (Fraud Recognition & Easy Detection) is a Chrome extension that analyzes emails and text for potential fraud or phishing attempts using OpenAI's language models with the user's personal API key.
 
 ## Development Commands
 
@@ -12,19 +12,10 @@ FRED (Fraud Recognition & Easy Detection) is a Chrome extension that analyzes em
 # Start the development server
 npm run dev
 
-# Build the entire extension
-npm run build:extension
-
-# Build the React application
+# Build the extension (output in dist/)
 npm run build
 
-# Build just the background script
-npm run build:background
-
-# Build just the content script
-npm run build:content
-
-# Watch for changes and rebuild (useful during development)
+# Watch for changes and rebuild
 npm run watch
 
 # Lint the code
@@ -42,88 +33,41 @@ npm run test:watch
 ### Core Components
 
 1. **Extension Structure**
+   - **Popup**: React-based UI (index.html) built with Vite
+   - **Gmail extraction**: Uses `chrome.scripting.executeScript` to extract email content from Gmail tabs
 
-   - **Background Script**: Handles communication between content scripts and the popup
-   - **Content Script**: Injects into Gmail to analyze emails directly
-   - **Popup Interface**: React-based UI for user interaction
-
-2. **Fraud Detection Services**
-
-   - **Online Mode** (`fraudService.ts`): Uses OpenAI API with user's key
-   - **Offline Mode** (`offlineFraudService.ts`): Pattern matching as fallback
+2. **Fraud Detection**
+   - `fraudService.ts`: OpenAI API integration for fraud analysis
 
 3. **Key Management**
-   - API key storage with basic obfuscation (`keyStorage.ts`)
-   - Chrome's `storage.local` for persistence
+   - `keyStorage.ts`: Obfuscation and Chrome `storage.local` persistence
+   - `simpleEnhancedStorage.ts`: V3 obfuscation format
 
 ### Data Flow
 
-1. User provides their OpenAI API key which is stored locally
-2. When analyzing content, either:
-   - Email: Content is extracted from Gmail and sent to OpenAI
-   - Text: User-provided text is sent to OpenAI
-3. Results are displayed with threat ratings and explanations
-
-### TypeScript Integration
-
-The project uses TypeScript for type safety with separate configurations:
-
-- `tsconfig.json`: Main React application
-- `tsconfig.extension.json`: Chrome extension components (background & content scripts)
-
-## Testing
-
-Tests use Jest with the following setup:
-
-- `jest.config.cjs`: Configuration including TypeScript support
-- Mock Chrome API available in tests
-- Fake timers for async test control
-- Coverage reporting enabled
-
-## Build Process
-
-The build system uses:
-
-- Vite for bundling the React application
-- TypeScript compiler for extension scripts
-- Custom build process in `build.mjs` that:
-  1. Builds scripts with Vite
-  2. Copies static assets from `/public`
-  3. Updates and copies the manifest.json
+1. User provides their OpenAI API key (stored locally with obfuscation)
+2. Email: Content extracted from Gmail via scripting, or Text: User pastes content
+3. Content is sent to OpenAI for analysis
+4. Results displayed with threat ratings and explanations
 
 ## Important Files and Directories
 
-- `/src/lib/fraudService.ts`: Main OpenAI integration for fraud detection
-- `/src/lib/offlineFraudService.ts`: Fallback pattern-matching system
+- `/src/lib/fraudService.ts`: OpenAI integration for fraud detection
+- `/src/lib/keyStorage.ts`: API key storage and migration
+- `/src/lib/simpleEnhancedStorage.ts`: Key obfuscation utilities
 - `/src/types/fraudTypes.ts`: Shared type definitions
-- `/src/components/`: React components for the UI
-- `/src/background/`: Extension background script
-- `/src/content/`: Gmail content script
+- `/src/components/`: React components (MainDisplay, EmailAnalyzer, TextInputAnalyzer, AnalysisTab)
 
 ## Best Practices
 
-1. **API Key Security**
-
-   - Never commit API keys
-   - Use the obfuscation utilities in `keyStorage.ts`
-
-2. **Testing**
-
-   - Mock Chrome API calls for unit tests
-   - Use fake timers for async code
-
-3. **Extension Build**
-
-   - Use `npm run build:extension` for the full extension build
-   - Ensure proper file paths in `manifest.json`
-
-4. **Fraud Detection**
-   - Gracefully handle OpenAI API errors
-   - Always have offline fallback ready
+1. **API Key Security**: Never commit API keys; use obfuscation in `keyStorage.ts`
+2. **Testing**: Mock Chrome API in unit tests
+3. **Extension Build**: Load the `dist/` folder in Chrome as unpacked extension
+4. **Fraud Detection**: Use `safeCheck*` functions for consistent error handling
 
 ## Additional Notes
 
-- Use " intead of ' for strings
-- DO NOT USE ; to end lines of code in typescript (unless required)
-- In Typescript, use `?.` to an optional chain instead of `&&`
+- Use " instead of ' for strings
+- Do not use ; to end lines in TypeScript (unless required)
+- Use `?.` for optional chaining instead of `&&`
 - Use arrow function syntax for functions
