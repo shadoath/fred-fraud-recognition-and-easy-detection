@@ -60,9 +60,9 @@ export default {
     }
 
     // Rate limiting
-    const weeklyLimit = parseInt(env.WEEKLY_LIMIT ?? String(DEFAULT_WEEKLY_LIMIT))
+    const weeklyLimit = Number.parseInt(env.WEEKLY_LIMIT ?? String(DEFAULT_WEEKLY_LIMIT))
     const kvKey = `${deviceId}:${getWeekNumber()}`
-    const currentCount = parseInt((await env.USAGE_KV.get(kvKey)) ?? "0")
+    const currentCount = Number.parseInt((await env.USAGE_KV.get(kvKey)) ?? "0")
 
     if (currentCount >= weeklyLimit) {
       return json(
