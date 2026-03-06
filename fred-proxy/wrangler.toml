@@ -9,7 +9,7 @@ id = "19918c27f59146c998ffde6d441451fb"
 preview_id = "11b63dba236e44d7b6b2b200dbccb61e"
 
 [vars]
-WEEKLY_LIMIT = "5"
+WEEKLY_LIMIT = "25"
 
 # Secrets (set via: wrangler secret put OPENAI_API_KEY)
 # OPENAI_API_KEY

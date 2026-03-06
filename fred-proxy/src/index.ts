@@ -6,7 +6,7 @@ export interface Env {
 }
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-const DEFAULT_WEEKLY_LIMIT = 5
+const DEFAULT_WEEKLY_LIMIT = 25
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
