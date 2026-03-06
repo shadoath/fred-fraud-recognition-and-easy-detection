@@ -69,7 +69,7 @@ Analyze this URL for signs of danger, such as:
 Provide your analysis in JSON format with the following fields:
 - threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this URL is or isn't suspicious
-- flags: An array of specific suspicious elements detected
+- flags: An array of suspicious things found, each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
 
 Ensure the JSON is valid and properly formatted.`
@@ -100,7 +100,7 @@ Analyze this email for signs of fraud, such as:
 Provide your analysis in JSON format with the following fields:
 - threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this email is or isn't suspicious
-- flags: An array of specific suspicious elements detected
+- flags: An array of suspicious things found, each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
 
 Ensure the JSON is valid and properly formatted.`
@@ -125,7 +125,7 @@ Analyze this text for signs of fraud, such as:
 Provide your analysis in JSON format with the following fields:
 - threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this content is or isn't suspicious
-- flags: An array of specific suspicious elements detected
+- flags: An array of suspicious things found, each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
 
 Ensure the JSON is valid and properly formatted.`

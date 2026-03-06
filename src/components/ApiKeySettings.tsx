@@ -73,9 +73,9 @@ export const ApiKeySettings = () => {
                 lineHeight: 1.5,
               }}
             >
-              To analyze content for potential fraud, you need to provide your OpenAI API key. The
-              key is stored securely in your browser and is only used to communicate with OpenAI's
-              API.
+              FRED uses OpenAI's AI service to analyze content for you. To get started, you need a
+              free OpenAI account and a personal API key. Your key is stored only on your device and
+              is never shared with anyone.
             </Typography>
           )}
 
@@ -131,20 +131,20 @@ export const ApiKeySettings = () => {
               />
 
               <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="model-select-label">Analysis Model</InputLabel>
+                <InputLabel id="model-select-label">AI Analysis Level</InputLabel>
                 <Select
                   labelId="model-select-label"
                   value={selectedModel}
-                  label="Analysis Model"
+                  label="AI Analysis Level"
                   onChange={(e: SelectChangeEvent) => saveSelectedModel(e.target.value)}
                   sx={{
                     borderRadius: 2,
                     backgroundColor: theme.palette.background.paper,
                   }}
                 >
-                  <MenuItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</MenuItem>
-                  <MenuItem value="gpt-4o">GPT-4o (More Accurate)</MenuItem>
-                  <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</MenuItem>
+                  <MenuItem value="gpt-4o-mini">Standard (recommended)</MenuItem>
+                  <MenuItem value="gpt-4o">More Thorough (slower, higher cost)</MenuItem>
+                  <MenuItem value="gpt-3.5-turbo">Basic (fastest, lower cost)</MenuItem>
                 </Select>
               </FormControl>
 
@@ -187,6 +187,15 @@ export const ApiKeySettings = () => {
               {!isApiKeySaved && <HowToGetApiKey />}
             </>
           )}
+
+          <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", fontSize: "0.8rem", lineHeight: 1.5, display: "block" }}
+            >
+              🔒 Privacy: When you analyze content, the text is sent to OpenAI for analysis and is not stored by FRED or Anthropic. Your API key never leaves your device.
+            </Typography>
+          </Box>
         </Box>
       </Card>
     </Fade>
@@ -219,7 +228,7 @@ const HowToGetApiKey = () => {
         }}
       >
         <InfoOutlinedIcon fontSize="small" />
-        How to get an OpenAI API key:
+        How to set up FRED (one-time setup):
       </Typography>
 
       <Box component="ol" sx={{ pl: 2, mb: 0, mt: 0 }}>
@@ -244,18 +253,18 @@ const HowToGetApiKey = () => {
             rel="noopener noreferrer"
             underline="hover"
           >
-            platform.openai.com/account/api-keys
+            the OpenAI API keys page
             <LinkIcon sx={{ fontSize: "0.9rem" }} />
           </Link>
         </Typography>
         <Typography component="li" variant="body2" sx={{ mb: 0.5, fontSize: "0.85rem" }}>
-          Sign in or create an account
+          Create a free account if you don't have one
         </Typography>
         <Typography component="li" variant="body2" sx={{ mb: 0.5, fontSize: "0.85rem" }}>
-          Click on "Create new secret key"
+          Click "Create new secret key" — give it any name
         </Typography>
         <Typography component="li" variant="body2" sx={{ fontSize: "0.85rem" }}>
-          Copy the key and paste it here
+          Copy the long key that appears (it starts with "sk-") and paste it above
         </Typography>
       </Box>
 
@@ -285,29 +294,7 @@ const HowToGetApiKey = () => {
           }}
         >
           <InfoOutlinedIcon fontSize="inherit" />
-          Using OpenAI's API incurs charges based on your usage.
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            fontSize: "0.75rem",
-            fontStyle: "italic",
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-          }}
-        >
-          Check their{" "}
-          <Link
-            href="https://openai.com/pricing"
-            target="_blank"
-            rel="noopener noreferrer"
-            underline="hover"
-            style={{ textDecoration: "underline" }}
-          >
-            pricing page
-          </Link>{" "}
-          for details.
+          Each check costs a tiny fraction of a cent. Most users spend less than $1 per month.
         </Typography>
       </Alert>
     </Paper>
