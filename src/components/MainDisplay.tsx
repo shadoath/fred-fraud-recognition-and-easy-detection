@@ -118,11 +118,14 @@ export const MainDisplay = () => {
     detectEmailProvider()
 
     // Restore last analysis from session storage
-    chrome.storage.session.get("fredLastAnalysis").then((stored) => {
-      if (stored.fredLastAnalysis) {
-        setAnalysisData(stored.fredLastAnalysis as AnalysisData)
-      }
-    }).catch(() => {})
+    chrome.storage.session
+      .get("fredLastAnalysis")
+      .then((stored) => {
+        if (stored.fredLastAnalysis) {
+          setAnalysisData(stored.fredLastAnalysis as AnalysisData)
+        }
+      })
+      .catch(() => {})
   }, []) // Empty dependency array means this runs once on mount
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
