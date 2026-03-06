@@ -1,15 +1,21 @@
 import axios, { type AxiosError } from "axios"
-import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData, URLData } from "../types/fraudTypes"
+import type {
+  ApiErrorResponse,
+  EmailData,
+  FraudCheckResponse,
+  TextData,
+  URLData,
+} from "../types/fraudTypes"
 import type { ConnectionMode } from "./keyStorage"
 
 // OpenAI API URL (used in BYOK mode)
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
 // Proxy URL — update after deploying the Cloudflare Worker
-export const PROXY_URL = "https://fred-proxy.YOUR_SUBDOMAIN.workers.dev/analyze"
+export const PROXY_URL = "https://fred-proxy.skylar-bolton.workers.dev/analyze"
 
 // Shared secret sent with proxy requests (must match FRED_SECRET worker secret)
-export const PROXY_SECRET = "REPLACE_WITH_YOUR_FRED_SECRET"
+export const PROXY_SECRET = "8ca9bd89-9b8b-4b36-8578-a9ba2e3c69b0"
 
 // Configuration constants
 const DEFAULT_MODEL = "gpt-3.5-turbo"
@@ -183,16 +189,12 @@ export async function checkContentWithOpenAI(
       )
     } else {
       // Direct BYOK call to OpenAI
-      response = await axios.post<OpenAIResponse>(
-        OPENAI_API_URL,
-        openaiPayload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-        }
-      )
+      response = await axios.post<OpenAIResponse>(OPENAI_API_URL, openaiPayload, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+      })
     }
 
     // Parse the response content from OpenAI
@@ -216,11 +218,13 @@ export async function checkContentWithOpenAI(
           explanation: result.explanation,
           flags: Array.isArray(result.flags) ? result.flags : [],
           confidence: typeof result.confidence === "number" ? result.confidence : undefined,
-          tokenUsage: response.data.usage ? {
-            promptTokens: response.data.usage.prompt_tokens,
-            completionTokens: response.data.usage.completion_tokens,
-            totalTokens: response.data.usage.total_tokens,
-          } : undefined,
+          tokenUsage: response.data.usage
+            ? {
+                promptTokens: response.data.usage.prompt_tokens,
+                completionTokens: response.data.usage.completion_tokens,
+                totalTokens: response.data.usage.total_tokens,
+              }
+            : undefined,
         }
       } catch (parseError) {
         console.error("Error parsing OpenAI response:", parseError)

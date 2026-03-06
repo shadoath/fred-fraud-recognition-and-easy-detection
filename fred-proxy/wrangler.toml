@@ -5,8 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 [[kv_namespaces]]
 binding = "USAGE_KV"
-id = "REPLACE_WITH_YOUR_KV_ID"
-preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_ID"
+id = "19918c27f59146c998ffde6d441451fb"
+preview_id = "11b63dba236e44d7b6b2b200dbccb61e"
 
 [vars]
 WEEKLY_LIMIT = "5"

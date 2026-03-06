@@ -8,3 +8,4 @@ coverage/*
 **/.claude/settings.local.json
 
 dist.zip
+fred-proxy/node_modules
