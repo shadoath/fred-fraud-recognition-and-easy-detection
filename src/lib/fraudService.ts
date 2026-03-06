@@ -18,6 +18,9 @@ export const PROXY_URL = "https://fred-proxy.skylar-bolton.workers.dev"
 // Shared secret sent with proxy requests (must match FRED_SECRET worker secret)
 export const PROXY_SECRET = "8ca9bd89-9b8b-4b36-8578-a9ba2e3c69b0"
 
+// Free tier weekly check limit — must match WEEKLY_LIMIT in fred-proxy/wrangler.toml
+export const FREE_CHECKS_PER_WEEK = 25
+
 // Configuration constants
 const DEFAULT_MODEL = "gpt-3.5-turbo"
 const MAX_CONTENT_LENGTH = 12000

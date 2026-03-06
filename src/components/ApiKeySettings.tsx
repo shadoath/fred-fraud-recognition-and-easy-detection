@@ -34,6 +34,7 @@ import {
 } from "@mui/material"
 import { useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
+import { FREE_CHECKS_PER_WEEK } from "../lib/fraudService"
 import { useApiKey } from "../hooks/useApiKey"
 
 export const ApiKeySettings = () => {
@@ -86,7 +87,7 @@ export const ApiKeySettings = () => {
                 onChange={(_e, newMode) => { if (newMode) saveConnectionMode(newMode) }}
                 sx={{ mb: 2 }}
               >
-                <ToggleButton value="proxy">Free (5/week)</ToggleButton>
+                <ToggleButton value="proxy">Free ({FREE_CHECKS_PER_WEEK}/week)</ToggleButton>
                 <ToggleButton value="byok">My Own Key</ToggleButton>
               </ToggleButtonGroup>
 
@@ -96,7 +97,7 @@ export const ApiKeySettings = () => {
                   icon={<CheckCircleOutlineIcon fontSize="inherit" />}
                   sx={{ mb: 2, borderRadius: 1.5 }}
                 >
-                  5 free checks per week included. No API key needed.
+                  {FREE_CHECKS_PER_WEEK} free checks per week included. No API key needed.
                 </Alert>
               )}
 
