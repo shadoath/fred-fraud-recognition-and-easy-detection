@@ -1,6 +1,6 @@
 export interface HistoryEntry {
   id: string
-  type: "email" | "text"
+  type: "email" | "text" | "url"
   input: {
     sender?: string
     subject?: string

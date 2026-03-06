@@ -128,7 +128,7 @@ export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
                   primary={
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                       <Chip
-                        label={entry.type === "email" ? "Email" : "Text"}
+                        label={entry.type === "email" ? "Email" : entry.type === "url" ? "URL" : "Text"}
                         size="small"
                         variant="outlined"
                         sx={{ fontSize: "0.65rem", height: 18 }}

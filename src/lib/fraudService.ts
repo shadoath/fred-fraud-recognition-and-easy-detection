@@ -1,5 +1,5 @@
 import axios, { type AxiosError } from "axios"
-import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData } from "../types/fraudTypes"
+import type { ApiErrorResponse, EmailData, FraudCheckResponse, TextData, URLData } from "../types/fraudTypes"
 
 // OpenAI API URL
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
@@ -31,7 +31,7 @@ interface OpenAIResponse {
   }
 }
 
-type ContentData = EmailData | TextData
+type ContentData = EmailData | TextData | URLData
 
 /**
  * Helper function to determine if data is EmailData
@@ -41,11 +41,42 @@ function isEmailData(data: ContentData): data is EmailData {
 }
 
 /**
+ * Helper function to determine if data is URLData
+ */
+function isURLData(data: ContentData): data is URLData {
+  return "url" in data
+}
+
+/**
  * Helper function to build the prompt based on content type
  */
 function buildPrompt(data: ContentData): string {
-  const truncatedContent = data.content.substring(0, MAX_CONTENT_LENGTH)
-  const isTruncated = data.content.length > MAX_CONTENT_LENGTH
+  if (isURLData(data)) {
+    return `You are a cybersecurity expert analyzing a URL for potential fraud, phishing, or malicious content. Please analyze this URL:
+
+URL: ${data.url}
+
+Analyze this URL for signs of danger, such as:
+1. Suspicious or misspelled domain names (typosquatting)
+2. URL shorteners that hide the real destination
+3. Excessive subdomains or unusual URL structure
+4. Known phishing patterns or brand impersonation
+5. Suspicious TLDs (.xyz, .tk, .ml, etc. used for scams)
+6. IP address used instead of domain name
+7. Unusual ports or query parameters
+8. Look-alike characters (homograph attacks)
+
+Provide your analysis in JSON format with the following fields:
+- threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
+- explanation: A detailed explanation of why this URL is or isn't suspicious
+- flags: An array of specific suspicious elements detected
+- confidence: A number between 0 and 1 indicating your confidence in the assessment
+
+Ensure the JSON is valid and properly formatted.`
+  }
+
+  const truncatedContent = (data as EmailData | TextData).content.substring(0, MAX_CONTENT_LENGTH)
+  const isTruncated = (data as EmailData | TextData).content.length > MAX_CONTENT_LENGTH
   const contentDisplay = `${truncatedContent}${isTruncated ? "...(truncated)" : ""}`
 
   if (isEmailData(data)) {
@@ -189,7 +220,7 @@ export async function checkContentWithOpenAI(
     }
 
     // For other errors, standardize the format
-    const contentType = isEmailData(data) ? "email" : "text"
+    const contentType = isEmailData(data) ? "email" : isURLData(data) ? "url" : "text"
     throw {
       success: false,
       message: error instanceof Error ? error.message : `Unknown error analyzing ${contentType}`,
@@ -288,4 +319,5 @@ export type {
   EmailData,
   FraudCheckResponse,
   TextData,
+  URLData,
 } from "../types/fraudTypes"

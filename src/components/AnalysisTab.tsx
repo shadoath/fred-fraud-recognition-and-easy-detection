@@ -21,15 +21,16 @@ import type { EmailCheckResult } from "./EmailAnalyzer"
 import type { TextCheckResult } from "./TextInputAnalyzer"
 import { TabPanel } from "./TabPanel"
 import { getThreatColor, ThreatRating } from "./ThreatRating"
+import type { URLCheckResult } from "./URLAnalyzer"
 
 interface AnalysisData {
-  type: "email" | "text"
+  type: "email" | "text" | "url"
   input: {
     sender?: string
     subject?: string
     content: string
   }
-  result: EmailCheckResult | TextCheckResult
+  result: EmailCheckResult | TextCheckResult | URLCheckResult
   timestamp: string
 }
 
@@ -90,7 +91,7 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
 
         <Alert severity="info" sx={{ borderRadius: 1 }}>
           <Typography variant="body2">
-            No analysis data available. Run an analysis from the Email or Text tabs to view results
+            No analysis data available. Run an analysis from the Email, Text, or URL tabs to view results
             here.
           </Typography>
         </Alert>
@@ -156,7 +157,7 @@ export const AnalysisTab = ({ analysisData }: AnalysisTabProps) => {
                   color: theme.palette.primary.main,
                 }}
               >
-                Original {analysisData.type === "email" ? "Email" : "Text"}
+                Original {analysisData.type === "email" ? "Email" : analysisData.type === "url" ? "URL" : "Text"}
               </Typography>
               <Tooltip title="Copy content to clipboard">
                 <IconButton

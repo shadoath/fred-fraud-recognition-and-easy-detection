@@ -22,6 +22,11 @@ export interface TextData {
   timestamp: string
 }
 
+export interface URLData {
+  url: string
+  timestamp: string
+}
+
 // Response type
 export interface FraudCheckResponse {
   success: true

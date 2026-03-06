@@ -2,6 +2,7 @@ import AnalyticsIcon from "@mui/icons-material/Analytics"
 import DarkModeIcon from "@mui/icons-material/DarkMode"
 import HistoryIcon from "@mui/icons-material/History"
 import LightModeIcon from "@mui/icons-material/LightMode"
+import LinkIcon from "@mui/icons-material/Link"
 import MailOutlineIcon from "@mui/icons-material/MailOutline"
 import SettingsIcon from "@mui/icons-material/Settings"
 import TextSnippetIcon from "@mui/icons-material/TextSnippet"
@@ -27,15 +28,16 @@ import { ErrorBoundary } from "./ErrorBoundary"
 import { HistoryTab } from "./HistoryTab"
 import { TabPanel } from "./TabPanel"
 import { type TextCheckResult, TextInputAnalyzer } from "./TextInputAnalyzer"
+import { type URLCheckResult, URLAnalyzer } from "./URLAnalyzer"
 
 interface AnalysisData {
-  type: "email" | "text"
+  type: "email" | "text" | "url"
   input: {
     sender?: string
     subject?: string
     content: string
   }
-  result: EmailCheckResult | TextCheckResult
+  result: EmailCheckResult | TextCheckResult | URLCheckResult
   timestamp: string
 }
 
@@ -122,9 +124,9 @@ export const MainDisplay = () => {
 
   // Function to handle analysis completion and switch to analysis tab
   const handleAnalysisComplete = (
-    type: "email" | "text",
+    type: "email" | "text" | "url",
     input: { sender?: string; subject?: string; content: string },
-    result: EmailCheckResult | TextCheckResult
+    result: EmailCheckResult | TextCheckResult | URLCheckResult
   ) => {
     const newAnalysisData: AnalysisData = {
       type,
@@ -134,7 +136,7 @@ export const MainDisplay = () => {
     }
     setAnalysisData(newAnalysisData)
     setResultKey((k) => k + 1)
-    setTabValue(2) // Switch to analysis tab
+    setTabValue(3) // Switch to analysis tab
 
     const historyEntry: HistoryEntry = {
       id: crypto.randomUUID(),
@@ -158,9 +160,11 @@ export const MainDisplay = () => {
       flags: entry.result.flags,
       confidence: entry.result.confidence,
     }
-    const restoredResult: EmailCheckResult | TextCheckResult =
+    const restoredResult: EmailCheckResult | TextCheckResult | URLCheckResult =
       entry.type === "email"
         ? ({ ...baseResult, sender: entry.input.sender ?? "", subject: entry.input.subject ?? "" } as EmailCheckResult)
+        : entry.type === "url"
+        ? ({ ...baseResult, url: entry.input.content } as URLCheckResult)
         : ({ ...baseResult, content: entry.input.content } as TextCheckResult)
     const restoredData: AnalysisData = {
       type: entry.type,
@@ -169,7 +173,7 @@ export const MainDisplay = () => {
       timestamp: entry.timestamp,
     }
     setAnalysisData(restoredData)
-    setTabValue(2) // Switch to analysis tab
+    setTabValue(3) // Switch to analysis tab
   }
 
   return (
@@ -242,6 +246,7 @@ export const MainDisplay = () => {
               iconPosition="start"
             />
             <Tab icon={<TextSnippetIcon fontSize="small" />} label="Text" iconPosition="start" />
+            <Tab icon={<LinkIcon fontSize="small" />} label="URL" iconPosition="start" />
             <Tab icon={<AnalyticsIcon fontSize="small" />} label="Analysis" iconPosition="start" />
             <Tab icon={<HistoryIcon fontSize="small" />} label="History" iconPosition="start" />
           </Tabs>
@@ -259,10 +264,15 @@ export const MainDisplay = () => {
             </TabPanel>
             <TabPanel value={tabValue} index={2} idPrefix="fred" timeout={500}>
               <ErrorBoundary>
-                <AnalysisTab analysisData={analysisData} />
+                <URLAnalyzer key={resultKey} onAnalysisComplete={handleAnalysisComplete} />
               </ErrorBoundary>
             </TabPanel>
             <TabPanel value={tabValue} index={3} idPrefix="fred" timeout={500}>
+              <ErrorBoundary>
+                <AnalysisTab analysisData={analysisData} />
+              </ErrorBoundary>
+            </TabPanel>
+            <TabPanel value={tabValue} index={4} idPrefix="fred" timeout={500}>
               <ErrorBoundary>
                 <HistoryTab onSelectEntry={handleHistorySelect} />
               </ErrorBoundary>
