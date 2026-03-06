@@ -1,4 +1,5 @@
 import LinkIcon from "@mui/icons-material/Link"
+import PageviewIcon from "@mui/icons-material/Pageview"
 import {
   Alert,
   Box,
@@ -34,34 +35,30 @@ export interface URLAnalyzerProps {
 }
 
 export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
-  const [urlInput, setUrlInput] = useState<string>("")
+  const [url, setUrl] = useState<string>("")
   const [isChecking, setIsChecking] = useState(false)
+  const [isLoadingCurrentPage, setIsLoadingCurrentPage] = useState(false)
   const [result, setResult] = useState<URLCheckResult | null>(null)
   const { apiKey, hasApiKey, selectedModel } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
-  const checkURLForFraud = async () => {
-    const trimmedURL = urlInput.trim()
-
-    if (!trimmedURL) {
-      toast.error("Please enter a URL to analyze")
-      return
-    }
-
+  const analyzeUrl = async (urlToCheck: string) => {
     if (!hasApiKey || !apiKey) {
       toast.error("API key required. Please add an OpenAI API key in the settings.")
       return
     }
 
-    if (!trimmedURL.startsWith("http://") && !trimmedURL.startsWith("https://")) {
-      toast.warning("URL does not start with http:// or https:// — analysis will proceed but results may vary")
+    if (!urlToCheck.startsWith("http://") && !urlToCheck.startsWith("https://")) {
+      toast.warning(
+        "URL does not start with http:// or https:// — analysis will proceed but results may vary"
+      )
     }
 
     setIsChecking(true)
     try {
       const urlData: URLData = {
-        url: trimmedURL,
+        url: urlToCheck,
         timestamp: new Date().toISOString(),
       }
 
@@ -84,7 +81,7 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
       const checkResult: URLCheckResult = {
         threatRating: apiResult.threatRating,
         explanation: apiResult.explanation,
-        url: trimmedURL,
+        url: urlToCheck,
         flags: apiResult.flags,
         confidence: apiResult.confidence,
         tokenUsage: apiResult.tokenUsage,
@@ -93,13 +90,44 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
       setResult(checkResult)
 
       if (onAnalysisComplete) {
-        onAnalysisComplete("url", { content: trimmedURL }, checkResult)
+        onAnalysisComplete("url", { content: urlToCheck }, checkResult)
       }
     } catch (error) {
       console.error("Error checking URL:", error)
       toast.error("An error occurred while analyzing the URL. Please try again later.")
     } finally {
       setIsChecking(false)
+    }
+  }
+
+  const checkUrl = async () => {
+    const trimmedURL = url.trim()
+
+    if (!trimmedURL) {
+      toast.error("Please enter a URL to analyze")
+      return
+    }
+
+    await analyzeUrl(trimmedURL)
+  }
+
+  const checkCurrentPage = async () => {
+    setIsLoadingCurrentPage(true)
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (tab?.url) {
+        setUrl(tab.url)
+        // Small delay to let state update, then analyze
+        setTimeout(() => {
+          analyzeUrl(tab.url)
+        }, 50)
+      } else {
+        toast.error("Could not get the current page URL")
+      }
+    } catch {
+      toast.error("Could not access the current page")
+    } finally {
+      setIsLoadingCurrentPage(false)
     }
   }
 
@@ -121,26 +149,51 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
               </Alert>
             )}
 
-            <Typography
-              variant="body2"
+            <Box
               sx={{
-                mb: 2,
-                fontSize: "0.9rem",
-                color: theme.palette.text.secondary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 1.5,
               }}
             >
-              Enter a URL below to check for typosquatting, phishing patterns, suspicious domains, and other malicious indicators.
-            </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "0.9rem",
+                  color: theme.palette.text.secondary,
+                }}
+              >
+                Paste a web address below, or check the page you're currently viewing:
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                color="primary"
+                onClick={checkCurrentPage}
+                disabled={isLoadingCurrentPage || isChecking}
+                startIcon={isLoadingCurrentPage ? <CircularProgress size={14} /> : <PageviewIcon />}
+                sx={{
+                  ml: 1.5,
+                  whiteSpace: "nowrap",
+                  textTransform: "none",
+                  borderRadius: 2,
+                  flexShrink: 0,
+                }}
+              >
+                {isLoadingCurrentPage ? "Loading..." : "Check This Page"}
+              </Button>
+            </Box>
 
             <TextField
               fullWidth
               label="URL to analyze"
               placeholder="https://example.com"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !isChecking && urlInput.trim() && hasApiKey) {
-                  checkURLForFraud()
+                if (e.key === "Enter" && !isChecking && url.trim() && hasApiKey) {
+                  checkUrl()
                 }
               }}
               sx={{
@@ -164,8 +217,8 @@ export const URLAnalyzer = ({ onAnalysisComplete }: URLAnalyzerProps) => {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={checkURLForFraud}
-                disabled={isChecking || !urlInput.trim() || !hasApiKey}
+                onClick={checkUrl}
+                disabled={isChecking || !url.trim() || !hasApiKey}
                 startIcon={
                   isChecking ? <CircularProgress size={18} color="inherit" /> : <LinkIcon />
                 }
