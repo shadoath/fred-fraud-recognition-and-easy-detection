@@ -52,11 +52,17 @@ npm run test:watch
 
 ## Important Files and Directories
 
-- `/src/lib/fraudService.ts`: OpenAI integration for fraud detection
+- `/src/lib/fraudService.ts`: OpenAI integration for fraud detection. `buildPrompt` routes by type; `isURLData` guard requires `!("content" in data)` to avoid misrouting `TextData` with a `url` field.
 - `/src/lib/keyStorage.ts`: API key storage and migration
-- `/src/lib/simpleEnhancedStorage.ts`: Key obfuscation utilities
-- `/src/types/fraudTypes.ts`: Shared type definitions
-- `/src/components/`: React components (MainDisplay, EmailAnalyzer, TextInputAnalyzer, AnalysisTab)
+- `/src/lib/simpleEnhancedStorage.ts`: V3 obfuscation format
+- `/src/lib/usageStorage.ts`: Tracks `allTimeChecks`, `allTimeThreats`, `weeklyChecks`, `weeklyThreats` in `chrome.storage.local`. Weekly counters reset on Monday. Threat threshold = 70.
+- `/src/lib/historyStorage.ts`: Stores last 20 analysis results locally. Max 20 entries.
+- `/src/lib/pageScraper.ts`: Scrapes current tab via `chrome.scripting.executeScript`
+- `/src/types/fraudTypes.ts`: Shared type definitions. `TextData` has optional `url?` field for subject/URL context.
+- `/src/components/MainDisplay.tsx`: Root layout, toolbar, tab switching. Calls `recordCheck(threatRating)` and `saveHistoryEntry` after every analysis.
+- `/src/components/ContentAnalyzer.tsx`: Unified form — Subject/URL + Content fields. Routes to `TextData` (with optional url), `URLData`, or `PageData` depending on what's filled.
+- `/src/components/EmailAnalyzer.tsx`: Gmail email extraction and analysis
+- `/src/components/ApiKeySettings.tsx`: Settings panel with usage stats section showing all-time checks, threats caught, and weekly usage (proxy users only).
 
 ## Best Practices
 
@@ -64,6 +70,14 @@ npm run test:watch
 2. **Testing**: Mock Chrome API in unit tests
 3. **Extension Build**: Load the `dist/` folder in Chrome as unpacked extension
 4. **Fraud Detection**: Use `safeCheck*` functions for consistent error handling
+5. **Version bumps**: Update both `package.json` and `public/manifest.json`
+
+## Working Style Notes
+
+- Skylar reviews plans before implementation — briefly state the plan and wait for approval before editing files.
+- Prefer simple, focused changes. Don't add abstractions or refactor beyond what's asked.
+- `npm run build` must pass (no type errors) before committing.
+- A pre-commit hook auto-stages and commits changes — don't be surprised when staged files appear in a hook-generated commit.
 
 ## Additional Notes
 
