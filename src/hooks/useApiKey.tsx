@@ -15,6 +15,11 @@ import {
   type ConnectionMode,
 } from "../lib/keyStorage"
 import { getDeviceId } from "../lib/deviceId"
+import {
+  getLicenseKey,
+  saveLicenseKey as persistLicenseKey,
+  clearLicenseKey as removeLicenseKey,
+} from "../lib/licenseStorage"
 
 export interface ApiKeyState {
   apiKey: string | null
@@ -32,6 +37,10 @@ export interface ApiKeyState {
   setConnectionMode: (mode: ConnectionMode) => void
   saveConnectionMode: (mode: ConnectionMode) => Promise<void>
   deviceId: string
+  licenseKey: string | null
+  isPaidUser: boolean
+  saveLicenseKey: (key: string) => Promise<void>
+  clearLicenseKey: () => Promise<void>
 }
 
 /**
@@ -46,6 +55,7 @@ export const useApiKey = (): ApiKeyState => {
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL)
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>(DEFAULT_CONNECTION_MODE)
   const [deviceId, setDeviceId] = useState<string>("")
+  const [licenseKey, setLicenseKey] = useState<string | null>(null)
   const { toast } = useCustomSnackbar()
 
   useEffect(() => {
@@ -75,6 +85,10 @@ export const useApiKey = (): ApiKeyState => {
         // Load the device ID
         const id = await getDeviceId()
         setDeviceId(id)
+
+        // Load the license key
+        const license = await getLicenseKey()
+        setLicenseKey(license)
       } catch (error) {
         console.error("Error checking API key:", error)
         setApiKey(null)
@@ -138,6 +152,30 @@ export const useApiKey = (): ApiKeyState => {
     await persistSaveConnectionMode(mode)
   }
 
+  // Save license key
+  const saveLicenseKey = async (key: string): Promise<void> => {
+    try {
+      await persistLicenseKey(key)
+      setLicenseKey(key.trim())
+      toast.success("License key saved")
+    } catch (error) {
+      console.error("Error saving license key:", error)
+      toast.error("Error saving license key")
+    }
+  }
+
+  // Clear license key
+  const clearLicenseKey = async (): Promise<void> => {
+    try {
+      await removeLicenseKey()
+      setLicenseKey(null)
+      toast.success("License key removed")
+    } catch (error) {
+      console.error("Error removing license key:", error)
+      toast.error("Error removing license key")
+    }
+  }
+
   // Clear API key from Chrome storage
   const clearApiKey = async () => {
     setIsSaving(true)
@@ -169,5 +207,9 @@ export const useApiKey = (): ApiKeyState => {
     setConnectionMode,
     saveConnectionMode,
     deviceId,
+    licenseKey,
+    isPaidUser: !!licenseKey,
+    saveLicenseKey,
+    clearLicenseKey,
   }
 }

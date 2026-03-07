@@ -18,8 +18,11 @@ export const PROXY_URL = "https://fred-proxy.skylar-bolton.workers.dev"
 // Shared secret sent with proxy requests (must match FRED_SECRET worker secret)
 export const PROXY_SECRET = "8ca9bd89-9b8b-4b36-8578-a9ba2e3c69b0"
 
-// Free tier weekly check limit — must match WEEKLY_LIMIT in fred-proxy/wrangler.toml
-export const FREE_CHECKS_PER_WEEK = 25
+// Free tier monthly check limit — must match FREE_MONTHLY_LIMIT in fred-proxy/wrangler.toml
+export const FREE_CHECKS_PER_MONTH = 10
+
+// Paid tier monthly check limit — must match PAID_MONTHLY_LIMIT in fred-proxy/wrangler.toml
+export const PAID_CHECKS_PER_MONTH = 300
 
 // Configuration constants
 const DEFAULT_MODEL = "gpt-3.5-turbo"
@@ -217,6 +220,7 @@ interface CheckOptions {
   model?: string
   connectionMode?: ConnectionMode
   deviceId?: string
+  licenseKey?: string
 }
 
 /**
@@ -227,7 +231,8 @@ export async function checkContentWithOpenAI(
   apiKey: string,
   model: string = DEFAULT_MODEL,
   connectionMode: ConnectionMode = "byok",
-  deviceId?: string
+  deviceId?: string,
+  licenseKey?: string
 ): Promise<FraudCheckResponse> {
   try {
     const prompt = buildPrompt(data)
@@ -246,7 +251,7 @@ export async function checkContentWithOpenAI(
       // Route through FRED's Cloudflare Worker proxy
       response = await axios.post<OpenAIResponse>(
         PROXY_URL,
-        { deviceId, payload: openaiPayload },
+        { deviceId, licenseKey, payload: openaiPayload },
         {
           headers: {
             "Content-Type": "application/json",
@@ -363,10 +368,11 @@ export async function safeCheckContentWithOpenAI(
   apiKey: string,
   model?: string,
   connectionMode: ConnectionMode = "byok",
-  deviceId?: string
+  deviceId?: string,
+  licenseKey?: string
 ): Promise<[FraudCheckResponse | null, ApiErrorResponse | null]> {
   try {
-    const result = await checkContentWithOpenAI(data, apiKey, model, connectionMode, deviceId)
+    const result = await checkContentWithOpenAI(data, apiKey, model, connectionMode, deviceId, licenseKey)
     return [result, null]
   } catch (error) {
     const errorResponse: ApiErrorResponse = {

@@ -52,7 +52,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
   const [isScanning, setIsScanning] = useState(false)
   const [result, setResult] = useState<ContentCheckResult | null>(null)
   const [scannedPageData, setScannedPageData] = useState<PageData | null>(null)
-  const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId } = useApiKey()
+  const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId, licenseKey } = useApiKey()
   const { toast } = useCustomSnackbar()
   const theme = useTheme()
 
@@ -106,7 +106,8 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
           apiKey ?? "",
           selectedModel,
           connectionMode,
-          deviceId
+          deviceId,
+          licenseKey ?? undefined
         )
         if (error) {
           toast.error(
@@ -134,7 +135,8 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
           apiKey ?? "",
           selectedModel,
           connectionMode,
-          deviceId
+          deviceId,
+          licenseKey ?? undefined
         )
         if (error) {
           toast.error(
@@ -186,7 +188,8 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
         apiKey ?? "",
         selectedModel,
         connectionMode,
-        deviceId
+        deviceId,
+        licenseKey ?? undefined
       )
       if (error) {
         toast.error(

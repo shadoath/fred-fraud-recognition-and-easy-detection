@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — FRED Security</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; line-height: 1.7; }
+    a { color: #2979ff; }
+    header { background: linear-gradient(135deg, #1a237e 0%, #2979ff 100%); color: white; padding: 40px 20px; text-align: center; }
+    header h1 { font-size: 1.8rem; font-weight: 700; }
+    header a { color: white; opacity: 0.8; font-size: 0.9rem; }
+    .content { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+    h2 { font-size: 1.3rem; margin: 32px 0 12px; color: #1a237e; }
+    p, li { font-size: 0.95rem; color: #333; margin-bottom: 12px; }
+    ul { padding-left: 24px; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 10px 12px; border: 1px solid #ddd; }
+    th { background: #f0f2ff; color: #1a237e; font-weight: 600; }
+    footer { background: #1a1a2e; color: #aaa; text-align: center; padding: 30px 20px; font-size: 0.85rem; }
+    footer a { color: #7eb8ff; margin: 0 12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/">FRED Security</a>
+  <h1>Privacy Policy</h1>
+</header>
+
+<div class="content">
+  <p><strong>Effective date:</strong> March 7, 2026</p>
+  <p>This Privacy Policy explains what data FRED (Fraud Recognition & Easy Detection) collects, how it is used, and your choices. FRED is operated by Skylar Bolton ("we", "us", "our").</p>
+  <p>We believe in transparency. FRED is <a href="https://github.com/shadoath/fred-fraud-recognition-and-easy-detection" target="_blank" rel="noopener">open source</a> — you can verify everything described here by reading the code.</p>
+
+  <h2>1. What Data FRED Collects</h2>
+  <p>FRED is designed to minimize data collection. Here is a complete list of data we handle:</p>
+
+  <table>
+    <tr>
+      <th>Data</th>
+      <th>Stored Where</th>
+      <th>Purpose</th>
+    </tr>
+    <tr>
+      <td>Device ID (random UUID)</td>
+      <td>Your device + our proxy server</td>
+      <td>Rate limiting for free tier</td>
+    </tr>
+    <tr>
+      <td>Monthly usage count</td>
+      <td>Your device + our proxy server</td>
+      <td>Enforce check limits</td>
+    </tr>
+    <tr>
+      <td>License key (if Premium)</td>
+      <td>Your device + our proxy server</td>
+      <td>Verify subscription status</td>
+    </tr>
+    <tr>
+      <td>OpenAI API key (if BYOK)</td>
+      <td>Your device only</td>
+      <td>Authenticate with OpenAI</td>
+    </tr>
+    <tr>
+      <td>Analysis history (last 20)</td>
+      <td>Your device only</td>
+      <td>Let you review past checks</td>
+    </tr>
+    <tr>
+      <td>Settings (model, theme, etc.)</td>
+      <td>Your device only</td>
+      <td>Remember your preferences</td>
+    </tr>
+  </table>
+
+  <h2>2. What FRED Does NOT Collect</h2>
+  <ul>
+    <li>We do not collect your name, email address, or any personal information.</li>
+    <li>We do not use analytics, tracking pixels, or cookies.</li>
+    <li>We do not store, log, or retain the content you analyze (emails, text, URLs, or page data).</li>
+    <li>We do not sell or share any data with advertisers or data brokers.</li>
+  </ul>
+
+  <h2>3. How Content Analysis Works</h2>
+  <p>When you use FRED to check content for fraud:</p>
+  <ul>
+    <li><strong>Free and Premium users:</strong> Your content is sent through our proxy server to OpenAI's API for analysis. Our proxy forwards the request and returns the result — it does not log or store the content.</li>
+    <li><strong>BYOK users:</strong> Your content is sent directly from your browser to OpenAI's API. It never touches our servers.</li>
+  </ul>
+  <p>In both cases, OpenAI processes your content to generate the analysis. OpenAI's handling of API data is governed by their <a href="https://openai.com/policies/api-data-usage" target="_blank" rel="noopener">API data usage policy</a>, which states that API inputs and outputs are not used to train their models.</p>
+
+  <h2>4. Data Stored on Our Server</h2>
+  <p>Our proxy server (hosted on Cloudflare Workers) stores only:</p>
+  <ul>
+    <li><strong>Rate-limit counters:</strong> Your device ID and the number of checks used this month. These automatically expire after 60 days.</li>
+    <li><strong>License validation cache:</strong> Whether your license key is valid. This cache expires after 2 hours.</li>
+  </ul>
+  <p>No content, personal information, or browsing history is stored on our server.</p>
+
+  <h2>5. Third-Party Services</h2>
+  <table>
+    <tr>
+      <th>Service</th>
+      <th>What They Receive</th>
+      <th>Their Privacy Policy</th>
+    </tr>
+    <tr>
+      <td>OpenAI</td>
+      <td>Content you analyze (emails, text, URLs, page data)</td>
+      <td><a href="https://openai.com/policies/privacy-policy" target="_blank" rel="noopener">openai.com/policies/privacy-policy</a></td>
+    </tr>
+    <tr>
+      <td>LemonSqueezy</td>
+      <td>Payment info (if you subscribe to Premium)</td>
+      <td><a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener">lemonsqueezy.com/privacy</a></td>
+    </tr>
+    <tr>
+      <td>Cloudflare</td>
+      <td>Hosts our proxy server (sees request metadata only)</td>
+      <td><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">cloudflare.com/privacypolicy</a></td>
+    </tr>
+  </table>
+
+  <h2>6. Your Choices and Rights</h2>
+  <ul>
+    <li><strong>Delete local data:</strong> You can clear your analysis history, API key, and license key from FRED's settings at any time.</li>
+    <li><strong>Uninstall:</strong> Removing the FRED extension deletes all locally stored data.</li>
+    <li><strong>Cancel subscription:</strong> You can cancel your Premium subscription at any time through LemonSqueezy. Your license key will remain active until the end of the billing period.</li>
+    <li><strong>Data deletion request:</strong> To request deletion of your device ID and usage data from our proxy server, email <a href="mailto:info@fredsecurity.com">info@fredsecurity.com</a>.</li>
+  </ul>
+
+  <h2>7. Children's Privacy</h2>
+  <p>FRED is not directed at children under 13. We do not knowingly collect personal information from children.</p>
+
+  <h2>8. Changes to This Policy</h2>
+  <p>We may update this Privacy Policy from time to time. Material changes will be reflected by updating the effective date above.</p>
+
+  <h2>9. Contact</h2>
+  <p>If you have questions about this Privacy Policy, contact us at <a href="mailto:info@fredsecurity.com">info@fredsecurity.com</a>.</p>
+</div>
+
+<footer>
+  <a href="/">Home</a>
+  <a href="/terms.html">Terms of Service</a>
+  <a href="/refund.html">Refund Policy</a>
+  <p style="margin-top: 12px;">&copy; 2025 Skylar Bolton. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

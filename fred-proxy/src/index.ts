@@ -2,11 +2,19 @@ export interface Env {
   USAGE_KV: KVNamespace
   OPENAI_API_KEY: string
   FRED_SECRET: string
-  WEEKLY_LIMIT: string
+  LEMONSQUEEZY_API_KEY: string
+  FREE_MONTHLY_LIMIT: string
+  PAID_MONTHLY_LIMIT: string
 }
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-const DEFAULT_WEEKLY_LIMIT = 25
+const DEFAULT_FREE_LIMIT = 10
+const DEFAULT_PAID_LIMIT = 300
+const LICENSE_CACHE_TTL = 60 * 60 // 1 hour in seconds
+const KV_EXPIRATION_TTL = 60 * 24 * 60 * 60 // 60 days in seconds
+
+const FREE_MODEL = "gpt-4o-mini"
+const PAID_MODEL = "gpt-4o"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,10 +28,68 @@ const json = (data: unknown, status = 200) =>
     headers: { "Content-Type": "application/json", ...corsHeaders },
   })
 
-const getWeekNumber = (): number => Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000))
+const getMonthKey = (): string => {
+  const now = new Date()
+  const year = now.getUTCFullYear()
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0")
+  return `${year}-${month}`
+}
 
 const isValidDeviceId = (id: unknown): id is string =>
   typeof id === "string" && /^[0-9a-f-]{36}$/.test(id)
+
+interface LicenseValidation {
+  valid: boolean
+  cachedAt: number
+}
+
+const validateLicenseKey = async (
+  licenseKey: string,
+  env: Env
+): Promise<boolean> => {
+  if (!licenseKey || !env.LEMONSQUEEZY_API_KEY) return false
+
+  // Check KV cache first
+  const cacheKey = `ls:valid:${licenseKey}`
+  const cached = await env.USAGE_KV.get<LicenseValidation>(cacheKey, "json")
+
+  if (cached && Date.now() / 1000 - cached.cachedAt < LICENSE_CACHE_TTL) {
+    return cached.valid
+  }
+
+  // Validate against LemonSqueezy API
+  try {
+    const response = await fetch(
+      "https://api.lemonsqueezy.com/v1/licenses/validate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ license_key: licenseKey }),
+      }
+    )
+
+    const data = (await response.json()) as {
+      valid: boolean
+      license_key?: { status: string }
+    }
+
+    // Key is valid only if the API says so AND the subscription is active
+    const valid =
+      data.valid === true && data.license_key?.status === "active"
+
+    // Cache the result
+    await env.USAGE_KV.put(
+      cacheKey,
+      JSON.stringify({ valid, cachedAt: Date.now() / 1000 }),
+      { expirationTtl: LICENSE_CACHE_TTL * 2 }
+    )
+
+    return valid
+  } catch {
+    // On network failure, fall back to cached value if any (even stale)
+    return cached?.valid ?? false
+  }
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -36,20 +102,20 @@ export default {
       return json({ error: "Method not allowed" }, 405)
     }
 
-    // Verify shared secret to prevent casual abuse
+    // Verify shared secret
     const secret = request.headers.get("X-FRED-Secret")
     if (!env.FRED_SECRET || secret !== env.FRED_SECRET) {
       return json({ error: "Unauthorized" }, 401)
     }
 
-    let body: { deviceId?: unknown; payload?: unknown }
+    let body: { deviceId?: unknown; licenseKey?: unknown; payload?: unknown }
     try {
       body = await request.json()
     } catch {
       return json({ error: "Invalid JSON body" }, 400)
     }
 
-    const { deviceId, payload } = body
+    const { deviceId, licenseKey, payload } = body
 
     if (!isValidDeviceId(deviceId)) {
       return json({ error: "Invalid or missing deviceId" }, 400)
@@ -59,28 +125,52 @@ export default {
       return json({ error: "Invalid or missing payload" }, 400)
     }
 
-    // Rate limiting
-    const weeklyLimit = Number.parseInt(env.WEEKLY_LIMIT ?? String(DEFAULT_WEEKLY_LIMIT))
-    const kvKey = `${deviceId}:${getWeekNumber()}`
-    const currentCount = Number.parseInt((await env.USAGE_KV.get(kvKey)) ?? "0")
+    // Determine if this is a paid user
+    const isPaid =
+      typeof licenseKey === "string" && licenseKey.length > 0
+        ? await validateLicenseKey(licenseKey, env)
+        : false
 
-    if (currentCount >= weeklyLimit) {
+    // Rate limiting — monthly, keyed by license (paid) or device (free)
+    const monthKey = getMonthKey()
+    const limit = isPaid
+      ? Number.parseInt(env.PAID_MONTHLY_LIMIT ?? String(DEFAULT_PAID_LIMIT))
+      : Number.parseInt(env.FREE_MONTHLY_LIMIT ?? String(DEFAULT_FREE_LIMIT))
+
+    const kvKey = isPaid
+      ? `paid:${licenseKey}:${monthKey}`
+      : `free:${deviceId}:${monthKey}`
+
+    const currentCount = Number.parseInt(
+      (await env.USAGE_KV.get(kvKey)) ?? "0"
+    )
+
+    if (currentCount >= limit) {
       return json(
         {
-          error: "Weekly limit reached",
+          error: "Monthly limit reached",
           code: "RATE_LIMITED",
+          isPaid,
           used: currentCount,
-          limit: weeklyLimit,
-          message: `You've used all ${weeklyLimit} free checks this week. Checks reset every Monday. Add your own OpenAI key in FRED's settings for unlimited access.`,
+          limit,
+          message: isPaid
+            ? `You've used all ${limit} checks this month. Your limit resets next month.`
+            : `You've used all ${limit} free checks this month. Upgrade to FRED Premium for ${DEFAULT_PAID_LIMIT} checks/month and better AI analysis.`,
         },
         429
       )
     }
 
-    // Increment usage before the OpenAI call (prevents race-condition abuse)
+    // Increment usage before the OpenAI call
     await env.USAGE_KV.put(kvKey, String(currentCount + 1), {
-      expirationTtl: 14 * 24 * 60 * 60, // 14 days, auto-cleanup
+      expirationTtl: KV_EXPIRATION_TTL,
     })
+
+    // Force the appropriate model based on tier
+    const sanitizedPayload = {
+      ...(payload as Record<string, unknown>),
+      model: isPaid ? PAID_MODEL : FREE_MODEL,
+    }
 
     // Forward to OpenAI
     let openaiResponse: Response
@@ -91,12 +181,12 @@ export default {
           "Content-Type": "application/json",
           Authorization: `Bearer ${env.OPENAI_API_KEY}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(sanitizedPayload),
       })
     } catch {
       // Refund the check on network failure
       await env.USAGE_KV.put(kvKey, String(currentCount), {
-        expirationTtl: 14 * 24 * 60 * 60,
+        expirationTtl: KV_EXPIRATION_TTL,
       })
       return json({ error: "Failed to reach OpenAI" }, 502)
     }
@@ -106,7 +196,7 @@ export default {
     // Pass through OpenAI errors without consuming the check
     if (!openaiResponse.ok) {
       await env.USAGE_KV.put(kvKey, String(currentCount), {
-        expirationTtl: 14 * 24 * 60 * 60,
+        expirationTtl: KV_EXPIRATION_TTL,
       })
       return json(data, openaiResponse.status)
     }

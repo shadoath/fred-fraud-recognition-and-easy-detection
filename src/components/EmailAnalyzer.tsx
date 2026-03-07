@@ -62,7 +62,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
     })
 
     // Hooks
-    const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId } = useApiKey()
+    const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId, licenseKey } = useApiKey()
     const { toast } = useCustomSnackbar()
     const theme = useTheme()
 
@@ -253,7 +253,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           timestamp: new Date().toISOString(),
         }
 
-        const [fraudResult, error] = await safeCheckContentWithOpenAI(emailDataForAnalysis, apiKey || "", selectedModel, connectionMode, deviceId)
+        const [fraudResult, error] = await safeCheckContentWithOpenAI(emailDataForAnalysis, apiKey || "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined)
 
         if (error) {
           handleApiError(error)

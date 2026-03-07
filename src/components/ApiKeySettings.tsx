@@ -34,17 +34,18 @@ import {
 } from "@mui/material"
 import { useEffect, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
-import { FREE_CHECKS_PER_WEEK } from "../lib/fraudService"
+import { FREE_CHECKS_PER_MONTH, PAID_CHECKS_PER_MONTH } from "../lib/fraudService"
 import { useApiKey } from "../hooks/useApiKey"
 import { getUsageStats } from "../lib/usageStorage"
 
 export const ApiKeySettings = () => {
   const theme = useTheme()
-  const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey, selectedModel, saveSelectedModel, connectionMode, saveConnectionMode } =
+  const { apiKey, setApiKey, isApiKeySaved, isLoading, isSaving, saveApiKey, clearApiKey, selectedModel, saveSelectedModel, connectionMode, saveConnectionMode, licenseKey, isPaidUser, saveLicenseKey, clearLicenseKey } =
     useApiKey()
+  const [licenseInput, setLicenseInput] = useState("")
   const { darkMode, toggleDarkMode, largeText, toggleLargeText } = useCustomThemeContext()
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
-  const [usageStats, setUsageStats] = useState<{ allTimeChecks: number; allTimeThreats: number; weeklyChecks: number; weeklyThreats: number } | null>(null)
+  const [usageStats, setUsageStats] = useState<{ allTimeChecks: number; allTimeThreats: number; monthlyChecks: number; monthlyThreats: number } | null>(null)
 
   useEffect(() => {
     getUsageStats().then(setUsageStats)
@@ -93,18 +94,113 @@ export const ApiKeySettings = () => {
                 onChange={(_e, newMode) => { if (newMode) saveConnectionMode(newMode) }}
                 sx={{ mb: 2 }}
               >
-                <ToggleButton value="proxy">Free ({FREE_CHECKS_PER_WEEK}/week)</ToggleButton>
+                <ToggleButton value="proxy">Free ({FREE_CHECKS_PER_MONTH}/month)</ToggleButton>
                 <ToggleButton value="byok">My Own Key</ToggleButton>
               </ToggleButtonGroup>
 
               {connectionMode === "proxy" && (
-                <Alert
-                  severity="success"
-                  icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-                  sx={{ mb: 2, borderRadius: 1.5 }}
-                >
-                  {FREE_CHECKS_PER_WEEK} free checks per week included. No API key needed.
-                </Alert>
+                <>
+                  <Alert
+                    severity="success"
+                    icon={<CheckCircleOutlineIcon fontSize="inherit" />}
+                    sx={{ mb: 2, borderRadius: 1.5 }}
+                  >
+                    {isPaidUser
+                      ? `FRED Premium active — ${PAID_CHECKS_PER_MONTH} checks/month with enhanced AI.`
+                      : `${FREE_CHECKS_PER_MONTH} free checks per month included. No API key needed.`}
+                  </Alert>
+
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      borderRadius: 2,
+                      border: `1px solid ${isPaidUser ? theme.palette.success.main : theme.palette.primary.main}40`,
+                      backgroundColor: isPaidUser
+                        ? theme.palette.mode === "dark" ? "rgba(76, 175, 80, 0.08)" : "rgba(76, 175, 80, 0.04)"
+                        : theme.palette.mode === "dark" ? "rgba(66, 165, 245, 0.08)" : "rgba(66, 165, 245, 0.04)",
+                    }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, color: isPaidUser ? theme.palette.success.main : theme.palette.primary.main }}>
+                      {isPaidUser ? "FRED Premium" : "Upgrade to FRED Premium"}
+                    </Typography>
+
+                    {!isPaidUser && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" sx={{ fontSize: "0.85rem", mb: 1, color: theme.palette.text.secondary }}>
+                          For the price of a cup of coffee, get peace of mind:
+                        </Typography>
+                        <Box component="ul" sx={{ pl: 2, m: 0 }}>
+                          <Typography component="li" variant="body2" sx={{ fontSize: "0.85rem", mb: 0.5 }}>
+                            {PAID_CHECKS_PER_MONTH} checks per month (vs {FREE_CHECKS_PER_MONTH} free)
+                          </Typography>
+                          <Typography component="li" variant="body2" sx={{ fontSize: "0.85rem", mb: 0.5 }}>
+                            Enhanced AI analysis for better accuracy
+                          </Typography>
+                        </Box>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          href="https://fred-security.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{ mt: 1.5, borderRadius: 2, textTransform: "none", boxShadow: 2 }}
+                        >
+                          Subscribe — $4.99/month
+                        </Button>
+                      </Box>
+                    )}
+
+                    <Typography variant="caption" sx={{ display: "block", mb: 1, color: theme.palette.text.secondary }}>
+                      {isPaidUser ? "Your license key is active." : "Already subscribed? Enter your license key below:"}
+                    </Typography>
+
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <TextField
+                        size="small"
+                        fullWidth
+                        placeholder="Paste your license key..."
+                        value={isPaidUser ? (licenseKey ?? "") : licenseInput}
+                        onChange={(e) => setLicenseInput(e.target.value)}
+                        disabled={isPaidUser}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            fontSize: "0.85rem",
+                          },
+                        }}
+                      />
+                      {isPaidUser ? (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={clearLicenseKey}
+                          sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+                        >
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => {
+                            if (licenseInput.trim()) {
+                              saveLicenseKey(licenseInput.trim())
+                              setLicenseInput("")
+                            }
+                          }}
+                          disabled={!licenseInput.trim()}
+                          sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+                        >
+                          Activate
+                        </Button>
+                      )}
+                    </Box>
+                  </Paper>
+                </>
               )}
 
               {connectionMode === "byok" && (
@@ -276,9 +372,14 @@ export const ApiKeySettings = () => {
                 </Box>
                 {connectionMode === "proxy" && (
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>Used this week</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 600, color: usageStats.weeklyChecks >= FREE_CHECKS_PER_WEEK ? theme.palette.error.main : "text.secondary" }}>
-                      {usageStats.weeklyChecks} / {FREE_CHECKS_PER_WEEK}
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>Used this month</Typography>
+                    <Typography variant="caption" sx={{
+                      fontWeight: 600,
+                      color: usageStats.monthlyChecks >= (isPaidUser ? PAID_CHECKS_PER_MONTH : FREE_CHECKS_PER_MONTH)
+                        ? theme.palette.error.main
+                        : "text.secondary"
+                    }}>
+                      {usageStats.monthlyChecks} / {isPaidUser ? PAID_CHECKS_PER_MONTH : FREE_CHECKS_PER_MONTH}
                     </Typography>
                   </Box>
                 )}
@@ -291,7 +392,7 @@ export const ApiKeySettings = () => {
               variant="caption"
               sx={{ color: "text.secondary", fontSize: "0.8rem", lineHeight: 1.5, display: "block" }}
             >
-              🔒 Privacy: When you analyze content, the text is sent to OpenAI for analysis and is not stored by FRED or Anthropic. Your API key never leaves your device.
+              🔒 Privacy: When you analyze content, the text is sent to OpenAI for analysis and is not stored by FRED. Your API key never leaves your device.
             </Typography>
           </Box>
         </Box>

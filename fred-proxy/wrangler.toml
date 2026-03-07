@@ -9,8 +9,10 @@ id = "19918c27f59146c998ffde6d441451fb"
 preview_id = "11b63dba236e44d7b6b2b200dbccb61e"
 
 [vars]
-WEEKLY_LIMIT = "25"
+FREE_MONTHLY_LIMIT = "10"
+PAID_MONTHLY_LIMIT = "300"
 
-# Secrets (set via: wrangler secret put OPENAI_API_KEY)
+# Secrets (set via: wrangler secret put <NAME>)
 # OPENAI_API_KEY
 # FRED_SECRET
+# LEMONSQUEEZY_API_KEY
