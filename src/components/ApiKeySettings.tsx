@@ -32,10 +32,11 @@ import {
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
 import { FREE_CHECKS_PER_WEEK } from "../lib/fraudService"
 import { useApiKey } from "../hooks/useApiKey"
+import { getUsageStats } from "../lib/usageStorage"
 
 export const ApiKeySettings = () => {
   const theme = useTheme()
@@ -43,6 +44,11 @@ export const ApiKeySettings = () => {
     useApiKey()
   const { darkMode, toggleDarkMode, largeText, toggleLargeText } = useCustomThemeContext()
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
+  const [usageStats, setUsageStats] = useState<{ allTimeChecks: number; allTimeThreats: number; weeklyChecks: number; weeklyThreats: number } | null>(null)
+
+  useEffect(() => {
+    getUsageStats().then(setUsageStats)
+  }, [])
 
   return (
     <Fade in={true} timeout={400}>
@@ -251,6 +257,34 @@ export const ApiKeySettings = () => {
               </Button>
             </Box>
           </Box>
+
+          {usageStats && (
+            <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 1 }}>
+                Your Stats
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>All time checks</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600 }}>{usageStats.allTimeChecks}</Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>Threats caught</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: usageStats.allTimeThreats > 0 ? theme.palette.warning.main : "text.secondary" }}>
+                    {usageStats.allTimeThreats}
+                  </Typography>
+                </Box>
+                {connectionMode === "proxy" && (
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>Used this week</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: usageStats.weeklyChecks >= FREE_CHECKS_PER_WEEK ? theme.palette.error.main : "text.secondary" }}>
+                      {usageStats.weeklyChecks} / {FREE_CHECKS_PER_WEEK}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
 
           <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
             <Typography

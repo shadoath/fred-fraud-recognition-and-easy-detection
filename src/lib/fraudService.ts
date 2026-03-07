@@ -61,7 +61,7 @@ function isEmailData(data: ContentData): data is EmailData {
  * Helper function to determine if data is URLData
  */
 function isURLData(data: ContentData): data is URLData {
-  return "url" in data && !("visibleText" in data)
+  return "url" in data && !("visibleText" in data) && !("content" in data)
 }
 
 /**
@@ -184,8 +184,9 @@ Provide your analysis in JSON format with the following fields:
 
 Ensure the JSON is valid and properly formatted.`
   } else {
+    const urlContext = (data as TextData).url ? `\nSource URL or subject: ${(data as TextData).url}\n` : ""
     return `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
-
+${urlContext}
 Content:
 ${contentDisplay}
 

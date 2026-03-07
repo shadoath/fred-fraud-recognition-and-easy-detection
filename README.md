@@ -6,11 +6,11 @@
   <h3>Protect yourself from fraud, scams, and phishing attempts</h3>
 </div>
 
-FRED (Fraud Recognition & Easy Detection) is a Chrome extension that helps you analyze emails, text, and URLs for potential fraud or phishing attempts using OpenAI's powerful language models. No API key required to get started — FRED includes **5 free checks per week** for everyone.
+FRED (Fraud Recognition & Easy Detection) is a Chrome extension that helps you analyze emails, text, and URLs for potential fraud or phishing attempts using OpenAI's powerful language models. No API key required to get started — FRED includes **25 free checks per week** for everyone.
 
 ## Features
 
-- **Free Tier**: 5 free checks per week with no API key or account needed
+- **Free Tier**: 25 free checks per week with no API key or account needed
 - **Email Analysis**: Examines Gmail email content, sender details, and formatting for fraud indicators
 - **Text Analysis**: Analyze any pasted text for potential scams or suspicious content
 - **URL/Link Analysis**: Check suspicious links before clicking them, or scan the current page with one click
@@ -54,7 +54,7 @@ FRED (Fraud Recognition & Easy Detection) is a Chrome extension that helps you a
 
 ## Getting Started
 
-FRED works immediately with no setup. Open the extension and start checking — you get **5 free checks per week** powered by FRED's servers.
+FRED works immediately with no setup. Open the extension and start checking — you get **25 free checks per week** powered by FRED's servers.
 
 When you've used your free checks, or if you want unlimited access, you can add your own OpenAI API key in Settings:
 

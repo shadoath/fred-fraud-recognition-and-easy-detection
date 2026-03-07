@@ -19,6 +19,7 @@ export interface EmailData {
 export interface TextData {
   content: string
   source?: string // Optional source of the text (e.g., 'pasted', 'website', etc.)
+  url?: string // Optional subject line or URL context
   timestamp: string
 }
 

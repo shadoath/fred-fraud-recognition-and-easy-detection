@@ -15,7 +15,7 @@ FRED - Fraud Recognition & Easy Detection
 (132 character max)
 
 ```
-AI-powered fraud and phishing detector for emails, text, and URLs. Uses your own OpenAI key. Private, fast, no subscription.
+AI-powered fraud and phishing detector for emails, text, and URLs. 25 free checks/week included. Use your own OpenAI key for unlimited.
 ```
 
 ---
@@ -25,7 +25,7 @@ AI-powered fraud and phishing detector for emails, text, and URLs. Uses your own
 (Paste this into the "Description" field on the store listing)
 
 ```
-FRED (Fraud Recognition & Easy Detection) helps you instantly spot fraud, scams, and phishing attempts before they catch you off guard. Powered by OpenAI's language models and your own API key, FRED keeps your data private — nothing ever passes through our servers.
+FRED (Fraud Recognition & Easy Detection) helps you instantly spot fraud, scams, and phishing attempts before they catch you off guard. Get started immediately with 25 free checks per week — no API key or account needed. For unlimited checks, bring your own OpenAI API key.
 
 --- WHAT IT DOES ---
 
@@ -54,18 +54,18 @@ Each result also includes an AI confidence score so you know how certain the mod
 
 FRED is designed around the principle that your data belongs to you:
 
-• Your emails and messages are sent directly from your browser to OpenAI — never to our servers
-• Your OpenAI API key is stored only in your browser's local storage using obfuscation
-• No tracking, analytics, or telemetry is collected about your content
-• Text you analyze is never stored persistently (history is kept locally on your device only)
-• The extension requests only the minimum permissions needed to function
+• Free tier: content is routed through FRED's Cloudflare Worker to OpenAI. The worker does not log or store your content — it only tracks a per-device check count for rate limiting.
+• BYOK mode: content goes directly from your browser to OpenAI — FRED's servers are never involved.
+• Your OpenAI API key is stored only in your browser's local storage using obfuscation; never transmitted to our servers.
+• No tracking, analytics, or telemetry is collected about your content.
+• Text you analyze is never stored persistently (history is kept locally on your device only).
+• The extension requests only the minimum permissions needed to function.
 
 --- HOW TO GET STARTED ---
 
 1. Install FRED from the Chrome Web Store
-2. Get a free OpenAI API key at platform.openai.com
-3. Open FRED, go to Settings, and paste your API key
-4. Start analyzing emails, text, or links
+2. Open FRED — you get 25 free checks per week immediately, no setup needed
+3. For unlimited checks: get a free API key at platform.openai.com, open FRED → Settings → switch to "My Own Key", and paste your key
 
 OpenAI API usage costs fractions of a cent per analysis. There is no subscription fee for FRED itself.
 
@@ -114,8 +114,8 @@ FRED analyzes user-provided text, email content, and URLs for fraud, phishing, a
 - **Personally identifiable information**: Not collected
 - **Health info**: Not collected
 - **Financial info**: Not collected
-- **Authentication info**: The user's OpenAI API key is stored locally only; never transmitted to our servers
-- **Personal communications**: Email/text content is sent directly from the user's browser to OpenAI for analysis; it is not collected or stored by FRED
+- **Authentication info**: The user's OpenAI API key (BYOK mode) is stored locally only; never transmitted to our servers
+- **Personal communications**: Email/text content is sent to OpenAI for analysis via the user's browser (BYOK mode) or FRED's Cloudflare proxy (free tier); content is not logged or stored by FRED in either case
 - **Website content**: URL strings are sent to OpenAI for analysis; not collected by FRED
 - **User activity**: Not collected
 - **Website content**: Not collected beyond what the user explicitly submits for analysis

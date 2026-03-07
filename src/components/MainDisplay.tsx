@@ -1,9 +1,8 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import HistoryIcon from "@mui/icons-material/History"
-import LinkIcon from "@mui/icons-material/Link"
 import MailOutlineIcon from "@mui/icons-material/MailOutline"
+import SearchIcon from "@mui/icons-material/Search"
 import SettingsIcon from "@mui/icons-material/Settings"
-import TextSnippetIcon from "@mui/icons-material/TextSnippet"
 import {
   AppBar,
   Box,
@@ -21,6 +20,7 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { useManifestHook } from "../hooks/useManifestHook"
 import { saveHistoryEntry, type HistoryEntry } from "../lib/historyStorage"
+import { recordCheck } from "../lib/usageStorage"
 import { ApiKeySettings } from "./ApiKeySettings"
 import { EmailAnalyzer, type EmailAnalyzerRef, type EmailCheckResult } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
@@ -28,8 +28,7 @@ import { HelpContent } from "./HelpContent"
 import { HistoryTab } from "./HistoryTab"
 import { TabPanel } from "./TabPanel"
 import { getThreatColor, ThreatRating } from "./ThreatRating"
-import { type TextCheckResult, TextInputAnalyzer } from "./TextInputAnalyzer"
-import { type URLCheckResult, URLAnalyzer } from "./URLAnalyzer"
+import { type ContentCheckResult, ContentAnalyzer } from "./ContentAnalyzer"
 
 const HistoryDetail = ({
   entry,
@@ -181,7 +180,7 @@ export const MainDisplay = () => {
   const handleAnalysisComplete = (
     type: "email" | "text" | "url",
     input: { sender?: string; subject?: string; content: string },
-    result: EmailCheckResult | TextCheckResult | URLCheckResult
+    result: EmailCheckResult | ContentCheckResult
   ) => {
     const historyEntry: HistoryEntry = {
       id: crypto.randomUUID(),
@@ -196,6 +195,7 @@ export const MainDisplay = () => {
       timestamp: new Date().toISOString(),
     }
     saveHistoryEntry(historyEntry)
+    recordCheck(result.threatRating)
   }
 
   const panel = showSettings ? "settings" : showHistory ? "history" : "tabs"
@@ -296,8 +296,7 @@ export const MainDisplay = () => {
               label={emailProvider ? `Email (${emailProvider})` : "Email"}
               iconPosition="start"
             />
-            <Tab icon={<TextSnippetIcon fontSize="small" />} label="Text" iconPosition="start" />
-            <Tab icon={<LinkIcon fontSize="small" />} label="URL" iconPosition="start" />
+            <Tab icon={<SearchIcon fontSize="small" />} label="Check" iconPosition="start" />
           </Tabs>
 
           <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
@@ -308,12 +307,7 @@ export const MainDisplay = () => {
             </TabPanel>
             <TabPanel value={tabValue} index={1} idPrefix="fred" timeout={500}>
               <ErrorBoundary>
-                <TextInputAnalyzer onAnalysisComplete={handleAnalysisComplete} />
-              </ErrorBoundary>
-            </TabPanel>
-            <TabPanel value={tabValue} index={2} idPrefix="fred" timeout={500}>
-              <ErrorBoundary>
-                <URLAnalyzer onAnalysisComplete={handleAnalysisComplete} />
+                <ContentAnalyzer onAnalysisComplete={handleAnalysisComplete} />
               </ErrorBoundary>
             </TabPanel>
           </Box>
