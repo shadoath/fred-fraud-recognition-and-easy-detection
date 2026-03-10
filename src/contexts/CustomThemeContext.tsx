@@ -85,6 +85,7 @@ export const CustomThemeContextProvider = ({ children }: { children: React.React
               width: "420px !important",
               height: "600px !important",
               overflow: "hidden !important",
+              overflowX: "hidden !important",
               background: "transparent !important",
               fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
               WebkitFontSmoothing: "antialiased",
@@ -97,6 +98,7 @@ export const CustomThemeContextProvider = ({ children }: { children: React.React
               margin: 0,
               padding: 0,
               overflow: "hidden",
+              overflowX: "hidden",
             },
             "a": {
               textDecoration: "inherit",

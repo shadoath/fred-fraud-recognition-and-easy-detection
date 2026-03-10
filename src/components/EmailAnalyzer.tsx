@@ -12,7 +12,8 @@ import { forwardRef, useImperativeHandle, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
 import { toastApiError } from "../lib/apiErrorUtils"
-import { type EmailData,safeCheckContentWithOpenAI } from "../lib/fraudService"
+import { type EmailData, safeCheckContentWithOpenAI } from "../lib/fraudService"
+import { findHistoryMatch } from "../lib/historyStorage"
 import { AnalysisResultPanel } from "./AnalysisResultPanel"
 
 export interface EmailCheckResult {
@@ -165,6 +166,21 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           subject: emailData.subject.trim() || DEFAULT_SUBJECT,
           content: emailData.content.trim(),
           timestamp: new Date().toISOString(),
+        }
+
+        const cached = await findHistoryMatch("email", {
+          sender: emailDataForAnalysis.sender,
+          content: emailDataForAnalysis.content,
+        })
+        if (cached) {
+          setResult({
+            ...cached.result,
+            sender: emailDataForAnalysis.sender,
+            subject: emailDataForAnalysis.subject ?? DEFAULT_SUBJECT,
+          })
+          toast.info("Loaded from history")
+          resetForm()
+          return
         }
 
         const [fraudResult, error] = await safeCheckContentWithOpenAI(

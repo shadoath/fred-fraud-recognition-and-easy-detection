@@ -11,8 +11,9 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material"
+import type { MouseEvent } from "react"
 import { useEffect, useState } from "react"
-import { clearHistory, getHistory, type HistoryEntry } from "../lib/historyStorage"
+import { clearHistory, deleteHistoryEntry, getHistory, type HistoryEntry } from "../lib/historyStorage"
 import { getThreatColor } from "../lib/threatUtils"
 
 interface HistoryTabProps {
@@ -55,6 +56,12 @@ export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
   useEffect(() => {
     loadHistory()
   }, [])
+
+  const handleDelete = async (e: MouseEvent, id: string) => {
+    e.stopPropagation()
+    await deleteHistoryEntry(id)
+    setHistory((prev) => prev.filter((entry) => entry.id !== id))
+  }
 
   const handleClearHistory = async () => {
     await clearHistory()
@@ -117,8 +124,19 @@ export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
       ) : (
         <List disablePadding sx={{ flex: 1, overflow: "auto" }}>
           {history.map((entry) => (
-            <ListItem key={entry.id} disablePadding divider>
-              <ListItemButton onClick={() => onSelectEntry?.(entry)} sx={{ py: 1, px: 2 }}>
+            <ListItem
+              key={entry.id}
+              disablePadding
+              divider
+              secondaryAction={
+                <Tooltip title="Delete">
+                  <IconButton size="small" edge="end" onClick={(e) => handleDelete(e, entry.id)} sx={{ mr: 0.5 }}>
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              }
+            >
+              <ListItemButton onClick={() => onSelectEntry?.(entry)} sx={{ py: 1, px: 2, pr: 6 }}>
                 <ListItemText
                   primary={
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>

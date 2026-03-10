@@ -8,6 +8,8 @@ export const toastApiError = (
   toastError(
     error.status === 401
       ? "Invalid API key. Please check your OpenAI API key."
-      : (error.message ?? fallback)
+      : error.status === 429
+        ? (error.message ?? "Monthly check limit reached. Upgrade to Fred Premium for more checks.")
+        : (error.message ?? fallback)
   )
 }

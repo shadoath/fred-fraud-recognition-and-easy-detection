@@ -1,23 +1,28 @@
+import DarkModeIcon from "@mui/icons-material/DarkMode"
 import HistoryIcon from "@mui/icons-material/History"
+import LightModeIcon from "@mui/icons-material/LightMode"
 import MailOutlineIcon from "@mui/icons-material/MailOutline"
 import SearchIcon from "@mui/icons-material/Search"
 import SettingsIcon from "@mui/icons-material/Settings"
+import TextDecreaseIcon from "@mui/icons-material/TextDecrease"
+import TextIncreaseIcon from "@mui/icons-material/TextIncrease"
 import {
   AppBar,
   Box,
+  Button,
   IconButton,
   Paper,
   Tab,
   Tabs,
   Toolbar,
   Tooltip,
-  Typography,
 } from "@mui/material"
 import { useEffect, useRef, useState } from "react"
-import { type HistoryEntry,saveHistoryEntry } from "../lib/historyStorage"
+import { useCustomThemeContext } from "../contexts/CustomThemeContext"
+import { type HistoryEntry, saveHistoryEntry } from "../lib/historyStorage"
 import { recordCheck } from "../lib/usageStorage"
 import { ApiKeySettings } from "./ApiKeySettings"
-import { ContentAnalyzer,type ContentCheckResult } from "./ContentAnalyzer"
+import { ContentAnalyzer, type ContentCheckResult } from "./ContentAnalyzer"
 import { DetectedIndicators } from "./DetectedIndicators"
 import { EmailAnalyzer, type EmailAnalyzerRef, type EmailCheckResult } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
@@ -25,6 +30,7 @@ import { HelpContent } from "./HelpContent"
 import { HistoryTab } from "./HistoryTab"
 import { TabPanel } from "./TabPanel"
 import { ThreatRating } from "./ThreatRating"
+import { UsageStatsSection } from "./UsageStatsSection"
 
 const HistoryDetail = ({ entry }: { entry: HistoryEntry }) => (
   <Box sx={{ p: 0, m: 0 }}>
@@ -33,10 +39,6 @@ const HistoryDetail = ({ entry }: { entry: HistoryEntry }) => (
     {entry.result.flags && entry.result.flags.length > 0 && (
       <DetectedIndicators flags={entry.result.flags} threatRating={entry.result.threatRating} />
     )}
-
-    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-      {new Date(entry.timestamp).toLocaleString()}
-    </Typography>
   </Box>
 )
 
@@ -158,7 +160,7 @@ export const MainDisplay = () => {
             <Box
               component="img"
               src="/fred-logo.png"
-              alt="FRED"
+              alt="Fred"
               sx={{ height: 42, objectFit: "contain" }}
             />
           </Box>
@@ -186,13 +188,17 @@ export const MainDisplay = () => {
       </AppBar>
 
       {panel === "settings" && (
-        <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-          <ErrorBoundary>
-            <ApiKeySettings />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <HelpContent />
-          </ErrorBoundary>
+        <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+            <DisplayButtons />
+            <ErrorBoundary>
+              <HelpContent />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <ApiKeySettings />
+            </ErrorBoundary>
+          </Box>
+          <UsageStatsSection />
         </Box>
       )}
 
@@ -261,5 +267,31 @@ export const MainDisplay = () => {
         </>
       )}
     </Paper>
+  )
+}
+
+const DisplayButtons = () => {
+  const { darkMode, toggleDarkMode, largeText, toggleLargeText } = useCustomThemeContext()
+  return (
+    <Box sx={{ display: "flex", justifyContent: "center", gap: 1, mb: 2 }}>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={toggleDarkMode}
+        startIcon={darkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+        sx={{ textTransform: "none", borderRadius: 2 }}
+      >
+        {darkMode ? "Light Mode" : "Dark Mode"}
+      </Button>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={toggleLargeText}
+        startIcon={largeText ? <TextDecreaseIcon fontSize="small" /> : <TextIncreaseIcon fontSize="small" />}
+        sx={{ textTransform: "none", borderRadius: 2 }}
+      >
+        {largeText ? "Normal Text" : "Larger Text"}
+      </Button>
+    </Box>
   )
 }

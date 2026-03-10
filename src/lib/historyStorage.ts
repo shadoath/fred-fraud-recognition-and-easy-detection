@@ -29,6 +29,26 @@ export const getHistory = async (): Promise<HistoryEntry[]> => {
   return result[HISTORY_KEY] || []
 }
 
+export const deleteHistoryEntry = async (id: string): Promise<void> => {
+  const existing = await getHistory()
+  await chrome.storage.local.set({ [HISTORY_KEY]: existing.filter((e) => e.id !== id) })
+}
+
 export const clearHistory = async (): Promise<void> => {
   await chrome.storage.local.remove(HISTORY_KEY)
+}
+
+export const findHistoryMatch = async (
+  type: "email" | "text" | "url",
+  input: { sender?: string; content: string }
+): Promise<HistoryEntry | null> => {
+  const history = await getHistory()
+  return (
+    history.find((entry) => {
+      if (entry.type !== type) return false
+      if (entry.input.content !== input.content) return false
+      if (type === "email" && entry.input.sender !== input.sender) return false
+      return true
+    }) ?? null
+  )
 }

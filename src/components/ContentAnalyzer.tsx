@@ -19,6 +19,7 @@ import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
 import { toastApiError } from "../lib/apiErrorUtils"
 import { safeCheckContentWithOpenAI, type TextData, type URLData } from "../lib/fraudService"
+import { findHistoryMatch } from "../lib/historyStorage"
 import { scrapeCurrentPage } from "../lib/pageScraper"
 import type { PageData } from "../types/fraudTypes"
 import { AnalysisResultPanel } from "./AnalysisResultPanel"
@@ -102,6 +103,12 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
     setIsChecking(true)
     try {
       if (trimmedContent) {
+        const cached = await findHistoryMatch("text", { content: trimmedContent })
+        if (cached) {
+          setResult(cached.result)
+          toast.info("Loaded from history")
+          return
+        }
         const textData: TextData = {
           content: trimmedContent,
           source: "pasted",
@@ -115,6 +122,12 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
         if (!apiResult) { toast.error("Failed to analyze text. Please try again later."); return }
         finishWithResult(apiResult, "text", trimmedContent)
       } else {
+        const cached = await findHistoryMatch("url", { content: trimmedSubjectOrUrl })
+        if (cached) {
+          setResult(cached.result)
+          toast.info("Loaded from history")
+          return
+        }
         if (!trimmedSubjectOrUrl.startsWith("http://") && !trimmedSubjectOrUrl.startsWith("https://")) {
           toast.warning("URL does not start with http:// or https:// — analysis will proceed but results may vary")
         }
@@ -144,6 +157,12 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       setScannedPageData(pageData)
       setSubjectOrUrl(pageData.url)
       setTextContent(pageData.visibleText)
+      const cached = await findHistoryMatch("url", { content: pageData.url })
+      if (cached) {
+        setResult(cached.result)
+        toast.info("Loaded from history")
+        return
+      }
       const [apiResult, error] = await safeCheckContentWithOpenAI(
         pageData, apiKey ?? "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
       )

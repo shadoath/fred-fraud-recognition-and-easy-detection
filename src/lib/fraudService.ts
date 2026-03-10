@@ -275,11 +275,18 @@ export async function checkContentWithOpenAI(
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError
       if (axiosError.response) {
+        const responseData = axiosError.response.data as { code?: string; message?: string; isPaid?: boolean } | undefined
+        const isRateLimited = axiosError.response.status === 429 && responseData?.code === "RATE_LIMITED"
+        const licenseNotRecognized = isRateLimited && responseData?.isPaid === false && !!licenseKey
+        const proxyMessage = isRateLimited
+          ? licenseNotRecognized
+            ? "Your license key couldn't be verified. Check that your subscription is active."
+            : (responseData?.message ?? "Monthly check limit reached.")
+          : undefined
         throw {
           success: false,
-          message: `OpenAI API error: ${axiosError.response.status}`,
+          message: proxyMessage ?? `OpenAI API error: ${axiosError.response.status}`,
           status: axiosError.response.status,
-          error: axiosError.response.data,
         }
       }
     }
