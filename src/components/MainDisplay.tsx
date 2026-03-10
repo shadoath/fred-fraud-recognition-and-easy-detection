@@ -101,7 +101,7 @@ export const MainDisplay = () => {
 
   const handleAnalysisComplete = (
     type: "email" | "text" | "url",
-    input: { sender?: string; subject?: string; content: string },
+    input: { sender?: string; subject?: string; title?: string; content: string },
     result: EmailCheckResult | ContentCheckResult
   ) => {
     const historyEntry: HistoryEntry = {

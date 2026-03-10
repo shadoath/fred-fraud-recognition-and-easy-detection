@@ -40,9 +40,17 @@ const formatTimestamp = (timestamp: string): string => {
   return `${month}/${day}/${year}`
 }
 
-const getSubtitle = (entry: HistoryEntry): string => {
-  const text = entry.input.sender || entry.input.content
-  return text.slice(0, 60)
+const getPrimaryLabel = (entry: HistoryEntry): string => {
+  const text = entry.input.subject || entry.input.title || entry.input.content
+  return text.slice(0, 70)
+}
+
+const getSecondaryLabel = (entry: HistoryEntry): string | null => {
+  if (entry.input.subject || entry.input.title) {
+    const text = entry.input.sender || entry.input.content
+    return text.slice(0, 60)
+  }
+  return null
 }
 
 export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
@@ -163,13 +171,26 @@ export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
                     </Box>
                   }
                   secondary={
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                    >
-                      {getSubtitle(entry)}
-                    </Typography>
+                    <>
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        color="text.primary"
+                        sx={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}
+                      >
+                        {getPrimaryLabel(entry)}
+                      </Typography>
+                      {getSecondaryLabel(entry) && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                        >
+                          {getSecondaryLabel(entry)}
+                        </Typography>
+                      )}
+                    </>
                   }
                 />
               </ListItemButton>

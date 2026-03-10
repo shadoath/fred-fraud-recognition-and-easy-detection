@@ -4,6 +4,7 @@ export interface HistoryEntry {
   input: {
     sender?: string
     subject?: string
+    title?: string
     content: string
   }
   result: {

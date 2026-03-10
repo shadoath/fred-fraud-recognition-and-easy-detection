@@ -40,7 +40,7 @@ export interface ContentCheckResult {
 interface ContentAnalyzerProps {
   onAnalysisComplete?: (
     type: "text" | "url",
-    input: { content: string },
+    input: { content: string; title?: string },
     result: ContentCheckResult
   ) => void
 }
@@ -75,7 +75,8 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number }
     },
     type: "text" | "url",
-    inputContent: string
+    inputContent: string,
+    title?: string
   ) => {
     const checkResult: ContentCheckResult = {
       threatRating: apiResult.threatRating,
@@ -85,7 +86,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       tokenUsage: apiResult.tokenUsage,
     }
     setResult(checkResult)
-    onAnalysisComplete?.(type, { content: inputContent }, checkResult)
+    onAnalysisComplete?.(type, { content: inputContent, title }, checkResult)
   }
 
   const handleSubmit = async () => {
@@ -207,7 +208,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
         toast.error("Failed to scan page. Please try again later.")
         return
       }
-      finishWithResult(apiResult, "url", pageData.url)
+      finishWithResult(apiResult, "url", pageData.url, pageData.title)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not scan the current page")
     } finally {
