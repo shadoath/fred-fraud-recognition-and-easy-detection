@@ -54,7 +54,7 @@ const validateLicenseKey = async (licenseKey: string, env: Env): Promise<boolean
     return cached.valid
   }
 
-  // Validate against LemonSqueezy API
+  // Validate license key via LemonSqueezy public endpoint
   try {
     const response = await fetch("https://api.lemonsqueezy.com/v1/licenses/validate", {
       method: "POST",
@@ -62,13 +62,11 @@ const validateLicenseKey = async (licenseKey: string, env: Env): Promise<boolean
       body: JSON.stringify({ license_key: licenseKey }),
     })
 
-    const data = (await response.json()) as {
-      valid: boolean
-      license_key?: { status: string }
-    }
+    const data = await response.json()
 
-    // Key is valid only if the API says so AND the subscription is active
-    const valid = data.valid === true && data.license_key?.status === "active"
+    const typed = data as { valid?: boolean; license_key?: { status?: string } }
+    const status = typed.license_key?.status
+    const valid = typed.valid === true && status !== "disabled" && status !== "expired"
 
     // Cache the result
     await env.USAGE_KV.put(cacheKey, JSON.stringify({ valid, cachedAt: Date.now() / 1000 }), {
@@ -97,6 +95,49 @@ export default {
     const secret = request.headers.get("X-FRED-Secret")
     if (!env.FRED_SECRET || secret !== env.FRED_SECRET) {
       return json({ error: "Unauthorized" }, 401)
+    }
+
+    const url = new URL(request.url)
+
+    // License key activation endpoint
+    if (url.pathname === "/activate") {
+      let body: { licenseKey?: unknown; deviceId?: unknown }
+      try {
+        body = await request.json()
+      } catch {
+        return json({ error: "Invalid JSON body" }, 400)
+      }
+
+      const { licenseKey, deviceId } = body
+
+      if (typeof licenseKey !== "string" || !licenseKey) {
+        return json({ error: "Missing licenseKey" }, 400)
+      }
+      if (!isValidDeviceId(deviceId)) {
+        return json({ error: "Invalid or missing deviceId" }, 400)
+      }
+
+      try {
+        const lsResponse = await fetch("https://api.lemonsqueezy.com/v1/licenses/activate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ license_key: licenseKey, instance_name: deviceId }),
+        })
+
+        const data = (await lsResponse.json()) as { activated?: boolean; error?: string }
+
+        // "already activated for this instance" still means the key is valid
+        const alreadyActive = data.error?.toLowerCase().includes("already")
+        if (data.activated || alreadyActive) {
+          // Clear any cached invalid result so next check re-validates cleanly
+          await env.USAGE_KV.delete(`ls:valid:${licenseKey}`)
+          return json({ success: true })
+        }
+
+        return json({ success: false, error: data.error ?? "Activation failed" }, 422)
+      } catch {
+        return json({ error: "Failed to reach LemonSqueezy" }, 502)
+      }
     }
 
     let body: { deviceId?: unknown; licenseKey?: unknown; payload?: unknown }
