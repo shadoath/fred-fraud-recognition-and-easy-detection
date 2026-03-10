@@ -13,15 +13,10 @@ import {
 } from "@mui/material"
 import { useEffect, useState } from "react"
 import { clearHistory, getHistory, type HistoryEntry } from "../lib/historyStorage"
+import { getThreatColor } from "../lib/threatUtils"
 
 interface HistoryTabProps {
   onSelectEntry?: (entry: HistoryEntry) => void
-}
-
-const getThreatColor = (score: number): string => {
-  if (score <= 30) return "#4caf50"
-  if (score <= 70) return "#ff9800"
-  return "#f44336"
 }
 
 const formatTimestamp = (timestamp: string): string => {

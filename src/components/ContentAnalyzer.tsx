@@ -8,9 +8,7 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
-  Paper,
   TextField,
   Typography,
   useTheme,
@@ -19,10 +17,11 @@ import {
 import { useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
+import { toastApiError } from "../lib/apiErrorUtils"
 import { safeCheckContentWithOpenAI, type TextData, type URLData } from "../lib/fraudService"
 import { scrapeCurrentPage } from "../lib/pageScraper"
 import type { PageData } from "../types/fraudTypes"
-import { getThreatColor, ThreatRating } from "./ThreatRating"
+import { AnalysisResultPanel } from "./AnalysisResultPanel"
 
 export interface ContentCheckResult {
   threatRating: number
@@ -103,7 +102,6 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
     setIsChecking(true)
     try {
       if (trimmedContent) {
-        // Content present → TextData (with optional url context)
         const textData: TextData = {
           content: trimmedContent,
           source: "pasted",
@@ -111,57 +109,21 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
           timestamp: new Date().toISOString(),
         }
         const [apiResult, error] = await safeCheckContentWithOpenAI(
-          textData,
-          apiKey ?? "",
-          selectedModel,
-          connectionMode,
-          deviceId,
-          licenseKey ?? undefined
+          textData, apiKey ?? "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
         )
-        if (error) {
-          toast.error(
-            error.status === 401
-              ? "Invalid API key. Please check your OpenAI API key."
-              : (error.message ?? "Failed to analyze text. Please try again later.")
-          )
-          return
-        }
-        if (!apiResult) {
-          toast.error("Failed to analyze text. Please try again later.")
-          return
-        }
+        if (error) { toastApiError(toast.error, error); return }
+        if (!apiResult) { toast.error("Failed to analyze text. Please try again later."); return }
         finishWithResult(apiResult, "text", trimmedContent)
       } else {
-        // Only subjectOrUrl filled → URLData
-        if (
-          !trimmedSubjectOrUrl.startsWith("http://") &&
-          !trimmedSubjectOrUrl.startsWith("https://")
-        ) {
-          toast.warning(
-            "URL does not start with http:// or https:// — analysis will proceed but results may vary"
-          )
+        if (!trimmedSubjectOrUrl.startsWith("http://") && !trimmedSubjectOrUrl.startsWith("https://")) {
+          toast.warning("URL does not start with http:// or https:// — analysis will proceed but results may vary")
         }
         const urlData: URLData = { url: trimmedSubjectOrUrl, timestamp: new Date().toISOString() }
         const [apiResult, error] = await safeCheckContentWithOpenAI(
-          urlData,
-          apiKey ?? "",
-          selectedModel,
-          connectionMode,
-          deviceId,
-          licenseKey ?? undefined
+          urlData, apiKey ?? "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
         )
-        if (error) {
-          toast.error(
-            error.status === 401
-              ? "Invalid API key. Please check your OpenAI API key."
-              : (error.message ?? "Failed to analyze URL. Please try again later.")
-          )
-          return
-        }
-        if (!apiResult) {
-          toast.error("Failed to analyze URL. Please try again later.")
-          return
-        }
+        if (error) { toastApiError(toast.error, error); return }
+        if (!apiResult) { toast.error("Failed to analyze URL. Please try again later."); return }
         finishWithResult(apiResult, "url", trimmedSubjectOrUrl)
       }
     } catch {
@@ -183,25 +145,10 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       setSubjectOrUrl(pageData.url)
       setTextContent(pageData.visibleText)
       const [apiResult, error] = await safeCheckContentWithOpenAI(
-        pageData,
-        apiKey ?? "",
-        selectedModel,
-        connectionMode,
-        deviceId,
-        licenseKey ?? undefined
+        pageData, apiKey ?? "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
       )
-      if (error) {
-        toast.error(
-          error.status === 401
-            ? "Invalid API key. Please check your OpenAI API key."
-            : (error.message ?? "Failed to scan page. Please try again later.")
-        )
-        return
-      }
-      if (!apiResult) {
-        toast.error("Failed to scan page. Please try again later.")
-        return
-      }
+      if (error) { toastApiError(toast.error, error); return }
+      if (!apiResult) { toast.error("Failed to scan page. Please try again later."); return }
       finishWithResult(apiResult, "url", pageData.url)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not scan the current page")
@@ -210,10 +157,85 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
     }
   }
 
+  const fieldSx = {
+    mb: 1.5,
+    "& .MuiOutlinedInput-root": {
+      borderRadius: 2,
+      backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: `${theme.palette.primary.main}80`,
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderWidth: "1px",
+      },
+    },
+  }
+
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <Box sx={{ flex: 1, overflow: "auto" }}>
-        {!result ? (
+        {result ? (
+          <AnalysisResultPanel
+            result={result}
+            onReset={handleReset}
+            resetLabel="Check Another"
+            headerContent={
+              subjectOrUrl ? (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    mt: 1,
+                    color: theme.palette.text.secondary,
+                    wordBreak: "break-all",
+                    fontFamily: "monospace",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  {subjectOrUrl}
+                </Typography>
+              ) : undefined
+            }
+            footerContent={
+              scannedPageData ? (
+                <Accordion
+                  elevation={0}
+                  sx={{
+                    mt: 2,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: "8px !important",
+                    "&:before": { display: "none" },
+                    backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                      View scanned content sent to AI
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ p: 0 }}>
+                    <Box
+                      component="pre"
+                      sx={{
+                        m: 20,
+                        p: 0,
+                        overflow: "auto",
+                        fontSize: "0.7rem",
+                        fontFamily: "monospace",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-all",
+                        color: theme.palette.text.secondary,
+                        maxHeight: 300,
+                      }}
+                    >
+                      {JSON.stringify(scannedPageData, null, 2)}
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              ) : undefined
+            }
+          />
+        ) : (
           <Box>
             {connectionMode !== "proxy" && !hasApiKey && (
               <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
@@ -221,10 +243,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               </Alert>
             )}
 
-            <Typography
-              variant="body2"
-              sx={{ mb: 2, fontSize: "0.9rem", color: theme.palette.text.secondary }}
-            >
+            <Typography variant="body2" sx={{ mb: 2, fontSize: "0.9rem", color: theme.palette.text.secondary }}>
               Paste text or a URL below to check for potential fraud or scams using AI analysis.
             </Typography>
 
@@ -234,20 +253,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               placeholder="https://example.com or email subject line..."
               value={subjectOrUrl}
               onChange={(e) => setSubjectOrUrl(e.target.value)}
-              sx={{
-                mb: 1.5,
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                  backgroundColor:
-                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: `${theme.palette.primary.main}80`,
-                  },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderWidth: "1px",
-                  },
-                },
-              }}
+              sx={fieldSx}
               variant="outlined"
             />
 
@@ -259,20 +265,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               rows={6}
               value={textContent}
               onChange={(e) => setTextContent(e.target.value)}
-              sx={{
-                mb: 1.5,
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                  backgroundColor:
-                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: `${theme.palette.primary.main}80`,
-                  },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderWidth: "1px",
-                  },
-                },
-              }}
+              sx={fieldSx}
               variant="outlined"
             />
 
@@ -286,9 +279,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                     borderRadius: 2,
                     fontSize: "0.75rem",
                     backgroundColor:
-                      theme.palette.mode === "dark"
-                        ? "rgba(41, 182, 246, 0.15)"
-                        : "rgba(41, 182, 246, 0.1)",
+                      theme.palette.mode === "dark" ? "rgba(41, 182, 246, 0.15)" : "rgba(41, 182, 246, 0.1)",
                   }}
                 >
                   Characters: {textContent.length} | Words: {textContent.trim().split(/\s+/).length}
@@ -296,7 +287,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               </Zoom>
             )}
 
-            {(textContent.trim() || subjectOrUrl.trim()) ? (
+            {textContent.trim() || subjectOrUrl.trim() ? (
               <Button
                 fullWidth
                 variant="contained"
@@ -321,118 +312,6 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                 {isScanning ? "Scanning..." : "Scan Current Page"}
               </Button>
             )}
-          </Box>
-        ) : (
-          <Box sx={{ width: "100%" }}>
-            <ThreatRating rating={result.threatRating} explanation={result.explanation} />
-
-            {subjectOrUrl && (
-              <Typography
-                variant="caption"
-                sx={{
-                  display: "block",
-                  mt: 1,
-                  color: theme.palette.text.secondary,
-                  wordBreak: "break-all",
-                  fontFamily: "monospace",
-                  fontSize: "0.75rem",
-                }}
-              >
-                {subjectOrUrl}
-              </Typography>
-            )}
-
-            {result.flags && result.flags.length > 0 && (
-              <Paper
-                elevation={0}
-                sx={{
-                  padding: "20px 10px",
-                  m: 0,
-                  borderRadius: 2,
-                  backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? `${getThreatColor(result.threatRating)}10`
-                      : `${getThreatColor(result.threatRating)}08`,
-                  border: `1px solid ${getThreatColor(result.threatRating)}30`,
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  sx={{ mb: 1.5, fontWeight: 600, color: getThreatColor(result.threatRating) }}
-                >
-                  Detected Indicators:
-                </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
-                  {result.flags.map((flag) => (
-                    <Chip
-                      key={flag}
-                      label={flag}
-                      size="small"
-                      sx={{
-                        backgroundColor:
-                          theme.palette.mode === "dark"
-                            ? `${getThreatColor(result.threatRating)}20`
-                            : `${getThreatColor(result.threatRating)}15`,
-                        color: getThreatColor(result.threatRating),
-                        borderRadius: 1,
-                        fontSize: "0.75rem",
-                        "& .MuiChip-label": { px: 1 },
-                      }}
-                    />
-                  ))}
-                </Box>
-              </Paper>
-            )}
-
-            {scannedPageData && (
-              <Accordion
-                elevation={0}
-                sx={{
-                  mt: 2,
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: "8px !important",
-                  "&:before": { display: "none" },
-                  backgroundColor:
-                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                }}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                    View scanned content sent to AI
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ p: 0 }}>
-                  <Box
-                    component="pre"
-                    sx={{
-                      m: 20,
-                      p: 0,
-                      overflow: "auto",
-                      fontSize: "0.7rem",
-                      fontFamily: "monospace",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-all",
-                      color: theme.palette.text.secondary,
-                      maxHeight: 300,
-                    }}
-                  >
-                    {JSON.stringify(scannedPageData, null, 2)}
-                  </Box>
-                </AccordionDetails>
-              </Accordion>
-            )}
-
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleReset}
-                sx={{ ml: "auto", borderRadius: 2, textTransform: "none", boxShadow: 2 }}
-                size="medium"
-              >
-                Check Another
-              </Button>
-            </Box>
           </Box>
         )}
       </Box>

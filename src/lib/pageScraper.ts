@@ -70,7 +70,7 @@ function scrapePageContent(): Omit<PageData, "timestamp"> {
   // Phone numbers from visible text
   const phoneMatches =
     (document.body?.innerText ?? "").match(
-      /(\+?1?\s?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/g
+      /(\+?1?\s?)?(\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/g
     ) ?? []
   const phoneNumbers = [...new Set(phoneMatches)].slice(0, 5)
 

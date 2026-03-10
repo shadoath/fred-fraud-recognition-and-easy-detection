@@ -5,7 +5,6 @@ import SettingsIcon from "@mui/icons-material/Settings"
 import {
   AppBar,
   Box,
-  Chip,
   IconButton,
   Paper,
   Tab,
@@ -13,78 +12,35 @@ import {
   Toolbar,
   Tooltip,
   Typography,
-  useTheme,
 } from "@mui/material"
 import { useEffect, useRef, useState } from "react"
-import { useManifestHook } from "../hooks/useManifestHook"
-import { saveHistoryEntry, type HistoryEntry } from "../lib/historyStorage"
+import { type HistoryEntry,saveHistoryEntry } from "../lib/historyStorage"
 import { recordCheck } from "../lib/usageStorage"
 import { ApiKeySettings } from "./ApiKeySettings"
+import { ContentAnalyzer,type ContentCheckResult } from "./ContentAnalyzer"
+import { DetectedIndicators } from "./DetectedIndicators"
 import { EmailAnalyzer, type EmailAnalyzerRef, type EmailCheckResult } from "./EmailAnalyzer"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { HelpContent } from "./HelpContent"
 import { HistoryTab } from "./HistoryTab"
 import { TabPanel } from "./TabPanel"
-import { getThreatColor, ThreatRating } from "./ThreatRating"
-import { type ContentCheckResult, ContentAnalyzer } from "./ContentAnalyzer"
+import { ThreatRating } from "./ThreatRating"
 
-const HistoryDetail = ({ entry }: { entry: HistoryEntry; onBack: () => void }) => {
-  const theme = useTheme()
-  return (
-    <Box sx={{ p: 0, m: 0 }}>
-      <ThreatRating rating={entry.result.threatRating} explanation={entry.result.explanation} />
+const HistoryDetail = ({ entry }: { entry: HistoryEntry }) => (
+  <Box sx={{ p: 0, m: 0 }}>
+    <ThreatRating rating={entry.result.threatRating} explanation={entry.result.explanation} />
 
-      {entry.result.flags && entry.result.flags.length > 0 && (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 0,
-            m: 0,
-            borderRadius: 2,
-            backgroundColor:
-              theme.palette.mode === "dark"
-                ? `${getThreatColor(entry.result.threatRating)}10`
-                : `${getThreatColor(entry.result.threatRating)}08`,
-            border: `1px solid ${getThreatColor(entry.result.threatRating)}30`,
-          }}
-        >
-          <Typography
-            variant="subtitle2"
-            sx={{ mb: 1.5, fontWeight: 600, color: getThreatColor(entry.result.threatRating) }}
-          >
-            Detected Indicators:
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
-            {entry.result.flags.map((flag) => (
-              <Chip
-                key={flag}
-                label={flag}
-                size="small"
-                sx={{
-                  backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? `${getThreatColor(entry.result.threatRating)}20`
-                      : `${getThreatColor(entry.result.threatRating)}15`,
-                  color: getThreatColor(entry.result.threatRating),
-                  borderRadius: 1,
-                  fontSize: "0.75rem",
-                }}
-              />
-            ))}
-          </Box>
-        </Paper>
-      )}
+    {entry.result.flags && entry.result.flags.length > 0 && (
+      <DetectedIndicators flags={entry.result.flags} threatRating={entry.result.threatRating} />
+    )}
 
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-        {new Date(entry.timestamp).toLocaleString()}
-      </Typography>
-    </Box>
-  )
-}
+    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
+      {new Date(entry.timestamp).toLocaleString()}
+    </Typography>
+  </Box>
+)
 
 export const MainDisplay = () => {
-  const manifest = useManifestHook()
-  const theme = useTheme()
   const [tabValue, setTabValue] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -243,10 +199,7 @@ export const MainDisplay = () => {
       {panel === "history" && (
         <Box sx={{ flex: 1, overflow: "auto" }}>
           {selectedHistoryEntry ? (
-            <HistoryDetail
-              entry={selectedHistoryEntry}
-              onBack={() => setSelectedHistoryEntry(null)}
-            />
+            <HistoryDetail entry={selectedHistoryEntry} />
           ) : (
             <HistoryTab onSelectEntry={setSelectedHistoryEntry} />
           )}

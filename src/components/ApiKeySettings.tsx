@@ -34,8 +34,8 @@ import {
 } from "@mui/material"
 import { useEffect, useState } from "react"
 import { useCustomThemeContext } from "../contexts/CustomThemeContext"
-import { FREE_CHECKS_PER_MONTH, PAID_CHECKS_PER_MONTH } from "../lib/fraudService"
 import { useApiKey } from "../hooks/useApiKey"
+import { FREE_CHECKS_PER_MONTH, PAID_CHECKS_PER_MONTH } from "../lib/fraudService"
 import { getUsageStats } from "../lib/usageStorage"
 
 export const ApiKeySettings = () => {

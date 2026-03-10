@@ -1,24 +1,24 @@
 import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
-import {
-  API_KEY_STORAGE_KEY,
-  DEFAULT_MODEL,
-  DEFAULT_CONNECTION_MODE,
-  attemptMigration,
-  getSelectedModel,
-  getConnectionMode,
-  obfuscateApiKey,
-  recoverApiKey,
-  saveSelectedModel as persistSelectedModel,
-  saveConnectionMode as persistSaveConnectionMode,
-  validateApiKeyFormat,
-  type ConnectionMode,
-} from "../lib/keyStorage"
 import { getDeviceId } from "../lib/deviceId"
 import {
+  API_KEY_STORAGE_KEY,
+  attemptMigration,
+  type ConnectionMode,
+  DEFAULT_CONNECTION_MODE,
+  DEFAULT_MODEL,
+  getConnectionMode,
+  getSelectedModel,
+  obfuscateApiKey,
+  recoverApiKey,
+  saveConnectionMode as persistSaveConnectionMode,
+  saveSelectedModel as persistSelectedModel,
+  validateApiKeyFormat,
+} from "../lib/keyStorage"
+import {
+  clearLicenseKey as removeLicenseKey,
   getLicenseKey,
   saveLicenseKey as persistLicenseKey,
-  clearLicenseKey as removeLicenseKey,
 } from "../lib/licenseStorage"
 
 export interface ApiKeyState {

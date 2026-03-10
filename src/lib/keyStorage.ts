@@ -17,7 +17,7 @@ const LEGACY_OBFUSCATION_KEY = "FRED-2025-PROTECTION"
 /**
  * Legacy XOR obfuscation - kept for migration purposes only
  */
-function legacyObfuscate(apiKey: string): string {
+function _legacyObfuscate(apiKey: string): string {
   if (!apiKey) return ""
 
   const base64 = btoa(apiKey)

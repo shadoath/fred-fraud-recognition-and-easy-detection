@@ -9,13 +9,8 @@ import type {
 } from "../types/fraudTypes"
 import type { ConnectionMode } from "./keyStorage"
 
-// OpenAI API URL (used in BYOK mode)
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-
-// Proxy URL — update after deploying the Cloudflare Worker
 export const PROXY_URL = "https://fred-proxy.skylar-bolton.workers.dev"
-
-// Shared secret sent with proxy requests (must match FRED_SECRET worker secret)
 export const PROXY_SECRET = "8ca9bd89-9b8b-4b36-8578-a9ba2e3c69b0"
 
 // Free tier monthly check limit — must match FREE_MONTHLY_LIMIT in fred-proxy/wrangler.toml
@@ -24,13 +19,11 @@ export const FREE_CHECKS_PER_MONTH = 10
 // Paid tier monthly check limit — must match PAID_MONTHLY_LIMIT in fred-proxy/wrangler.toml
 export const PAID_CHECKS_PER_MONTH = 300
 
-// Configuration constants
 const DEFAULT_MODEL = "gpt-3.5-turbo"
 const MAX_CONTENT_LENGTH = 12000
 const DEFAULT_TEMPERATURE = 0.2
 const MAX_TOKENS = 4000
 
-// OpenAI API response structure
 interface OpenAIResponse {
   id: string
   object: string
@@ -53,33 +46,24 @@ interface OpenAIResponse {
 
 type ContentData = EmailData | TextData | URLData | PageData
 
-/**
- * Helper function to determine if data is EmailData
- */
 function isEmailData(data: ContentData): data is EmailData {
   return "sender" in data && "subject" in data
 }
 
-/**
- * Helper function to determine if data is URLData
- */
 function isURLData(data: ContentData): data is URLData {
   return "url" in data && !("visibleText" in data) && !("content" in data)
 }
 
-/**
- * Helper function to determine if data is PageData
- */
 function isPageData(data: ContentData): data is PageData {
   return "visibleText" in data
 }
 
-/**
- * Helper function to build the prompt based on content type
- */
-function buildPrompt(data: ContentData): string {
-  if (isURLData(data)) {
-    return `You are a cybersecurity expert analyzing a URL for potential fraud, phishing, or malicious content. Please analyze this URL:
+const JSON_FOOTER = `\nEnsure the JSON is valid and properly formatted.`
+
+const FLAG_INSTRUCTION = `each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')`
+
+function buildURLPrompt(data: URLData): string {
+  return `You are a cybersecurity expert analyzing a URL for potential fraud, phishing, or malicious content. Please analyze this URL:
 
 URL: ${data.url}
 
@@ -96,27 +80,25 @@ Analyze this URL for signs of danger, such as:
 Provide your analysis in JSON format with the following fields:
 - threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this URL is or isn't suspicious
-- flags: An array of suspicious things found, each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')
+- flags: An array of suspicious things found, ${FLAG_INSTRUCTION}
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
+${JSON_FOOTER}`
+}
 
-Ensure the JSON is valid and properly formatted.`
-  }
-
-  if (isPageData(data)) {
-    const sensitiveFieldNames = ["password", "ssn", "social", "card", "cvv", "cvc", "account", "routing", "pin", "dob", "birth"]
-    const hasSensitiveForms = data.forms.some((f) =>
-      f.fieldTypes.includes("password") ||
-      f.fieldNames.some((n) => sensitiveFieldNames.some((s) => n.includes(s)))
-    )
-    const hasIframes = data.iframeSources.length > 0
-
-    const formSummary = data.forms.length === 0
+function buildPagePrompt(data: PageData): string {
+  const sensitiveFieldNames = ["password", "ssn", "social", "card", "cvv", "cvc", "account", "routing", "pin", "dob", "birth"]
+  const hasSensitiveForms = data.forms.some(
+    (f) => f.fieldTypes.includes("password") || f.fieldNames.some((n) => sensitiveFieldNames.some((s) => n.includes(s)))
+  )
+  const hasIframes = data.iframeSources.length > 0
+  const formSummary =
+    data.forms.length === 0
       ? "None"
-      : data.forms.map((f, i) =>
-          `Form ${i + 1}: field types [${f.fieldTypes.join(", ")}], field names [${f.fieldNames.join(", ")}]`
-        ).join("\n")
+      : data.forms
+          .map((f, i) => `Form ${i + 1}: field types [${f.fieldTypes.join(", ")}], field names [${f.fieldNames.join(", ")}]`)
+          .join("\n")
 
-    return `You are a cybersecurity expert analyzing a web page for potential fraud, scams, or phishing. Here is the page data:
+  return `You are a cybersecurity expert analyzing a web page for potential fraud, scams, or phishing. Here is the page data:
 
 URL: ${data.url}
 Title: ${data.title}
@@ -153,16 +135,14 @@ Provide your analysis in JSON format with the following fields:
 - explanation: A detailed explanation of why this page is or isn't suspicious, written so a non-technical person can understand
 - flags: An array of suspicious things found, each written in plain simple language (avoid jargon — say 'the page has a login form but the web address is not the real company' rather than 'credential phishing')
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
+${JSON_FOOTER}`
+}
 
-Ensure the JSON is valid and properly formatted.`
-  }
+function buildEmailPrompt(data: EmailData): string {
+  const truncated = data.content.substring(0, MAX_CONTENT_LENGTH)
+  const contentDisplay = `${truncated}${data.content.length > MAX_CONTENT_LENGTH ? "...(truncated)" : ""}`
 
-  const truncatedContent = (data as EmailData | TextData).content.substring(0, MAX_CONTENT_LENGTH)
-  const isTruncated = (data as EmailData | TextData).content.length > MAX_CONTENT_LENGTH
-  const contentDisplay = `${truncatedContent}${isTruncated ? "...(truncated)" : ""}`
-
-  if (isEmailData(data)) {
-    return `You are a cybersecurity expert analyzing an email for potential fraud or phishing. Please analyze this email:
+  return `You are a cybersecurity expert analyzing an email for potential fraud or phishing. Please analyze this email:
 
 Sender: ${data.sender}
 Subject: ${data.subject || "(No subject)"}
@@ -182,13 +162,17 @@ Analyze this email for signs of fraud, such as:
 Provide your analysis in JSON format with the following fields:
 - threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this email is or isn't suspicious
-- flags: An array of suspicious things found, each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')
+- flags: An array of suspicious things found, ${FLAG_INSTRUCTION}
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
+${JSON_FOOTER}`
+}
 
-Ensure the JSON is valid and properly formatted.`
-  } else {
-    const urlContext = (data as TextData).url ? `\nSource URL or subject: ${(data as TextData).url}\n` : ""
-    return `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
+function buildTextPrompt(data: TextData): string {
+  const truncated = data.content.substring(0, MAX_CONTENT_LENGTH)
+  const contentDisplay = `${truncated}${data.content.length > MAX_CONTENT_LENGTH ? "...(truncated)" : ""}`
+  const urlContext = data.url ? `\nSource URL or subject: ${data.url}\n` : ""
+
+  return `You are a cybersecurity expert analyzing text for potential fraud, scams, or suspicious content. Please analyze this text:
 ${urlContext}
 Content:
 ${contentDisplay}
@@ -208,24 +192,18 @@ Analyze this text for signs of fraud, such as:
 Provide your analysis in JSON format with the following fields:
 - threatRating: A number from 1 to 100 where 1 is completely safe and 100 is highly dangerous
 - explanation: A detailed explanation of why this content is or isn't suspicious
-- flags: An array of suspicious things found, each written in plain simple language that a non-technical person can easily understand (avoid technical jargon like 'typosquatting', 'homograph', 'TLD' — instead say things like 'the web address has a misspelling to look like a real company' or 'the web address ending is commonly used by scammers')
+- flags: An array of suspicious things found, ${FLAG_INSTRUCTION}
 - confidence: A number between 0 and 1 indicating your confidence in the assessment
-
-Ensure the JSON is valid and properly formatted.`
-  }
+${JSON_FOOTER}`
 }
 
-interface CheckOptions {
-  apiKey?: string
-  model?: string
-  connectionMode?: ConnectionMode
-  deviceId?: string
-  licenseKey?: string
+function buildPrompt(data: ContentData): string {
+  if (isURLData(data)) return buildURLPrompt(data)
+  if (isPageData(data)) return buildPagePrompt(data)
+  if (isEmailData(data)) return buildEmailPrompt(data)
+  return buildTextPrompt(data as TextData)
 }
 
-/**
- * Unified function to check content for fraud using OpenAI (BYOK or proxy)
- */
 export async function checkContentWithOpenAI(
   data: ContentData,
   apiKey: string,
@@ -248,42 +226,28 @@ export async function checkContentWithOpenAI(
     let response: { data: OpenAIResponse }
 
     if (connectionMode === "proxy") {
-      // Route through FRED's Cloudflare Worker proxy
       response = await axios.post<OpenAIResponse>(
         PROXY_URL,
         { deviceId, licenseKey, payload: openaiPayload },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-FRED-Secret": PROXY_SECRET,
-          },
-        }
+        { headers: { "Content-Type": "application/json", "X-FRED-Secret": PROXY_SECRET } }
       )
     } else {
-      // Direct BYOK call to OpenAI
       response = await axios.post<OpenAIResponse>(OPENAI_API_URL, openaiPayload, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       })
     }
 
-    // Parse the response content from OpenAI
     if (response.data.choices?.length > 0) {
       try {
         const content = response.data.choices[0].message.content
         const result = JSON.parse(content)
 
-        // Validate the response format
         if (!result.threatRating || !result.explanation) {
           throw new Error("Invalid response format from OpenAI")
         }
 
-        // Ensure threatRating is within the expected range (1-100)
         const threatRating = Math.max(1, Math.min(100, Math.round(result.threatRating)))
 
-        // Return the standardized response
         return {
           success: true,
           threatRating,
@@ -308,7 +272,6 @@ export async function checkContentWithOpenAI(
   } catch (error) {
     console.error("Error calling OpenAI API:", error)
 
-    // Handle OpenAI API errors
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError
       if (axiosError.response) {
@@ -321,7 +284,6 @@ export async function checkContentWithOpenAI(
       }
     }
 
-    // For other errors, standardize the format
     const contentType = isEmailData(data) ? "email" : isURLData(data) ? "url" : isPageData(data) ? "page" : "text"
     throw {
       success: false,
@@ -330,39 +292,6 @@ export async function checkContentWithOpenAI(
   }
 }
 
-/**
- * Backward compatibility wrapper for email checking
- * @param emailData The email data to analyze
- * @param apiKey OpenAI API key
- * @returns The fraud check results
- */
-export async function checkEmailWithOpenAI(
-  emailData: EmailData,
-  apiKey: string
-): Promise<FraudCheckResponse> {
-  return checkContentWithOpenAI(emailData, apiKey)
-}
-
-/**
- * Backward compatibility wrapper for text checking
- * @param textData The text data to analyze
- * @param apiKey OpenAI API key
- * @returns The fraud check results
- */
-export async function checkTextWithOpenAI(
-  textData: TextData,
-  apiKey: string
-): Promise<FraudCheckResponse> {
-  return checkContentWithOpenAI(textData, apiKey)
-}
-
-/**
- * Unified safe check function for content analysis
- * @param data The content data to analyze
- * @param apiKey OpenAI API key
- * @param model Optional model override
- * @returns A tuple with [data, error] where only one is defined
- */
 export async function safeCheckContentWithOpenAI(
   data: ContentData,
   apiKey: string,
@@ -375,50 +304,18 @@ export async function safeCheckContentWithOpenAI(
     const result = await checkContentWithOpenAI(data, apiKey, model, connectionMode, deviceId, licenseKey)
     return [result, null]
   } catch (error) {
-    const errorResponse: ApiErrorResponse = {
-      success: false,
-      message: "An unexpected error occurred during fraud check",
-    }
-
     if (error && typeof error === "object" && "success" in error && !error.success) {
       return [null, error as ApiErrorResponse]
     }
 
-    if (error instanceof Error) {
-      errorResponse.message = error.message
+    const errorResponse: ApiErrorResponse = {
+      success: false,
+      message: error instanceof Error ? error.message : "An unexpected error occurred during fraud check",
     }
-
     return [null, errorResponse]
   }
 }
 
-/**
- * Backward compatibility wrapper for safe email checking
- * @param emailData The email data to analyze
- * @param apiKey OpenAI API key
- * @returns A tuple with [data, error] where only one is defined
- */
-export async function safeCheckEmailWithOpenAI(
-  emailData: EmailData,
-  apiKey: string
-): Promise<[FraudCheckResponse | null, ApiErrorResponse | null]> {
-  return safeCheckContentWithOpenAI(emailData, apiKey)
-}
-
-/**
- * Backward compatibility wrapper for safe text checking
- * @param textData The text data to analyze
- * @param apiKey OpenAI API key
- * @returns A tuple with [data, error] where only one is defined
- */
-export async function safeCheckTextWithOpenAI(
-  textData: TextData,
-  apiKey: string
-): Promise<[FraudCheckResponse | null, ApiErrorResponse | null]> {
-  return safeCheckContentWithOpenAI(textData, apiKey)
-}
-
-// Export type references for backward compatibility
 export type {
   ApiErrorResponse,
   EmailData,

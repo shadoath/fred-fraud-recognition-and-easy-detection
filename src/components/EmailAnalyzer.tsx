@@ -4,27 +4,23 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
-  Paper,
   TextField,
   Tooltip,
-  Typography,
-  useTheme,
 } from "@mui/material"
 import { forwardRef, useImperativeHandle, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { useApiKey } from "../hooks/useApiKey"
-import { safeCheckContentWithOpenAI, type EmailData } from "../lib/fraudService"
-import { getThreatColor, ThreatRating } from "./ThreatRating"
+import { toastApiError } from "../lib/apiErrorUtils"
+import { type EmailData,safeCheckContentWithOpenAI } from "../lib/fraudService"
+import { AnalysisResultPanel } from "./AnalysisResultPanel"
 
-// Define types for the fraud check results for the UI
 export interface EmailCheckResult {
-  threatRating: number // 1-100 scale
+  threatRating: number
   explanation: string
   sender: string
   subject: string
-  flags?: string[] // Optional indicators of fraud
+  flags?: string[]
   confidence?: number
   tokenUsage?: {
     promptTokens: number
@@ -45,52 +41,28 @@ export interface EmailAnalyzerRef {
   extractEmail: () => void
 }
 
-const DEFAULT_VALUES = {
-  SUBJECT: "No Subject",
-}
+const DEFAULT_SUBJECT = "No Subject"
 
 export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
   ({ onAnalysisComplete }, ref) => {
-    // State management
     const [isChecking, setIsChecking] = useState(false)
     const [isExtracting, setIsExtracting] = useState(false)
     const [result, setResult] = useState<EmailCheckResult | null>(null)
-    const [emailFormData, setEmailFormData] = useState({
-      sender: "",
-      subject: "",
-      content: "",
-    })
+    const [emailFormData, setEmailFormData] = useState({ sender: "", subject: "", content: "" })
 
-    // Hooks
     const { apiKey, hasApiKey, selectedModel, connectionMode, deviceId, licenseKey } = useApiKey()
     const { toast } = useCustomSnackbar()
-    const theme = useTheme()
 
-    // Expose methods to parent component
-    useImperativeHandle(ref, () => ({
-      extractEmail: extractCurrentEmail,
-    }))
+    useImperativeHandle(ref, () => ({ extractEmail: extractCurrentEmail }))
 
-    // Form field handlers
     const handleFieldChange =
       (field: keyof typeof emailFormData) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setEmailFormData({
-          ...emailFormData,
-          [field]: e.target.value,
-        })
+        setEmailFormData({ ...emailFormData, [field]: e.target.value })
       }
 
-    // Reset form fields
-    const resetForm = () => {
-      setEmailFormData({
-        sender: "",
-        subject: "",
-        content: "",
-      })
-    }
+    const resetForm = () => setEmailFormData({ sender: "", subject: "", content: "" })
 
-    // API key validation
     const validateApiKey = (): boolean => {
       if (connectionMode !== "proxy" && !hasApiKey) {
         toast.error("API key required. Please add an OpenAI API key in the settings.")
@@ -99,48 +71,30 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       return true
     }
 
-    // Function to extract email from the current tab
     const extractCurrentEmail = async () => {
       if (!validateApiKey()) return
 
       setIsExtracting(true)
       try {
-        // Get the current active tab
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
-        if (!tabs[0]?.id) {
-          throw new Error("No active tab found")
-        }
+        if (!tabs[0]?.id) throw new Error("No active tab found")
 
-        // Check if we're on Gmail
         const url = tabs[0].url || ""
         if (!url.includes("mail.google.com")) {
           throw new Error("Email extraction is only supported for Gmail. Please manually enter the email details above.")
         }
 
-        // Execute the scrapeGmail function from our injected content script
-        // First ensure we have permission to access the tab
-        await chrome.scripting.executeScript({
-          target: { tabId: tabs[0].id },
-          func: () => {
-            // Do nothing, just verify we can execute scripts in this tab
-            return true
-          },
-        })
+        // Verify script access
+        await chrome.scripting.executeScript({ target: { tabId: tabs[0].id }, func: () => true })
 
-        // Now extract the email data
-        const [result] = await chrome.scripting.executeScript({
+        const [injectionResult] = await chrome.scripting.executeScript({
           target: { tabId: tabs[0].id },
           func: () => {
             try {
-              // Gmail-specific selectors
-              const email1 = document
-                .querySelector("[data-message-id] [email]")
-                ?.getAttribute("email")
+              const email1 = document.querySelector("[data-message-id] [email]")?.getAttribute("email")
               const email2 = document.querySelector(".gE [email]")?.getAttribute("email")
               const email3 = document.querySelector(".gD [email]")?.getAttribute("email")
-              const email4 = document
-                .querySelector("[data-hovercard-id]")
-                ?.getAttribute("data-hovercard-id")
+              const email4 = document.querySelector("[data-hovercard-id]")?.getAttribute("data-hovercard-id")
               const email5 = document.querySelector(".go")?.textContent?.trim()
               const sender = email1 || email2 || email3 || email4 || email5
               console.info({ email1, email2, email3, email4, email5, sender })
@@ -148,91 +102,52 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
                 document.querySelector(".ha h2")?.textContent ||
                 document.querySelector("[data-message-id] .hP")?.textContent
               const content =
-                document
-                  .querySelector("[data-message-id] .a3s.aiL")
-                  ?.textContent?.replace(/\n+/g, " ")
-                  .trim() ||
+                document.querySelector("[data-message-id] .a3s.aiL")?.textContent?.replace(/\n+/g, " ").trim() ||
                 document.querySelector(".a3s")?.textContent?.replace(/\n+/g, " ").trim()
 
               if (sender && content) {
-                return {
-                  success: true,
-                  sender,
-                  subject: subject || "No Subject",
-                  content,
-                  timestamp: new Date().toISOString(),
-                }
-              } else {
-                return {
-                  success: false,
-                  message: "Could not extract email data. Make sure you have an email open.",
-                }
+                return { success: true, sender, subject: subject || "No Subject", content, timestamp: new Date().toISOString() }
               }
+              return { success: false, message: "Could not extract email data. Make sure you have an email open." }
             } catch (error) {
-              return {
-                success: false,
-                message:
-                  "Error extracting email: " +
-                  (error instanceof Error ? error.message : String(error)),
-              }
+              return { success: false, message: "Error extracting email: " + (error instanceof Error ? error.message : String(error)) }
             }
           },
         })
 
-        const extractResult = result.result || null
+        const extractResult = injectionResult.result ?? null
+        if (!extractResult?.success) throw new Error(extractResult?.message || "Failed to extract email content")
 
-        if (!extractResult || !extractResult.success) {
-          throw new Error(extractResult?.message || "Failed to extract email content")
-        }
-
-        // Populate the form with extracted data
         const emailData = {
           sender: extractResult.sender || "",
           subject: extractResult.subject || "",
           content: extractResult.content || "",
         }
         setEmailFormData(emailData)
-
         toast.success("Email extracted from Gmail")
 
-        // Auto-analyze the extracted email
         if (emailData.sender && emailData.content) {
-          // Immediately analyze the extracted email
           await analyzeEmail(emailData)
         }
       } catch (error) {
         console.error("Gmail extraction error:", error)
-
-        // Provide more helpful error messages
         if (error instanceof Error) {
-          const errorMsg = error.message || ""
-
-          if (errorMsg.includes("Please open Gmail")) {
-            toast.error(
-              "Please open Gmail to extract email content. This extension currently only supports Gmail."
-            )
-          } else if (errorMsg.includes("Permission")) {
-            toast.error(
-              "Permission required. Please make sure you've allowed this extension to access Gmail."
-            )
-          } else if (
-            errorMsg.includes("Could not establish connection") ||
-            errorMsg.includes("Receiving end does not exist")
-          ) {
+          const msg = error.message || ""
+          if (msg.includes("Please open Gmail")) {
+            toast.error("Please open Gmail to extract email content. This extension currently only supports Gmail.")
+          } else if (msg.includes("Permission")) {
+            toast.error("Permission required. Please make sure you've allowed this extension to access Gmail.")
+          } else if (msg.includes("Could not establish connection") || msg.includes("Receiving end does not exist")) {
             toast.error("Connection to Gmail failed. Try refreshing the Gmail page and try again.")
             console.error("ContentScript connection error:", error)
-          } else if (errorMsg.includes("Cannot access a chrome")) {
-            toast.error(
-              "Access to Gmail denied. Please click on the Gmail page once before extracting."
-            )
+          } else if (msg.includes("Cannot access a chrome")) {
+            toast.error("Access to Gmail denied. Please click on the Gmail page once before extracting.")
           } else {
-            toast.error(errorMsg || "Failed to extract email from Gmail")
+            toast.error(msg || "Failed to extract email from Gmail")
             console.error("Extraction error:", error)
           }
         } else {
-          toast.error(
-            "Failed to extract email from Gmail. Please make sure you have an email open."
-          )
+          toast.error("Failed to extract email from Gmail. Please make sure you have an email open.")
           console.error("Unknown error:", error)
         }
       } finally {
@@ -240,7 +155,6 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       }
     }
 
-    // Shared analysis handler for both extracted and manually entered emails
     const analyzeEmail = async (emailData: { sender: string; subject: string; content: string }) => {
       if (!validateApiKey()) return
 
@@ -248,54 +162,40 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       try {
         const emailDataForAnalysis: EmailData = {
           sender: emailData.sender.trim(),
-          subject: emailData.subject.trim() || DEFAULT_VALUES.SUBJECT,
+          subject: emailData.subject.trim() || DEFAULT_SUBJECT,
           content: emailData.content.trim(),
           timestamp: new Date().toISOString(),
         }
 
-        const [fraudResult, error] = await safeCheckContentWithOpenAI(emailDataForAnalysis, apiKey || "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined)
+        const [fraudResult, error] = await safeCheckContentWithOpenAI(
+          emailDataForAnalysis, apiKey || "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
+        )
 
-        if (error) {
-          handleApiError(error)
-          return
-        }
-
-        if (!fraudResult) {
-          toast.error("Failed to analyze email. Please try again later.")
-          return
-        }
+        if (error) { toastApiError(toast.error, error); return }
+        if (!fraudResult) { toast.error("Failed to analyze email. Please try again later."); return }
 
         const checkResult: EmailCheckResult = {
           threatRating: fraudResult.threatRating,
           explanation: fraudResult.explanation,
           sender: emailDataForAnalysis.sender,
-          subject: emailDataForAnalysis.subject || DEFAULT_VALUES.SUBJECT,
+          subject: emailDataForAnalysis.subject ?? DEFAULT_SUBJECT,
           flags: fraudResult.flags,
           confidence: fraudResult.confidence,
           tokenUsage: fraudResult.tokenUsage,
         }
 
         setResult(checkResult)
-
-        if (onAnalysisComplete) {
-          onAnalysisComplete(
-            "email",
-            {
-              sender: emailDataForAnalysis.sender,
-              subject: emailDataForAnalysis.subject,
-              content: emailDataForAnalysis.content,
-            },
-            checkResult
-          )
-        }
-
+        onAnalysisComplete?.("email", {
+          sender: emailDataForAnalysis.sender,
+          subject: emailDataForAnalysis.subject,
+          content: emailDataForAnalysis.content,
+        }, checkResult)
         resetForm()
       } finally {
         setIsChecking(false)
       }
     }
 
-    // Submit handler for manual form entry — validates inputs then delegates to analyzeEmail
     const checkEmail = async () => {
       if (!emailFormData.sender.trim() || !emailFormData.content.trim()) {
         toast.error("Please enter at least sender and content information")
@@ -304,186 +204,91 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       await analyzeEmail(emailFormData)
     }
 
-    const handleApiError = (error: { status?: number; message?: string }) => {
-      if (error?.status === 401) {
-        toast.error("Invalid API key. Please check your OpenAI API key.")
-      } else {
-        toast.error(error?.message ?? "Failed to analyze email. Please try again later.")
-      }
-    }
-
-    // UI Component: Email Input Form
     const hasFormContent = emailFormData.sender.trim() && emailFormData.content.trim()
 
-    const EmailInputForm = () => (
-      <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-        <TextField
-          fullWidth
-          label="Sender Email"
-          placeholder="e.g., sender@domain.com"
-          value={emailFormData.sender}
-          onChange={handleFieldChange("sender")}
-          sx={{ mb: 2 }}
-          size="small"
-          variant="outlined"
-        />
-
-        <TextField
-          fullWidth
-          label="Subject (optional)"
-          placeholder="Email subject line"
-          value={emailFormData.subject}
-          onChange={handleFieldChange("subject")}
-          sx={{ mb: 2 }}
-          size="small"
-          variant="outlined"
-        />
-
-        <TextField
-          fullWidth
-          label="Email Content"
-          placeholder="Paste the email content here..."
-          multiline
-          rows={5}
-          value={emailFormData.content}
-          onChange={handleFieldChange("content")}
-          sx={{ mb: 2 }}
-          variant="outlined"
-        />
-
-        <Box sx={{ mt: "auto" }}>
-          {hasFormContent ? (
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              disabled={isChecking || isExtracting || (connectionMode !== "proxy" && !hasApiKey)}
-              onClick={checkEmail}
-              startIcon={isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />}
-              sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
-            >
-              {isChecking ? "Analyzing..." : "Check For Fraud"}
-            </Button>
-          ) : (
-            <Tooltip title="Extract email from current Gmail tab">
-              <span style={{ display: "block" }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  onClick={extractCurrentEmail}
-                  disabled={isExtracting || isChecking || (connectionMode !== "proxy" && !hasApiKey)}
-                  startIcon={isExtracting ? <CircularProgress size={18} color="inherit" /> : <ContentPasteIcon />}
-                  sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
-                >
-                  {isExtracting ? "Extracting..." : "Extract from Tab"}
-                </Button>
-              </span>
-            </Tooltip>
-          )}
-        </Box>
-      </Box>
-    )
-
-    // UI Component: Results Display
-    const ResultsDisplay = () => {
-      if (!result) return null
-
-      return (
-        <Box sx={{ width: "100%" }}>
-          {/* Using our custom ThreatRating component */}
-          <ThreatRating rating={result.threatRating} explanation={result.explanation} />
-
-          {/* Detected Indicators */}
-          {result.flags && result.flags.length > 0 && (
-            <Paper
-              elevation={0}
-              sx={{
-                mt: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  theme.palette.mode === "dark"
-                    ? `${getThreatColor(result.threatRating)}10`
-                    : `${getThreatColor(result.threatRating)}08`,
-                border: `1px solid ${getThreatColor(result.threatRating)}30`,
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  mb: 1.5,
-                  fontWeight: 600,
-                  color: getThreatColor(result.threatRating),
-                }}
-              >
-                Detected Indicators:
-              </Typography>
-
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
-                {result.flags.map((flag) => (
-                  <Chip
-                    key={flag}
-                    label={flag}
-                    size="small"
-                    sx={{
-                      backgroundColor:
-                        theme.palette.mode === "dark"
-                          ? `${getThreatColor(result.threatRating)}20`
-                          : `${getThreatColor(result.threatRating)}15`,
-                      color: getThreatColor(result.threatRating),
-                      borderRadius: 1,
-                      fontSize: "0.75rem",
-                      "& .MuiChip-label": {
-                        px: 1,
-                      },
-                    }}
-                  />
-                ))}
-              </Box>
-            </Paper>
-          )}
-
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setResult(null)}
-              sx={{
-                borderRadius: 2,
-                textTransform: "none",
-                boxShadow: 2,
-              }}
-              size="medium"
-            >
-              Analyze Another Email
-            </Button>
-          </Box>
-        </Box>
-      )
-    }
-
     return (
-      <Box
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Box sx={{ flex: 1, overflow: "auto" }}>
-          {!result ? (
+          {result ? (
+            <AnalysisResultPanel
+              result={result}
+              onReset={() => setResult(null)}
+              resetLabel="Analyze Another Email"
+            />
+          ) : (
             <Box>
               {connectionMode !== "proxy" && !hasApiKey && (
                 <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
                   An OpenAI API key is required. Please add your API key in the settings.
                 </Alert>
               )}
-              <EmailInputForm />
+
+              <TextField
+                fullWidth
+                label="Sender Email"
+                placeholder="e.g., sender@domain.com"
+                value={emailFormData.sender}
+                onChange={handleFieldChange("sender")}
+                sx={{ mb: 2 }}
+                size="small"
+                variant="outlined"
+              />
+
+              <TextField
+                fullWidth
+                label="Subject (optional)"
+                placeholder="Email subject line"
+                value={emailFormData.subject}
+                onChange={handleFieldChange("subject")}
+                sx={{ mb: 2 }}
+                size="small"
+                variant="outlined"
+              />
+
+              <TextField
+                fullWidth
+                label="Email Content"
+                placeholder="Paste the email content here..."
+                multiline
+                rows={5}
+                value={emailFormData.content}
+                onChange={handleFieldChange("content")}
+                sx={{ mb: 2 }}
+                variant="outlined"
+              />
+
+              <Box sx={{ mt: "auto" }}>
+                {hasFormContent ? (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="primary"
+                    disabled={isChecking || isExtracting || (connectionMode !== "proxy" && !hasApiKey)}
+                    onClick={checkEmail}
+                    startIcon={isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />}
+                    sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
+                  >
+                    {isChecking ? "Analyzing..." : "Check For Fraud"}
+                  </Button>
+                ) : (
+                  <Tooltip title="Extract email from current Gmail tab">
+                    <span style={{ display: "block" }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        color="primary"
+                        onClick={extractCurrentEmail}
+                        disabled={isExtracting || isChecking || (connectionMode !== "proxy" && !hasApiKey)}
+                        startIcon={isExtracting ? <CircularProgress size={18} color="inherit" /> : <ContentPasteIcon />}
+                        sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
+                      >
+                        {isExtracting ? "Extracting..." : "Extract from Tab"}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                )}
+              </Box>
             </Box>
-          ) : (
-            <ResultsDisplay />
           )}
         </Box>
       </Box>
