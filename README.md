@@ -46,7 +46,7 @@ For the price of a cup of coffee, get peace of mind:
 - **Enhanced AI analysis** for better accuracy
 - Cancel anytime, 14-day money-back guarantee
 
-[Subscribe to FRED Premium](https://fred-security.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d)
+[Subscribe to FRED Premium](https://whiteboard-works.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d)
 
 ### Bring Your Own Key (BYOK)
 

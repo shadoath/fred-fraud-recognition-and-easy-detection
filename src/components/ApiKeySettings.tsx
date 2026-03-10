@@ -143,7 +143,7 @@ export const ApiKeySettings = () => {
                           variant="contained"
                           color="primary"
                           size="small"
-                          href="https://fred-security.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d"
+                          href="https://whiteboard-works.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d"
                           target="_blank"
                           rel="noopener noreferrer"
                           sx={{ mt: 1.5, borderRadius: 2, textTransform: "none", boxShadow: 2 }}
