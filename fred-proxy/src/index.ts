@@ -8,7 +8,7 @@ export interface Env {
 }
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-const DEFAULT_FREE_LIMIT = 10
+const DEFAULT_FREE_LIMIT = 3
 const DEFAULT_PAID_LIMIT = 300
 const LICENSE_CACHE_TTL = 60 * 60 // 1 hour in seconds
 const KV_EXPIRATION_TTL = 60 * 24 * 60 * 60 // 60 days in seconds
@@ -43,10 +43,7 @@ interface LicenseValidation {
   cachedAt: number
 }
 
-const validateLicenseKey = async (
-  licenseKey: string,
-  env: Env
-): Promise<boolean> => {
+const validateLicenseKey = async (licenseKey: string, env: Env): Promise<boolean> => {
   if (!licenseKey || !env.LEMONSQUEEZY_API_KEY) return false
 
   // Check KV cache first
@@ -59,14 +56,11 @@ const validateLicenseKey = async (
 
   // Validate against LemonSqueezy API
   try {
-    const response = await fetch(
-      "https://api.lemonsqueezy.com/v1/licenses/validate",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ license_key: licenseKey }),
-      }
-    )
+    const response = await fetch("https://api.lemonsqueezy.com/v1/licenses/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ license_key: licenseKey }),
+    })
 
     const data = (await response.json()) as {
       valid: boolean
@@ -74,15 +68,12 @@ const validateLicenseKey = async (
     }
 
     // Key is valid only if the API says so AND the subscription is active
-    const valid =
-      data.valid === true && data.license_key?.status === "active"
+    const valid = data.valid === true && data.license_key?.status === "active"
 
     // Cache the result
-    await env.USAGE_KV.put(
-      cacheKey,
-      JSON.stringify({ valid, cachedAt: Date.now() / 1000 }),
-      { expirationTtl: LICENSE_CACHE_TTL * 2 }
-    )
+    await env.USAGE_KV.put(cacheKey, JSON.stringify({ valid, cachedAt: Date.now() / 1000 }), {
+      expirationTtl: LICENSE_CACHE_TTL * 2,
+    })
 
     return valid
   } catch {
@@ -137,13 +128,9 @@ export default {
       ? Number.parseInt(env.PAID_MONTHLY_LIMIT ?? String(DEFAULT_PAID_LIMIT))
       : Number.parseInt(env.FREE_MONTHLY_LIMIT ?? String(DEFAULT_FREE_LIMIT))
 
-    const kvKey = isPaid
-      ? `paid:${licenseKey}:${monthKey}`
-      : `free:${deviceId}:${monthKey}`
+    const kvKey = isPaid ? `paid:${licenseKey}:${monthKey}` : `free:${deviceId}:${monthKey}`
 
-    const currentCount = Number.parseInt(
-      (await env.USAGE_KV.get(kvKey)) ?? "0"
-    )
+    const currentCount = Number.parseInt((await env.USAGE_KV.get(kvKey)) ?? "0")
 
     if (currentCount >= limit) {
       return json(
