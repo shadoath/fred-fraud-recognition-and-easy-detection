@@ -200,7 +200,7 @@ export const ApiKeySettings = () => {
                     color="error"
                     size="small"
                     onClick={clearLicenseKey}
-                    sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+                    sx={{ borderRadius: 2 }}
                   >
                     Remove
                   </Button>
@@ -215,7 +215,7 @@ export const ApiKeySettings = () => {
                       }
                     }}
                     disabled={!licenseInput.trim()}
-                    sx={{ borderRadius: 2, textTransform: "none", whiteSpace: "nowrap" }}
+                    sx={{ borderRadius: 2 }}
                   >
                     Activate
                   </Button>

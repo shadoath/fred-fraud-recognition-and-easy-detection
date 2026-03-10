@@ -23,6 +23,7 @@ import { findHistoryMatch } from "../lib/historyStorage"
 import { scrapeCurrentPage } from "../lib/pageScraper"
 import type { PageData } from "../types/fraudTypes"
 import { AnalysisResultPanel } from "./AnalysisResultPanel"
+import { ScanningIndicator } from "./ScanningIndicator"
 
 export interface ContentCheckResult {
   threatRating: number
@@ -116,10 +117,21 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
           timestamp: new Date().toISOString(),
         }
         const [apiResult, error] = await safeCheckContentWithOpenAI(
-          textData, apiKey ?? "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
+          textData,
+          apiKey ?? "",
+          selectedModel,
+          connectionMode,
+          deviceId,
+          licenseKey ?? undefined
         )
-        if (error) { toastApiError(toast.error, error); return }
-        if (!apiResult) { toast.error("Failed to analyze text. Please try again later."); return }
+        if (error) {
+          toastApiError(toast.error, error)
+          return
+        }
+        if (!apiResult) {
+          toast.error("Failed to analyze text. Please try again later.")
+          return
+        }
         finishWithResult(apiResult, "text", trimmedContent)
       } else {
         const cached = await findHistoryMatch("url", { content: trimmedSubjectOrUrl })
@@ -128,15 +140,31 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
           toast.info("Loaded from history")
           return
         }
-        if (!trimmedSubjectOrUrl.startsWith("http://") && !trimmedSubjectOrUrl.startsWith("https://")) {
-          toast.warning("URL does not start with http:// or https:// — analysis will proceed but results may vary")
+        if (
+          !trimmedSubjectOrUrl.startsWith("http://") &&
+          !trimmedSubjectOrUrl.startsWith("https://")
+        ) {
+          toast.warning(
+            "URL does not start with http:// or https:// — analysis will proceed but results may vary"
+          )
         }
         const urlData: URLData = { url: trimmedSubjectOrUrl, timestamp: new Date().toISOString() }
         const [apiResult, error] = await safeCheckContentWithOpenAI(
-          urlData, apiKey ?? "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
+          urlData,
+          apiKey ?? "",
+          selectedModel,
+          connectionMode,
+          deviceId,
+          licenseKey ?? undefined
         )
-        if (error) { toastApiError(toast.error, error); return }
-        if (!apiResult) { toast.error("Failed to analyze URL. Please try again later."); return }
+        if (error) {
+          toastApiError(toast.error, error)
+          return
+        }
+        if (!apiResult) {
+          toast.error("Failed to analyze URL. Please try again later.")
+          return
+        }
         finishWithResult(apiResult, "url", trimmedSubjectOrUrl)
       }
     } catch {
@@ -164,10 +192,21 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
         return
       }
       const [apiResult, error] = await safeCheckContentWithOpenAI(
-        pageData, apiKey ?? "", selectedModel, connectionMode, deviceId, licenseKey ?? undefined
+        pageData,
+        apiKey ?? "",
+        selectedModel,
+        connectionMode,
+        deviceId,
+        licenseKey ?? undefined
       )
-      if (error) { toastApiError(toast.error, error); return }
-      if (!apiResult) { toast.error("Failed to scan page. Please try again later."); return }
+      if (error) {
+        toastApiError(toast.error, error)
+        return
+      }
+      if (!apiResult) {
+        toast.error("Failed to scan page. Please try again later.")
+        return
+      }
       finishWithResult(apiResult, "url", pageData.url)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not scan the current page")
@@ -180,7 +219,8 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
     mb: 1.5,
     "& .MuiOutlinedInput-root": {
       borderRadius: 2,
-      backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
+      backgroundColor:
+        theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
       "&:hover .MuiOutlinedInput-notchedOutline": {
         borderColor: `${theme.palette.primary.main}80`,
       },
@@ -193,28 +233,13 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <Box sx={{ flex: 1, overflow: "auto" }}>
-        {result ? (
+        {busy ? (
+          <ScanningIndicator />
+        ) : result ? (
           <AnalysisResultPanel
             result={result}
             onReset={handleReset}
             resetLabel="Check Another"
-            headerContent={
-              subjectOrUrl ? (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: "block",
-                    mt: 1,
-                    color: theme.palette.text.secondary,
-                    wordBreak: "break-all",
-                    fontFamily: "monospace",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  {subjectOrUrl}
-                </Typography>
-              ) : undefined
-            }
             footerContent={
               scannedPageData ? (
                 <Accordion
@@ -224,7 +249,8 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: "8px !important",
                     "&:before": { display: "none" },
-                    backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+                    backgroundColor:
+                      theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
                   }}
                 >
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -236,7 +262,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                     <Box
                       component="pre"
                       sx={{
-                        m: 20,
+                        m: 2,
                         p: 0,
                         overflow: "auto",
                         fontSize: "0.7rem",
@@ -262,7 +288,10 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               </Alert>
             )}
 
-            <Typography variant="body2" sx={{ mb: 2, fontSize: "0.9rem", color: theme.palette.text.secondary }}>
+            <Typography
+              variant="body2"
+              sx={{ mb: 2, fontSize: "0.9rem", color: theme.palette.text.secondary }}
+            >
               Paste text or a URL below to check for potential fraud or scams using AI analysis.
             </Typography>
 
@@ -298,7 +327,9 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                     borderRadius: 2,
                     fontSize: "0.75rem",
                     backgroundColor:
-                      theme.palette.mode === "dark" ? "rgba(41, 182, 246, 0.15)" : "rgba(41, 182, 246, 0.1)",
+                      theme.palette.mode === "dark"
+                        ? "rgba(41, 182, 246, 0.15)"
+                        : "rgba(41, 182, 246, 0.1)",
                   }}
                 >
                   Characters: {textContent.length} | Words: {textContent.trim().split(/\s+/).length}
@@ -313,7 +344,9 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                 color="primary"
                 onClick={handleSubmit}
                 disabled={busy || requiresKey}
-                startIcon={isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />}
+                startIcon={
+                  isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
+                }
                 sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
               >
                 {isChecking ? "Analyzing..." : "Check For Fraud"}
@@ -325,7 +358,9 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                 color="primary"
                 onClick={handleScanPageContent}
                 disabled={busy || requiresKey}
-                startIcon={isScanning ? <CircularProgress size={18} color="inherit" /> : <SearchIcon />}
+                startIcon={
+                  isScanning ? <CircularProgress size={18} color="inherit" /> : <SearchIcon />
+                }
                 sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
               >
                 {isScanning ? "Scanning..." : "Scan Current Page"}

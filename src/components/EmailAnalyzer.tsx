@@ -15,6 +15,7 @@ import { toastApiError } from "../lib/apiErrorUtils"
 import { type EmailData, safeCheckContentWithOpenAI } from "../lib/fraudService"
 import { findHistoryMatch } from "../lib/historyStorage"
 import { AnalysisResultPanel } from "./AnalysisResultPanel"
+import { ScanningIndicator } from "./ScanningIndicator"
 
 export interface EmailCheckResult {
   threatRating: number
@@ -225,7 +226,9 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
     return (
       <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Box sx={{ flex: 1, overflow: "auto" }}>
-          {result ? (
+          {isChecking || isExtracting ? (
+            <ScanningIndicator />
+          ) : result ? (
             <AnalysisResultPanel
               result={result}
               onReset={() => setResult(null)}

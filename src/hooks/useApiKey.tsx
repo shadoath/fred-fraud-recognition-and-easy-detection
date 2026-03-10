@@ -15,6 +15,7 @@ import {
   saveSelectedModel as persistSelectedModel,
   validateApiKeyFormat,
 } from "../lib/keyStorage"
+import { activateLicenseKey } from "../lib/fraudService"
 import {
   clearLicenseKey as removeLicenseKey,
   getLicenseKey,
@@ -152,12 +153,18 @@ export const useApiKey = (): ApiKeyState => {
     await persistSaveConnectionMode(mode)
   }
 
-  // Save license key
+  // Save license key — activate with LemonSqueezy first
   const saveLicenseKey = async (key: string): Promise<void> => {
+    const trimmed = key.trim()
+    const result = await activateLicenseKey(trimmed, deviceId)
+    if (!result.success) {
+      toast.error(result.error ?? "License key could not be activated. Check that your subscription is active.")
+      return
+    }
     try {
-      await persistLicenseKey(key)
-      setLicenseKey(key.trim())
-      toast.success("License key saved")
+      await persistLicenseKey(trimmed)
+      setLicenseKey(trimmed)
+      toast.success("License key activated")
     } catch (error) {
       console.error("Error saving license key:", error)
       toast.error("Error saving license key")

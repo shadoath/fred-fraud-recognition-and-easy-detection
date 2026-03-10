@@ -323,6 +323,25 @@ export async function safeCheckContentWithOpenAI(
   }
 }
 
+export const activateLicenseKey = async (
+  licenseKey: string,
+  deviceId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const response = await axios.post<{ success: boolean; error?: string }>(
+      `${PROXY_URL}/activate`,
+      { licenseKey, deviceId },
+      { headers: { "Content-Type": "application/json", "X-FRED-Secret": PROXY_SECRET } }
+    )
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      return { success: false, error: error.response.data.error }
+    }
+    return { success: false, error: "Failed to activate license key" }
+  }
+}
+
 export type {
   ApiErrorResponse,
   EmailData,
