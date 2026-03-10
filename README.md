@@ -104,4 +104,6 @@ See [DEV.md](DEV.md) for development setup, commands, architecture, and contribu
 
 <div align="center">
   Made with ❤️ to help protect people from scams
+  <br><br>
+  A <a href="https://whiteboardworks.com">Whiteboard Works</a> project.
 </div>
