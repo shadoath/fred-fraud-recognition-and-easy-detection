@@ -1,4 +1,3 @@
-import "./App.css"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { MainDisplay } from "./components/MainDisplay"
 import { CustomSnackbarProvider } from "./contexts/CustomSnackbarContext"

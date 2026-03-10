@@ -313,47 +313,10 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
     }
 
     // UI Component: Email Input Form
+    const hasFormContent = emailFormData.sender.trim() && emailFormData.content.trim()
+
     const EmailInputForm = () => (
-      <Box>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: "0.9rem",
-              color: theme.palette.text.secondary,
-            }}
-          >
-            Enter email details or extract from a mail client.
-          </Typography>
-
-          <Tooltip title="Extract email from current tab">
-            <Button
-              size="small"
-              variant="outlined"
-              color="primary"
-              onClick={extractCurrentEmail}
-              disabled={isExtracting || isChecking}
-              startIcon={
-                isExtracting ? <CircularProgress size={14} color="inherit" /> : <ContentPasteIcon />
-              }
-              sx={{
-                borderRadius: 2,
-                textTransform: "none",
-                fontSize: "0.8rem",
-              }}
-            >
-              {isExtracting ? "Extracting..." : "Extract from Tab"}
-            </Button>
-          </Tooltip>
-        </Box>
-
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
         <TextField
           fullWidth
           label="Sender Email"
@@ -384,32 +347,40 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
           rows={5}
           value={emailFormData.content}
           onChange={handleFieldChange("content")}
-          sx={{ mb: 3 }}
+          sx={{ mb: 2 }}
           variant="outlined"
         />
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={
-              isChecking ||
-              isExtracting ||
-              !emailFormData.sender.trim() ||
-              !emailFormData.content.trim() ||
-              (connectionMode !== "proxy" && !hasApiKey)
-            }
-            onClick={checkEmail}
-            startIcon={
-              isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
-            }
-            sx={{
-              borderRadius: 2,
-              textTransform: "none",
-            }}
-          >
-            {isChecking ? "Analyzing..." : "Check For Fraud"}
-          </Button>
+        <Box sx={{ mt: "auto" }}>
+          {hasFormContent ? (
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              disabled={isChecking || isExtracting || (connectionMode !== "proxy" && !hasApiKey)}
+              onClick={checkEmail}
+              startIcon={isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />}
+              sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
+            >
+              {isChecking ? "Analyzing..." : "Check For Fraud"}
+            </Button>
+          ) : (
+            <Tooltip title="Extract email from current Gmail tab">
+              <span style={{ display: "block" }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  onClick={extractCurrentEmail}
+                  disabled={isExtracting || isChecking || (connectionMode !== "proxy" && !hasApiKey)}
+                  startIcon={isExtracting ? <CircularProgress size={18} color="inherit" /> : <ContentPasteIcon />}
+                  sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
+                >
+                  {isExtracting ? "Extracting..." : "Extract from Tab"}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
         </Box>
       </Box>
     )
@@ -421,93 +392,7 @@ export const EmailAnalyzer = forwardRef<EmailAnalyzerRef, EmailAnalyzerProps>(
       return (
         <Box sx={{ width: "100%" }}>
           {/* Using our custom ThreatRating component */}
-          <ThreatRating rating={result.threatRating} />
-
-          {/* Email Summary */}
-          <Paper
-            elevation={0}
-            sx={{
-              mt: 2,
-              p: 2,
-              borderRadius: 2,
-              backgroundColor:
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-              border: `1px solid ${theme.palette.divider}`,
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                mb: 1,
-                fontWeight: 600,
-                color: theme.palette.primary.main,
-              }}
-            >
-              Email Details:
-            </Typography>
-
-            <Box sx={{ mb: 1 }}>
-              <Typography
-                variant="body2"
-                component="span"
-                sx={{ fontWeight: 500, color: theme.palette.text.primary }}
-              >
-                From:
-              </Typography>
-              <Typography
-                variant="body2"
-                component="span"
-                sx={{ ml: 1, color: theme.palette.text.secondary }}
-              >
-                {result.sender}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography
-                variant="body2"
-                component="span"
-                sx={{ fontWeight: 500, color: theme.palette.text.primary }}
-              >
-                Subject:
-              </Typography>
-              <Typography
-                variant="body2"
-                component="span"
-                sx={{ ml: 1, color: theme.palette.text.secondary }}
-              >
-                {result.subject}
-              </Typography>
-            </Box>
-          </Paper>
-
-          {/* Analysis */}
-          <Paper
-            elevation={0}
-            sx={{
-              mt: 2,
-              p: 2,
-              borderRadius: 2,
-              backgroundColor:
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-              border: `1px solid ${theme.palette.divider}`,
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                mb: 1,
-                fontWeight: 600,
-                color: theme.palette.primary.main,
-              }}
-            >
-              AI Analysis:
-            </Typography>
-
-            <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.5, fontSize: "0.9rem" }}>
-              {result.explanation}
-            </Typography>
-          </Paper>
+          <ThreatRating rating={result.threatRating} explanation={result.explanation} />
 
           {/* Detected Indicators */}
           {result.flags && result.flags.length > 0 && (

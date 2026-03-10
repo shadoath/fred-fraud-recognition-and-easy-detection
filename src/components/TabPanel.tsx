@@ -35,7 +35,7 @@ export const TabPanel = ({
   >
     {value === index && (
       <Fade in={value === index} timeout={timeout}>
-        <Box sx={{ p: 2, height: "100%", boxSizing: "border-box" }}>{children}</Box>
+        <Box sx={{ p: 1, height: "100%", boxSizing: "border-box" }}>{children}</Box>
       </Fade>
     )}
   </div>

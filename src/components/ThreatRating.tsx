@@ -1,9 +1,13 @@
-import SecurityIcon from "@mui/icons-material/Security"
-import WarningIcon from "@mui/icons-material/Warning"
 import { Box, LinearProgress, Paper, Typography, useTheme } from "@mui/material"
+import badImg from "/bad.png"
+import badIconImg from "/bad-icon.png"
+import goodImg from "/good.png"
+import okIconImg from "/ok-icon.png"
+import questionImg from "/question.png"
 
 interface ThreatRatingProps {
   rating: number // 1-100 scale
+  explanation?: string
 }
 
 export const getThreatColor = (rating: number): string => {
@@ -25,26 +29,38 @@ export const getThreatLevelFromScore = (score: number): string => {
   return "Very Dangerous"
 }
 
-export const ThreatRating = ({ rating }: ThreatRatingProps) => {
+export const ThreatRating = ({ rating, explanation }: ThreatRatingProps) => {
   const theme = useTheme()
 
-  const getThreatLevelText = (rating: number): string => {
-    if (rating <= 30) return "Low Risk"
-    if (rating <= 70) return "Medium Risk"
-    return "High Risk"
+  const getBannerText = (r: number): string => {
+    if (r <= 30) return "Safe Zone"
+    if (r <= 70) return "Be Careful"
+    return "Likely a Scam"
   }
 
-  const getVerdictText = (rating: number): string => {
-    if (rating <= 30) return "✓ Looks Safe"
-    if (rating <= 70) return "⚠ Be Careful"
-    return "✗ Likely a Scam"
+  const getBannerIcon = (r: number) => {
+    const src = r <= 30 ? okIconImg : badIconImg
+    return (
+      <Box
+        component="img"
+        src={src}
+        alt=""
+        sx={{ width: 36, height: 36, objectFit: "contain", mr: 1 }}
+      />
+    )
   }
 
-  const getActionableAdvice = (rating: number): string => {
-    if (rating <= 30) {
+  const getRatingImage = (r: number): string => {
+    if (r <= 30) return goodImg
+    if (r <= 70) return questionImg
+    return badImg
+  }
+
+  const getActionableAdvice = (r: number): string => {
+    if (r <= 30) {
       return "This content appears safe. No action needed, but always stay alert."
     }
-    if (rating <= 70) {
+    if (r <= 70) {
       return "Proceed carefully. Do not click links unless you are certain where they lead. Do not share personal information. When in doubt, contact the sender using a phone number you already know."
     }
     return "Do not click any links. Do not reply. Never share passwords, account numbers, or personal details. If this claims to be from your bank or government, call them directly using the number on the back of your card or their official website."
@@ -57,77 +73,49 @@ export const ThreatRating = ({ rating }: ThreatRatingProps) => {
     <Paper
       elevation={1}
       sx={{
-        p: 2,
-        borderRadius: 2,
+        p: 0,
+        m: "20px",
+        borderRadius: 4,
+        overflow: "hidden",
         border: `1px solid ${theme.palette.divider}`,
         background: theme.palette.background.paper,
         transition: "all 0.3s ease",
       }}
     >
-      <Box sx={{ width: "100%" }}>
-        {/* Verdict Banner */}
-        <Box
-          sx={{
-            borderRadius: 2,
-            p: 1.5,
-            mb: 2,
-            backgroundColor: `${ratingColor}25`,
-            border: `1px solid ${ratingColor}60`,
-            textAlign: "center",
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 700,
-              color: ratingColor,
-            }}
-          >
-            {getVerdictText(rating)}
-          </Typography>
-        </Box>
+      {/* Top Banner */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: ratingColor,
+        }}
+      >
+        {getBannerIcon(rating)}
+        <Typography variant="h6" sx={{ fontWeight: 700, color: "white" }}>
+          {getBannerText(rating)}
+        </Typography>
+      </Box>
 
-        {/* Threat Level Label and Score */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 1.5,
-          }}
-        >
-          <Typography
-            variant="body1"
-            sx={{
-              fontWeight: 500,
-              fontSize: "1rem",
-            }}
-          >
-            {getThreatLevelText(rating)}
-          </Typography>
-
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: "bold",
-              color: ratingColor,
-              display: "flex",
-              alignItems: "center",
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 2,
-              backgroundColor: `${ratingColor}15`,
-              border: `1px solid ${ratingColor}30`,
-              fontSize: "1.125rem",
-            }}
-          >
-            {rating}/100
-          </Typography>
+      <Box sx={{ p: 2 }}>
+        {/* Rating Image */}
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 1.5 }}>
+          <Box
+            component="img"
+            src={getRatingImage(rating)}
+            alt={getBannerText(rating)}
+            sx={{ width: 110, height: 110, objectFit: "contain" }}
+          />
         </Box>
 
         {/* Progress Bar */}
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
-          <SecurityIcon sx={{ color: "#4caf50", mr: 1 }} />
+        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Box
+            component="img"
+            src={okIconImg}
+            alt="safe"
+            sx={{ width: 32, height: 32, objectFit: "contain", mr: 1 }}
+          />
           <LinearProgress
             variant="determinate"
             value={rating}
@@ -144,7 +132,12 @@ export const ThreatRating = ({ rating }: ThreatRatingProps) => {
               },
             }}
           />
-          <WarningIcon sx={{ color: "#f44336", ml: 1 }} />
+          <Box
+            component="img"
+            src={badIconImg}
+            alt="danger"
+            sx={{ width: 32, height: 32, objectFit: "contain", ml: 1 }}
+          />
         </Box>
 
         {/* Rating Caption */}
@@ -152,8 +145,8 @@ export const ThreatRating = ({ rating }: ThreatRatingProps) => {
           variant="body2"
           align="center"
           sx={{
-            mt: 1,
-            fontSize: "0.75rem",
+            mb: 2,
+            fontSize: "0.9rem",
             color: theme.palette.text.secondary,
             fontStyle: "italic",
           }}
@@ -161,38 +154,71 @@ export const ThreatRating = ({ rating }: ThreatRatingProps) => {
           {ratingText}
         </Typography>
 
-        {/* What should you do? Box */}
+        {/* What should you do? */}
         <Box
           sx={{
-            mt: 2,
-            borderRadius: 2,
-            p: 1.5,
-            backgroundColor: `${ratingColor}15`,
-            border: `1px solid ${ratingColor}40`,
+            borderRadius: 3,
+            overflow: "hidden",
+            mb: explanation ? 2 : 0,
           }}
         >
-          <Typography
-            variant="body2"
+          <Box
             sx={{
-              fontWeight: 700,
-              fontSize: "0.8rem",
-              mb: 0.5,
-              color: ratingColor,
+              p: 1.25,
+              backgroundColor: ratingColor,
+              textAlign: "center",
             }}
           >
-            What should you do?
-          </Typography>
-          <Typography
-            variant="body2"
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 700, fontSize: "0.9rem", color: "white" }}
+            >
+              What should you do?
+            </Typography>
+          </Box>
+          <Box
             sx={{
-              fontSize: "0.85rem",
-              lineHeight: 1.5,
-              color: theme.palette.text.primary,
+              p: 1.5,
+              backgroundColor: `${ratingColor}18`,
+              border: `1px solid ${ratingColor}40`,
+              borderTop: "none",
+              borderRadius: "0 0 12px 12px",
             }}
           >
-            {getActionableAdvice(rating)}
-          </Typography>
+            <Typography variant="body2" sx={{ fontSize: "0.85rem", lineHeight: 1.5 }}>
+              {getActionableAdvice(rating)}
+            </Typography>
+          </Box>
         </Box>
+
+        {/* Ai Analysis */}
+        {explanation && (
+          <Box
+            sx={{
+              borderRadius: 3,
+              border: `1px solid ${theme.palette.divider}`,
+              overflow: "hidden",
+            }}
+          >
+            <Box sx={{ p: 1.5 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  color: ratingColor,
+                  textAlign: "center",
+                  mb: 1,
+                }}
+              >
+                Ai Analysis:
+              </Typography>
+              <Typography variant="body2" sx={{ fontSize: "0.85rem", lineHeight: 1.5 }}>
+                {explanation}
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Paper>
   )

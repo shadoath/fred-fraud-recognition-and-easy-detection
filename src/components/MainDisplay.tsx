@@ -1,4 +1,3 @@
-import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import HistoryIcon from "@mui/icons-material/History"
 import MailOutlineIcon from "@mui/icons-material/MailOutline"
 import SearchIcon from "@mui/icons-material/Search"
@@ -6,7 +5,6 @@ import SettingsIcon from "@mui/icons-material/Settings"
 import {
   AppBar,
   Box,
-  Button,
   Chip,
   IconButton,
   Paper,
@@ -30,52 +28,18 @@ import { TabPanel } from "./TabPanel"
 import { getThreatColor, ThreatRating } from "./ThreatRating"
 import { type ContentCheckResult, ContentAnalyzer } from "./ContentAnalyzer"
 
-const HistoryDetail = ({
-  entry,
-  onBack,
-}: {
-  entry: HistoryEntry
-  onBack: () => void
-}) => {
+const HistoryDetail = ({ entry }: { entry: HistoryEntry; onBack: () => void }) => {
   const theme = useTheme()
   return (
-    <Box sx={{ p: 2 }}>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={onBack}
-        size="small"
-        sx={{ mb: 2, textTransform: "none" }}
-      >
-        Back to History
-      </Button>
-
-      <ThreatRating rating={entry.result.threatRating} />
-
-      <Paper
-        elevation={0}
-        sx={{
-          mt: 2,
-          p: 2,
-          borderRadius: 2,
-          border: `1px solid ${theme.palette.divider}`,
-          backgroundColor:
-            theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-        }}
-      >
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.primary.main, mb: 1 }}>
-          AI Analysis:
-        </Typography>
-        <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
-          {entry.result.explanation}
-        </Typography>
-      </Paper>
+    <Box sx={{ p: 0, m: 0 }}>
+      <ThreatRating rating={entry.result.threatRating} explanation={entry.result.explanation} />
 
       {entry.result.flags && entry.result.flags.length > 0 && (
         <Paper
           elevation={0}
           sx={{
-            mt: 2,
-            p: 2,
+            p: 0,
+            m: 0,
             borderRadius: 2,
             backgroundColor:
               theme.palette.mode === "dark"
@@ -200,52 +164,63 @@ export const MainDisplay = () => {
 
   const panel = showSettings ? "settings" : showHistory ? "history" : "tabs"
 
+  const goHome = () => {
+    setShowSettings(false)
+    setShowHistory(false)
+    setSelectedHistoryEntry(null)
+  }
+
   return (
     <Paper
       elevation={2}
       sx={{
-        width: 600,
+        width: 420,
         height: 600,
-        borderRadius: 1,
+        borderRadius: 0,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         bgcolor: "background.paper",
-        padding: 1,
         margin: 0,
+        padding: 0,
       }}
     >
-      <AppBar
-        position="static"
-        elevation={0}
-        sx={{
-          background:
-            theme.palette.mode === "dark"
-              ? "linear-gradient(45deg, #1a237e 30%, #283593 90%)"
-              : "linear-gradient(45deg, #2979ff 30%, #2196f3 90%)",
-        }}
-      >
-        <Toolbar variant="dense" sx={{ minHeight: 40, justifyContent: "space-between", px: 1 }}>
-          <Typography variant="body1" sx={{ fontWeight: 700, letterSpacing: "0.05em" }}>
-            FRED {manifest?.version ? `v${manifest.version}` : ""}
-          </Typography>
-          <Box sx={{ display: "flex", gap: 0.5 }}>
+      <AppBar position="static" elevation={0} sx={{ backgroundColor: "#F5A623", margin: 0 }}>
+        <Toolbar variant="dense" sx={{ minHeight: 52, position: "relative" }}>
+          <Box
+            onClick={goHome}
+            sx={{
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              cursor: "pointer",
+            }}
+          >
+            <Box
+              component="img"
+              src="/fred-logo.png"
+              alt="FRED"
+              sx={{ height: 42, objectFit: "contain" }}
+            />
+          </Box>
+          <Box sx={{ display: "flex", gap: 0.5, ml: "auto" }}>
             <Tooltip title="History">
               <IconButton
-                color="inherit"
                 onClick={toggleHistory}
                 size="medium"
-                sx={{ opacity: showHistory ? 1 : 0.8 }}
+                sx={{ color: "#1a1a1a", opacity: showHistory ? 1 : 0.7 }}
               >
                 <HistoryIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Settings & Help">
               <IconButton
-                color="inherit"
                 onClick={toggleSettings}
                 size="medium"
-                sx={{ opacity: showSettings ? 1 : 0.8 }}
+                sx={{ color: "#1a1a1a", opacity: showSettings ? 1 : 0.7 }}
               >
                 <SettingsIcon />
               </IconButton>
@@ -280,24 +255,43 @@ export const MainDisplay = () => {
 
       {panel === "tabs" && (
         <>
-          <Tabs
-            value={tabValue}
-            onChange={(_e, v) => setTabValue(v)}
-            variant="fullWidth"
-            sx={{
-              borderBottom: 1,
-              borderColor: "divider",
-              "& .MuiTab-root": { minHeight: 48, fontSize: "0.875rem" },
-              "& .MuiTabs-indicator": { height: 2 },
-            }}
-          >
-            <Tab
-              icon={<MailOutlineIcon fontSize="small" />}
-              label={emailProvider ? `Email (${emailProvider})` : "Email"}
-              iconPosition="start"
-            />
-            <Tab icon={<SearchIcon fontSize="small" />} label="Check" iconPosition="start" />
-          </Tabs>
+          <Box sx={{ backgroundColor: "#2a2a2a" }}>
+            <Tabs
+              value={tabValue}
+              onChange={(_e, v) => setTabValue(v)}
+              variant="fullWidth"
+              sx={{
+                minHeight: 36,
+                backgroundColor: "#3d3d3d",
+                borderRadius: 2,
+                py: 0.5,
+
+                "& .MuiTabs-indicator": { display: "none" },
+                "& .MuiTab-root": {
+                  minHeight: 24,
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  color: "rgba(255,255,255,0.5)",
+                  borderRadius: 1.5,
+                  textTransform: "none",
+                  transition: "all 0.2s ease",
+                  py: 0.5,
+                },
+                "& .Mui-selected": {
+                  color: "#1a1a1a !important",
+                  backgroundColor: "#F5A623",
+                  borderRadius: 1.5,
+                },
+              }}
+            >
+              <Tab
+                icon={<MailOutlineIcon fontSize="small" />}
+                label={emailProvider ? `Email (${emailProvider})` : "Email"}
+                iconPosition="start"
+              />
+              <Tab icon={<SearchIcon fontSize="small" />} label="URL" iconPosition="start" />
+            </Tabs>
+          </Box>
 
           <Box sx={{ flex: 1, overflow: "auto", position: "relative" }}>
             <TabPanel value={tabValue} index={0} idPrefix="fred" timeout={500}>

@@ -1,5 +1,4 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import LinkIcon from "@mui/icons-material/Link"
 import SearchIcon from "@mui/icons-material/Search"
 import WarningIcon from "@mui/icons-material/Warning"
 import {
@@ -66,7 +65,17 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
     setTextContent("")
   }
 
-  const finishWithResult = (apiResult: { threatRating: number; explanation: string; flags?: string[]; confidence?: number; tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number } }, type: "text" | "url", inputContent: string) => {
+  const finishWithResult = (
+    apiResult: {
+      threatRating: number
+      explanation: string
+      flags?: string[]
+      confidence?: number
+      tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number }
+    },
+    type: "text" | "url",
+    inputContent: string
+  ) => {
     const checkResult: ContentCheckResult = {
       threatRating: apiResult.threatRating,
       explanation: apiResult.explanation,
@@ -124,7 +133,10 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
         finishWithResult(apiResult, "text", trimmedContent)
       } else {
         // Only subjectOrUrl filled → URLData
-        if (!trimmedSubjectOrUrl.startsWith("http://") && !trimmedSubjectOrUrl.startsWith("https://")) {
+        if (
+          !trimmedSubjectOrUrl.startsWith("http://") &&
+          !trimmedSubjectOrUrl.startsWith("https://")
+        ) {
           toast.warning(
             "URL does not start with http:// or https:// — analysis will proceed but results may vary"
           )
@@ -156,19 +168,6 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       toast.error("An error occurred during analysis. Please try again later.")
     } finally {
       setIsChecking(false)
-    }
-  }
-
-  const handleUseCurrentUrl = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-      if (tab?.url) {
-        setSubjectOrUrl(tab.url)
-      } else {
-        toast.error("Could not get the current tab URL")
-      }
-    } catch {
-      toast.error("Could not get the current tab URL")
     }
   }
 
@@ -240,9 +239,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
                   backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? "rgba(255,255,255,0.03)"
-                      : "rgba(0,0,0,0.01)",
+                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
                   "&:hover .MuiOutlinedInput-notchedOutline": {
                     borderColor: `${theme.palette.primary.main}80`,
                   },
@@ -254,31 +251,6 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               variant="outlined"
             />
 
-            <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                color="secondary"
-                onClick={handleScanPageContent}
-                disabled={busy}
-                startIcon={isScanning ? <CircularProgress size={14} /> : <SearchIcon />}
-                sx={{ whiteSpace: "nowrap", textTransform: "none", borderRadius: 2 }}
-              >
-                {isScanning ? "Scanning..." : "Scan Page Content"}
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                color="secondary"
-                onClick={handleUseCurrentUrl}
-                disabled={busy}
-                startIcon={<LinkIcon />}
-                sx={{ whiteSpace: "nowrap", textTransform: "none", borderRadius: 2 }}
-              >
-                Use Current URL
-              </Button>
-            </Box>
-
             <TextField
               fullWidth
               label="Paste content to analyze"
@@ -288,13 +260,11 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               value={textContent}
               onChange={(e) => setTextContent(e.target.value)}
               sx={{
-                mb: 2,
+                mb: 1.5,
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
                   backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? "rgba(255,255,255,0.03)"
-                      : "rgba(0,0,0,0.01)",
+                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
                   "&:hover .MuiOutlinedInput-notchedOutline": {
                     borderColor: `${theme.palette.primary.main}80`,
                   },
@@ -312,7 +282,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                   severity="info"
                   variant="standard"
                   sx={{
-                    mb: 2,
+                    mb: 1.5,
                     borderRadius: 2,
                     fontSize: "0.75rem",
                     backgroundColor:
@@ -321,31 +291,40 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                         : "rgba(41, 182, 246, 0.1)",
                   }}
                 >
-                  Characters: {textContent.length} | Words:{" "}
-                  {textContent.trim().split(/\s+/).length}
+                  Characters: {textContent.length} | Words: {textContent.trim().split(/\s+/).length}
                 </Alert>
               </Zoom>
             )}
 
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            {(textContent.trim() || subjectOrUrl.trim()) ? (
               <Button
+                fullWidth
                 variant="contained"
                 color="primary"
                 onClick={handleSubmit}
-                disabled={busy || (!textContent.trim() && !subjectOrUrl.trim()) || requiresKey}
-                startIcon={
-                  isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />
-                }
-                sx={{ ml: "auto", borderRadius: 2, px: 2, textTransform: "none", boxShadow: 2 }}
-                size="medium"
+                disabled={busy || requiresKey}
+                startIcon={isChecking ? <CircularProgress size={18} color="inherit" /> : <WarningIcon />}
+                sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
               >
                 {isChecking ? "Analyzing..." : "Check For Fraud"}
               </Button>
-            </Box>
+            ) : (
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                onClick={handleScanPageContent}
+                disabled={busy || requiresKey}
+                startIcon={isScanning ? <CircularProgress size={18} color="inherit" /> : <SearchIcon />}
+                sx={{ borderRadius: 2, textTransform: "none", py: 1.25 }}
+              >
+                {isScanning ? "Scanning..." : "Scan Current Page"}
+              </Button>
+            )}
           </Box>
         ) : (
           <Box sx={{ width: "100%" }}>
-            <ThreatRating rating={result.threatRating} />
+            <ThreatRating rating={result.threatRating} explanation={result.explanation} />
 
             {subjectOrUrl && (
               <Typography
@@ -363,34 +342,12 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
               </Typography>
             )}
 
-            <Paper
-              elevation={0}
-              sx={{
-                mt: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor:
-                  theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                border: `1px solid ${theme.palette.divider}`,
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 600, color: theme.palette.primary.main, mb: 1 }}
-              >
-                AI Analysis:
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1, lineHeight: 1.5, fontSize: "0.9rem" }}>
-                {result.explanation}
-              </Typography>
-            </Paper>
-
             {result.flags && result.flags.length > 0 && (
               <Paper
                 elevation={0}
                 sx={{
-                  mt: 2,
-                  p: 2,
+                  padding: "20px 10px",
+                  m: 0,
                   borderRadius: 2,
                   backgroundColor:
                     theme.palette.mode === "dark"
@@ -436,9 +393,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                   borderRadius: "8px !important",
                   "&:before": { display: "none" },
                   backgroundColor:
-                    theme.palette.mode === "dark"
-                      ? "rgba(255,255,255,0.03)"
-                      : "rgba(0,0,0,0.02)",
+                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
                 }}
               >
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -450,8 +405,8 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
                   <Box
                     component="pre"
                     sx={{
-                      m: 0,
-                      p: 1.5,
+                      m: 20,
+                      p: 0,
                       overflow: "auto",
                       fontSize: "0.7rem",
                       fontFamily: "monospace",
