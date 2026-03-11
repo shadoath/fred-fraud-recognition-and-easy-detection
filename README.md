@@ -17,14 +17,13 @@ No account needed. Install it and start checking.
 
 ## Features
 
-- **Email Analysis** — Extracts and analyzes Gmail emails automatically, or paste any email content manually
-- **Text Analysis** — Check any suspicious text: SMS, social media messages, letters, etc.
-- **URL & Link Checking** — Paste a link to check it, or scan the full content of the page you're on
-- **Clear Verdicts** — "Looks Safe", "Be Careful", or "Likely a Scam" with a 1–100 risk score
+- **One-Click Scanning** — A single "Scan" button auto-detects whether you're on a Gmail email or a regular webpage and labels itself accordingly
+- **Auto-Scan** — Optionally scan Gmail emails or web pages automatically when you open them (paid/BYOK only)
+- **Clear Verdicts** — "Safe Zone", "Be Careful", or "Likely a Scam" with a 1–100 risk score
 - **Actionable Advice** — Tells you exactly what to do based on the threat level
 - **Plain Language** — No tech jargon. Explanations anyone can understand
-- **Analysis History** — Review your last 20 checks anytime
-- **Dark Mode & Large Text** — Accessible for everyone
+- **Analysis History** — Review your last 20 checks in a card layout with type labels and color-coded status pills
+- **Adjustable Text Size** — S/M/L/XL slider for comfortable reading
 
 ## Getting Started
 
@@ -57,18 +56,17 @@ Prefer to use your own OpenAI API key? Switch to "My Own Key" in Settings for un
 ### Check an Email
 1. Open any email in Gmail
 2. Click the FRED icon in your toolbar
-3. FRED automatically extracts and analyzes the email
+3. Click "Scan This Email" — FRED extracts and analyzes the email automatically
 4. Review the verdict and any warning flags
 
-### Check Text or a Message
-1. Click the FRED icon → go to the "Check" tab
-2. Paste any suspicious text
-3. Click "Check For Fraud"
+### Check a Web Page
+1. Navigate to any page you want to check
+2. Click the FRED icon in your toolbar
+3. Click "Scan This Page"
+4. Review the threat assessment
 
-### Check a URL or Web Page
-1. Click the FRED icon → go to the "Check" tab
-2. Paste a link, or click "Use Current URL" / "Scan Page Content"
-3. Review the threat assessment
+### Auto-Scan (paid/BYOK only)
+Enable "Auto-scan Gmail emails" or "Auto-scan websites" in Settings → General Settings so FRED scans automatically when you open an email or the popup.
 
 ## Privacy
 

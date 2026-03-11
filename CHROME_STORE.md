@@ -29,17 +29,15 @@ FRED (Fraud Recognition & Easy Detection) helps you instantly spot fraud, scams,
 
 --- WHAT IT DOES ---
 
-Paste an email, a suspicious message, or a sketchy link and FRED gives you a plain-English threat assessment in seconds. You get a 1–100 threat score, an AI confidence rating, a clear explanation of what looks suspicious, and a list of specific red flags detected in the content.
+Open a suspicious email or webpage, click the FRED icon, and hit the Scan button — FRED auto-detects what you're looking at and gives you a plain-English threat assessment in seconds. You get a 1–100 threat score, an AI confidence rating, a clear explanation of what looks suspicious, and a list of specific red flags detected in the content.
 
---- FOUR WAYS TO ANALYZE ---
+--- TWO WAYS TO SCAN ---
 
-Email Analysis — Open Gmail, switch to the Email tab, and click "Check Current Email" to scan the full message including sender details and headers.
+Email Scanning — Open any Gmail email and click "Scan This Email" to analyze the full message including sender details and headers. Enable auto-scan to have FRED check emails automatically when you open them (paid/BYOK only).
 
-Text Analysis — Paste any text: a forwarded message, a letter, a chat snippet, a suspicious notification. FRED will tell you if it looks like a scam.
+Web Page Scanning — On any webpage, click "Scan This Page" to analyze the page content for fraud signals. Enable auto-scan to have FRED run automatically when you open the popup (paid/BYOK only).
 
-URL Analysis — Got a link you don't trust? Paste it into the URL tab and FRED will analyze the domain structure, redirects, and other signals that indicate phishing or malicious destinations.
-
-History — Your last 20 analyses are saved locally so you can revisit past results without re-running them.
+History — Your last 20 analyses are saved locally in a card layout with type labels (Email/Website), threat icons, and color-coded status pills so you can revisit past results at a glance.
 
 --- THREAT RATING SYSTEM ---
 
@@ -65,7 +63,7 @@ FRED is designed around the principle that your data belongs to you:
 
 1. Install FRED from the Chrome Web Store
 2. Open FRED — you get 25 free checks per week immediately, no setup needed
-3. For unlimited checks: get a free API key at platform.openai.com, open FRED → Settings → switch to "My Own Key", and paste your key
+3. For unlimited checks: get a free API key at platform.openai.com, open FRED → Settings → API Settings → switch to "My Own Key", and paste your key
 
 OpenAI API usage costs fractions of a cent per analysis. There is no subscription fee for FRED itself.
 
@@ -103,11 +101,11 @@ FRED analyzes user-provided text, email content, and URLs for fraud, phishing, a
 
 | Permission | Reason |
 |---|---|
-| `storage` | Saves the user's API key and analysis history locally in the browser |
-| `scripting` | Extracts email content from Gmail tabs when the user triggers an analysis |
-| `tabs` | Identifies the active Gmail tab to extract email content from |
-| `activeTab` | Reads the currently active tab to support email analysis |
-| `host_permissions: mail.google.com` | Required to inject the content script that reads Gmail email body and sender info |
+| `storage` | Saves the user's API key, settings, and analysis history locally in the browser |
+| `scripting` | Extracts page content from tabs when the user triggers an analysis |
+| `tabs` | Identifies the active tab to determine scan type and extract content |
+| `activeTab` | Reads the currently active tab to support email and page scanning |
+| `host_permissions: mail.google.com` | Required for the Gmail content script that reads email body, sender info, and badge scanning |
 
 ### Data usage
 
@@ -137,8 +135,7 @@ FRED analyzes user-provided text, email content, and URLs for fraud, phishing, a
 
 ### Suggested screenshot captions
 
-1. **Email tab** — "Scan any Gmail email for fraud indicators with one click"
-2. **Text tab** — "Paste any suspicious message and get an instant threat rating"
-3. **URL tab** — "Check suspicious links before you click them"
-4. **History tab** — "Review your last 20 analyses any time"
-5. **Threat result** — "Color-coded 1–100 threat score with AI confidence rating and detailed explanation"
+1. **Scan button** — "One click scans your Gmail email or current webpage automatically"
+2. **Threat result** — "Color-coded 1–100 threat score with AI confidence rating and detailed explanation"
+3. **History tab** — "Review your last 20 analyses in a card layout with type labels and status pills"
+4. **Settings panel** — "General Settings and API Settings in clean accordions — text size slider, auto-scan toggles, and key management"
