@@ -3,11 +3,11 @@
 // Communicates with the background service worker for Tier 2 and Tier 3 analysis.
 
 import {
+  type BadgeState,
   mountBadge,
   removeBadge,
   removeDetailPanel,
   showDetailPanel,
-  type BadgeState,
 } from "./gmailBadge"
 
 // ---------------------------------------------------------------------------

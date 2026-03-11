@@ -8,8 +8,8 @@ import { runHeuristics } from "../lib/heuristics"
 import {
   API_KEY_STORAGE_KEY,
   CONNECTION_MODE_STORAGE_KEY,
-  SELECTED_MODEL_STORAGE_KEY,
   recoverApiKey,
+  SELECTED_MODEL_STORAGE_KEY,
 } from "../lib/keyStorage"
 
 // Must match fraudService.ts values

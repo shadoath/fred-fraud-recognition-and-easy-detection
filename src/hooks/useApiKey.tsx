@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useCustomSnackbar } from "../contexts/CustomSnackbarContext"
 import { getDeviceId } from "../lib/deviceId"
+import { activateLicenseKey } from "../lib/fraudService"
 import {
   API_KEY_STORAGE_KEY,
   attemptMigration,
@@ -15,7 +16,6 @@ import {
   saveSelectedModel as persistSelectedModel,
   validateApiKeyFormat,
 } from "../lib/keyStorage"
-import { activateLicenseKey } from "../lib/fraudService"
 import {
   clearLicenseKey as removeLicenseKey,
   getLicenseKey,

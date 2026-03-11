@@ -1,58 +1,35 @@
 import { CssBaseline, GlobalStyles, type Theme } from "@mui/material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import React, { createContext, useEffect, useRef, useState } from "react"
-import { darkTheme, getTheme } from "../lib/theme"
+import { getTheme } from "../lib/theme"
+
+export const DEFAULT_TEXT_SIZE = 14
 
 export const CustomThemeContext = createContext<{
   theme: Theme
-  darkMode: boolean
-  toggleDarkMode: () => void
-  largeText: boolean
-  toggleLargeText: () => void
+  textSize: number
+  setTextSize: (size: number) => void
 }>({
-  theme: createTheme(darkTheme),
-  darkMode: false,
-  toggleDarkMode: () => {},
-  largeText: false,
-  toggleLargeText: () => {},
+  theme: createTheme(getTheme()),
+  textSize: DEFAULT_TEXT_SIZE,
+  setTextSize: () => {},
 })
 
 export const CustomThemeContextProvider = ({ children }: { children: React.ReactNode }) => {
-  const [darkMode, setDarkMode] = useState(() => {
-    return true
-  })
-  const [largeText, setLargeText] = useState(false)
+  const [textSize, setTextSizeState] = useState(DEFAULT_TEXT_SIZE)
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
-  }
-
-  const toggleLargeText = () => {
-    setLargeText(!largeText)
-  }
-
-  // Run once on load to get theme if set in localStorage
+  // Run once on load to get text size preference from localStorage
   useEffect(() => {
-    const preferredTheme = localStorage.getItem("preferred-theme")
-    if (preferredTheme) {
-      if (preferredTheme === "dark") {
-        setDarkMode(true)
-      } else {
-        setDarkMode(false)
-      }
+    const stored = localStorage.getItem("preferred-text-size")
+    if (stored === "large") {
+      setTextSizeState(16)
+    } else if (stored === "normal") {
+      setTextSizeState(14)
+    } else {
+      const parsed = Number(stored)
+      if (!isNaN(parsed) && parsed >= 10 && parsed <= 20) setTextSizeState(parsed)
     }
-    const preferredTextSize = localStorage.getItem("preferred-text-size")
-    setLargeText(preferredTextSize === "large")
   }, [])
-
-  const firstUpdate = useRef(true)
-  useEffect(() => {
-    if (firstUpdate.current) {
-      firstUpdate.current = false
-      return
-    }
-    localStorage.setItem("preferred-theme", darkMode ? "dark" : "light")
-  }, [darkMode])
 
   const firstTextUpdate = useRef(true)
   useEffect(() => {
@@ -60,25 +37,25 @@ export const CustomThemeContextProvider = ({ children }: { children: React.React
       firstTextUpdate.current = false
       return
     }
-    localStorage.setItem("preferred-text-size", largeText ? "large" : "normal")
-  }, [largeText])
+    localStorage.setItem("preferred-text-size", String(textSize))
+  }, [textSize])
 
-  const theme = React.useMemo(() => createTheme(getTheme(darkMode, largeText)), [darkMode, largeText]) as Theme
+  const setTextSize = (size: number) => setTextSizeState(size)
+
+  const theme = React.useMemo(() => createTheme(getTheme(textSize)), [textSize]) as Theme
 
   return (
     <CustomThemeContext.Provider
       value={{
         theme,
-        darkMode,
-        toggleDarkMode,
-        largeText,
-        toggleLargeText,
+        textSize,
+        setTextSize,
       }}
     >
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <GlobalStyles
-          styles={(t) => ({
+          styles={() => ({
             "html, body": {
               margin: "0 !important",
               padding: "0 !important",
@@ -107,11 +84,11 @@ export const CustomThemeContextProvider = ({ children }: { children: React.React
             "::-webkit-scrollbar": { width: "6px" },
             "::-webkit-scrollbar-track": { background: "transparent" },
             "::-webkit-scrollbar-thumb": {
-              background: t.palette.mode === "dark" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)",
+              background: "rgba(0,0,0,0.2)",
               borderRadius: "3px",
             },
             "::-webkit-scrollbar-thumb:hover": {
-              background: t.palette.mode === "dark" ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)",
+              background: "rgba(0,0,0,0.3)",
             },
           })}
         />

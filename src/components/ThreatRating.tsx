@@ -1,8 +1,11 @@
 import { Box, LinearProgress, Paper, Typography, useTheme } from "@mui/material"
 import badImg from "/bad.png"
-import badIconImg from "/bad-icon.png"
+import badRedImg from "/bad-red.png"
+import badWhiteImg from "/bad-white.png"
 import goodImg from "/good.png"
-import okIconImg from "/ok-icon.png"
+import goodGreenImg from "/good-green.png"
+import goodWhiteImg from "/good-white.png"
+import maybeWhiteImg from "/maybe-white.png"
 import questionImg from "/question.png"
 import { getThreatColor, getThreatLevelFromScore } from "../lib/threatUtils"
 
@@ -21,13 +24,13 @@ export const ThreatRating = ({ rating, explanation }: ThreatRatingProps) => {
   }
 
   const getBannerIcon = (r: number) => {
-    const src = r <= 30 ? okIconImg : badIconImg
+    const src = r <= 30 ? goodWhiteImg : r <= 70 ? maybeWhiteImg : badWhiteImg
     return (
       <Box
         component="img"
         src={src}
         alt=""
-        sx={{ width: 36, height: 36, objectFit: "contain", mr: 1 }}
+        sx={{ width: 28, height: 28, objectFit: "contain", mr: 1 }}
       />
     )
   }
@@ -60,7 +63,7 @@ export const ThreatRating = ({ rating, explanation }: ThreatRatingProps) => {
         borderRadius: 4,
         overflow: "hidden",
         border: `1px solid ${theme.palette.divider}`,
-        background: theme.palette.background.paper,
+        backgroundColor: "#ffffff",
         transition: "all 0.3s ease",
       }}
     >
@@ -94,7 +97,7 @@ export const ThreatRating = ({ rating, explanation }: ThreatRatingProps) => {
         <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
           <Box
             component="img"
-            src={okIconImg}
+            src={goodGreenImg}
             alt="safe"
             sx={{ width: 32, height: 32, objectFit: "contain", mr: 1 }}
           />
@@ -105,8 +108,7 @@ export const ThreatRating = ({ rating, explanation }: ThreatRatingProps) => {
               height: 12,
               borderRadius: 6,
               width: "100%",
-              backgroundColor:
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+              backgroundColor: "rgba(0,0,0,0.1)",
               "& .MuiLinearProgress-bar": {
                 backgroundColor: ratingColor,
                 borderRadius: 6,
@@ -116,7 +118,7 @@ export const ThreatRating = ({ rating, explanation }: ThreatRatingProps) => {
           />
           <Box
             component="img"
-            src={badIconImg}
+            src={badRedImg}
             alt="danger"
             sx={{ width: 32, height: 32, objectFit: "contain", ml: 1 }}
           />

@@ -1,5 +1,6 @@
 export interface AutoScanSettings {
-  enabled: boolean
+  enabled: boolean        // Gmail auto-scan
+  autoScanPages: boolean  // Auto-scan websites when popup opens
   tier2Threshold: number  // Tier 1 score that triggers Tier 2 AI triage (default: 40)
   tier3Threshold: number  // Tier 2 confidence that triggers Tier 3 deep scan (default: 0.7)
   showSafeBadge: boolean  // Show ✓ badge even when no threat found (default: true)
@@ -7,6 +8,7 @@ export interface AutoScanSettings {
 
 export const DEFAULT_AUTO_SCAN_SETTINGS: AutoScanSettings = {
   enabled: false,
+  autoScanPages: false,
   tier2Threshold: 40,
   tier3Threshold: 0.7,
   showSafeBadge: true,

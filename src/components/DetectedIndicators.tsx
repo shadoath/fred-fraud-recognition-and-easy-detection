@@ -1,4 +1,4 @@
-import { Alert, Box, Chip, Paper, Typography, useTheme } from "@mui/material"
+import { Alert, Box, Typography } from "@mui/material"
 import { getThreatColor } from "../lib/threatUtils"
 
 interface DetectedIndicatorsProps {
@@ -7,7 +7,6 @@ interface DetectedIndicatorsProps {
 }
 
 export const DetectedIndicators = ({ flags, threatRating }: DetectedIndicatorsProps) => {
-  const theme = useTheme()
   const color = getThreatColor(threatRating)
 
   if (flags.length === 0) return null

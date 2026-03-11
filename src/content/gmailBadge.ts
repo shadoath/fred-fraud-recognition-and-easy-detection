@@ -12,7 +12,6 @@ export type BadgeState =
 
 const FRED_ORANGE = "#F5A623"
 const FRED_RED = "#f44336"
-const FRED_GREEN = "#4caf50"
 
 const css = `
   :host { display: block; }

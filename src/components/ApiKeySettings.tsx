@@ -1,4 +1,3 @@
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline"
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import KeyIcon from "@mui/icons-material/Key"
@@ -17,7 +16,6 @@ import {
   Divider,
   Fade,
   FormControl,
-  FormControlLabel,
   IconButton,
   InputAdornment,
   InputLabel,
@@ -26,22 +24,15 @@ import {
   Paper,
   Select,
   type SelectChangeEvent,
-  Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
   useTheme,
 } from "@mui/material"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useApiKey } from "../hooks/useApiKey"
 import { FREE_CHECKS_PER_MONTH, PAID_CHECKS_PER_MONTH } from "../lib/fraudService"
-import {
-  DEFAULT_AUTO_SCAN_SETTINGS,
-  getAutoScanSettings,
-  saveAutoScanSettings,
-  type AutoScanSettings,
-} from "../lib/autoScanStorage"
 
 export const ApiKeySettings = () => {
   const theme = useTheme()
@@ -64,17 +55,6 @@ export const ApiKeySettings = () => {
   } = useApiKey()
   const [licenseInput, setLicenseInput] = useState("")
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
-  const [autoScan, setAutoScan] = useState<AutoScanSettings>(DEFAULT_AUTO_SCAN_SETTINGS)
-
-  useEffect(() => {
-    getAutoScanSettings().then(setAutoScan)
-  }, [])
-
-  const handleAutoScanToggle = async (enabled: boolean) => {
-    const updated = { ...autoScan, enabled }
-    setAutoScan(updated)
-    await saveAutoScanSettings(updated)
-  }
 
   if (isLoading) {
     return (
@@ -96,8 +76,7 @@ export const ApiKeySettings = () => {
           borderRadius: "8px !important",
           border: `1px solid ${theme.palette.divider}`,
           boxShadow: "none",
-          backgroundColor:
-            theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)",
+          backgroundColor: "#ffffff",
           "&:before": { display: "none" },
         }}
       >
@@ -119,7 +98,7 @@ export const ApiKeySettings = () => {
             }}
             sx={{ mb: 2 }}
           >
-            <ToggleButton value="proxy">Free ({FREE_CHECKS_PER_MONTH}/month)</ToggleButton>
+            <ToggleButton value="proxy">Free/Subscription</ToggleButton>
             <ToggleButton value="byok">My Own Key</ToggleButton>
           </ToggleButtonGroup>
 
@@ -132,12 +111,8 @@ export const ApiKeySettings = () => {
                 borderRadius: 2,
                 border: `1px solid ${isPaidUser ? theme.palette.success.main : theme.palette.primary.main}40`,
                 backgroundColor: isPaidUser
-                  ? theme.palette.mode === "dark"
-                    ? "rgba(76, 175, 80, 0.08)"
-                    : "rgba(76, 175, 80, 0.04)"
-                  : theme.palette.mode === "dark"
-                    ? "rgba(66, 165, 245, 0.08)"
-                    : "rgba(66, 165, 245, 0.04)",
+                  ? "rgba(76, 175, 80, 0.04)"
+                  : "rgba(66, 165, 245, 0.04)",
               }}
             >
               <Typography
@@ -245,22 +220,6 @@ export const ApiKeySettings = () => {
 
           {connectionMode === "byok" && (
             <>
-              {!isApiKeySaved && (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mb: 2,
-                    color: theme.palette.text.secondary,
-                    fontSize: "0.875rem",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Fred uses OpenAI's AI service to analyze content for you. To get started, you need
-                  a free OpenAI account and a personal API key. Your key is stored only on your
-                  device and is never shared with anyone.
-                </Typography>
-              )}
-
               <TextField
                 fullWidth
                 label="OpenAI API Key"
@@ -305,19 +264,33 @@ export const ApiKeySettings = () => {
                   ),
                 }}
               />
+              {!isApiKeySaved && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mb: 2,
+                    color: theme.palette.text.secondary,
+                    fontSize: "0.875rem",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Your API key never leaves your device. It is stored only on your device.
+                </Typography>
+              )}
 
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel id="model-select-label">AI Analysis Level</InputLabel>
                 <Select
+                  size="small"
                   labelId="model-select-label"
                   value={selectedModel}
                   label="AI Analysis Level"
                   onChange={(e: SelectChangeEvent) => saveSelectedModel(e.target.value)}
                   sx={{ borderRadius: 2, backgroundColor: theme.palette.background.paper }}
                 >
-                  <MenuItem value="gpt-4o-mini">Standard (recommended)</MenuItem>
-                  <MenuItem value="gpt-4o">More Thorough (slower, higher cost)</MenuItem>
-                  <MenuItem value="gpt-3.5-turbo">Basic (fastest, lower cost)</MenuItem>
+                  <MenuItem value="gpt-4o-mini">gpt-4o-mini — Recommended</MenuItem>
+                  <MenuItem value="gpt-4o">gpt-4o — More Thorough</MenuItem>
+                  <MenuItem value="gpt-3.5-turbo">gpt-3.5-turbo — Basic</MenuItem>
                 </Select>
               </FormControl>
 
@@ -361,39 +334,6 @@ export const ApiKeySettings = () => {
             </>
           )}
 
-          {/* Auto-scan toggle */}
-          <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.875rem" }}>
-                  Gmail Auto-scan
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {connectionMode === "proxy" && !isPaidUser
-                    ? "Requires FRED Premium or your own API key"
-                    : "Automatically scans emails as you open them"}
-                </Typography>
-              </Box>
-              <FormControlLabel
-                control={
-                  <Switch
-                    size="small"
-                    checked={autoScan.enabled}
-                    disabled={connectionMode === "proxy" && !isPaidUser}
-                    onChange={(e) => handleAutoScanToggle(e.target.checked)}
-                  />
-                }
-                label=""
-                sx={{ m: 0 }}
-              />
-            </Box>
-            {connectionMode === "proxy" && !isPaidUser && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                Free users can still use the manual "Scan this email" button in Gmail.
-              </Typography>
-            )}
-          </Box>
-
           <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
             <Typography
               variant="caption"
@@ -404,8 +344,8 @@ export const ApiKeySettings = () => {
                 display: "block",
               }}
             >
-              🔒 Privacy: When you analyze content, the text is sent to OpenAI for analysis and is
-              not stored by Fred. Your API key never leaves your device.
+              🔒 When you analyze content, the text is sent to OpenAI for analysis and is not stored
+              by Fred.
             </Typography>
           </Box>
         </AccordionDetails>
@@ -423,8 +363,7 @@ const HowToGetApiKey = () => {
         mt: 3,
         p: 2,
         borderRadius: 2,
-        backgroundColor:
-          theme.palette.mode === "dark" ? "rgba(66, 165, 245, 0.08)" : "rgba(66, 165, 245, 0.05)",
+        backgroundColor: "rgba(66, 165, 245, 0.05)",
         border: `1px solid ${theme.palette.primary.main}20`,
       }}
     >

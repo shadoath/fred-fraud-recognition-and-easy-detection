@@ -7,8 +7,9 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
+  Tooltip,
   Typography,
-  useTheme,
 } from "@mui/material"
 import { useState } from "react"
 import { useApiKey } from "../hooks/useApiKey"
@@ -58,37 +59,11 @@ export const UsageStatsSection = () => {
 
   return (
     <>
-      <Box
-        sx={{
-          px: 2,
-          py: 1.5,
-          borderTop: 1,
-          borderColor: "divider",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <Button
-          size="small"
-          startIcon={<BarChartIcon fontSize="small" />}
-          onClick={handleOpen}
-          variant="outlined"
-          sx={{
-            textTransform: "none",
-            fontSize: "0.8125rem",
-            fontWeight: 600,
-            borderColor: "divider",
-            color: "text.secondary",
-            "&:hover": {
-              borderColor: "#F5A623",
-              color: "#F5A623",
-              bgcolor: "rgba(245, 166, 35, 0.08)",
-            },
-          }}
-        >
-          Your stats
-        </Button>
-      </Box>
+      <Tooltip title="Your stats">
+        <IconButton onClick={handleOpen} size="medium" sx={{ color: "#ffffff", opacity: 0.7 }}>
+          <BarChartIcon />
+        </IconButton>
+      </Tooltip>
 
       <Dialog
         open={open}
@@ -115,7 +90,7 @@ export const UsageStatsSection = () => {
             fontWeight: 600,
           }}
         >
-          <BarChartIcon sx={{ color: "#F5A623", fontSize: 28 }} />
+          <BarChartIcon sx={{ color: "#47b1e5", fontSize: 28 }} />
           Your Stats
         </DialogTitle>
         <DialogContent sx={{ pt: 2, px: 0, pb: 1 }}>
@@ -141,7 +116,7 @@ export const UsageStatsSection = () => {
             onClick={() => setOpen(false)}
             size="small"
             variant="contained"
-            sx={{ bgcolor: "#F5A623", "&:hover": { bgcolor: "#e0941a" } }}
+            sx={{ bgcolor: "#47b1e5", "&:hover": { bgcolor: "#2e9fd4" } }}
           >
             Close
           </Button>

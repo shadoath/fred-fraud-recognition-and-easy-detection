@@ -13,17 +13,17 @@ const faqs = [
   {
     question: "How do I check a suspicious email?",
     answer:
-      "Click the Email tab. If you use Gmail, Fred can read the email automatically — just open the email in Gmail and click 'Extract from Tab'. Or type the sender's email address and paste the email text manually, then click 'Check For Fraud'.",
+      "Open the email in Gmail, then click the Fred icon. Fred will automatically read the email and scan it for fraud. Just wait a moment for the result.",
   },
   {
-    question: "How do I check a suspicious link or website?",
+    question: "How do I check a suspicious website?",
     answer:
-      "Click the URL tab, paste the web address (it usually starts with https://), and click 'Check URL'. Fred will tell you if the address looks suspicious.",
+      "Navigate to the website in your browser, then click the Fred icon and press 'Scan This Page'. Fred will analyze the page and tell you if it looks suspicious.",
   },
   {
-    question: "How do I check a suspicious text message or letter?",
+    question: "Can Fred scan automatically?",
     answer:
-      "Click the Text tab, copy and paste the message into the text box, then click 'Check For Fraud'.",
+      "Yes. In Settings, you can turn on 'Gmail Auto-scan' to have Fred analyze emails the moment you open them, and 'Website Auto-scan' to scan pages automatically when you open the Fred popup. Auto-scan requires a paid plan or your own API key.",
   },
   {
     question: "What do the colors mean?",
@@ -38,7 +38,7 @@ const faqs = [
   {
     question: "Is my information safe?",
     answer:
-      "The text you check is sent to OpenAI's AI service for analysis. It is not stored by Fred. Your API key is saved only on your own device and never shared. OpenAI has its own privacy policy at openai.com/privacy.",
+      "The content you scan is sent to an AI service for analysis and is not stored by Fred. If you use your own API key, it is saved only on your device and never shared. If you use the free or paid proxy, your content is processed securely and not retained.",
   },
 ]
 
@@ -54,7 +54,7 @@ export const HelpContent = () => {
         borderRadius: "8px !important",
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: "none",
-        backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)",
+        backgroundColor: "#ffffff",
         "&:before": { display: "none" },
       }}
     >
@@ -77,8 +77,7 @@ export const HelpContent = () => {
                 borderRadius: "8px !important",
                 mb: 1,
                 "&:before": { display: "none" },
-                backgroundColor:
-                  theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
+                backgroundColor: "rgba(0, 0, 0, 0.02)",
               }}
             >
               <AccordionSummary

@@ -1,4 +1,4 @@
-import { Box, Button } from "@mui/material"
+import { Box } from "@mui/material"
 import type { ReactNode } from "react"
 import { DetectedIndicators } from "./DetectedIndicators"
 import { ThreatRating } from "./ThreatRating"
@@ -9,18 +9,14 @@ interface AnalysisResultPanelProps {
     explanation: string
     flags?: string[]
   }
-  onReset: () => void
-  resetLabel: string
   // Rendered between ThreatRating and DetectedIndicators
   headerContent?: ReactNode
-  // Rendered between DetectedIndicators and the reset button
+  // Rendered after DetectedIndicators
   footerContent?: ReactNode
 }
 
 export const AnalysisResultPanel = ({
   result,
-  onReset,
-  resetLabel,
   headerContent,
   footerContent,
 }: AnalysisResultPanelProps) => (
@@ -34,17 +30,5 @@ export const AnalysisResultPanel = ({
     )}
 
     {footerContent}
-
-    <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={onReset}
-        sx={{ borderRadius: 2, textTransform: "none", boxShadow: 2 }}
-        size="medium"
-      >
-        {resetLabel}
-      </Button>
-    </Box>
   </Box>
 )

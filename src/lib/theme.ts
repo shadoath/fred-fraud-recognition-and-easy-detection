@@ -1,6 +1,6 @@
 import { createTheme, type PaletteOptions, type ThemeOptions } from "@mui/material/styles"
 
-export const fredBlue = "#1D5AEF"
+export const fredBlue = "#47b1e5"
 export const fredRed = "#FF4F4F"
 export const fredYellow = "#FFD93B"
 export const fredGreen = "#2ECC71"
@@ -49,6 +49,10 @@ export const baseTheme = createTheme({
         root: {
           margin: "0 4px",
           padding: "4px 8px",
+          borderRadius: "999px",
+          boxShadow: "none",
+          "&:hover": { boxShadow: "none" },
+          "&:active": { boxShadow: "none" },
         },
       },
     },
@@ -72,6 +76,7 @@ export const baseTheme = createTheme({
     },
   },
 })
+
 const lightPalette: PaletteOptions = {
   mode: "light",
   background: {
@@ -101,43 +106,15 @@ const lightTheme: ThemeOptions = {
   palette: lightPalette,
 }
 
-const darkPalette: PaletteOptions = {
-  mode: "dark",
-  primary: {
-    main: fredBlue,
-  },
-  secondary: {
-    main: fredRed,
-  },
-  warning: {
-    main: fredYellow,
-  },
-  success: {
-    main: fredGreen,
-  },
-  background: {
-    default: "#121212",
-    paper: "#1D1D1D",
-  },
-  text: {
-    primary: "#FFFFFF",
-    secondary: "#B3B3B3",
-  },
-}
-const darkTheme: ThemeOptions = {
-  ...baseTheme,
-  palette: darkPalette,
-}
-
-const getTheme = (darkMode: boolean, largeText = false): ThemeOptions => ({
-  ...(darkMode ? darkTheme : lightTheme),
+const getTheme = (fontSize = 14): ThemeOptions => ({
+  ...lightTheme,
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    fontSize: largeText ? 17 : 14,
+    fontSize,
     button: {
       textTransform: "none" as const,
     },
   },
 })
 
-export { darkTheme, getTheme, lightTheme }
+export { getTheme, lightTheme }

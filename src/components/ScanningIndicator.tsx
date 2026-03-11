@@ -1,4 +1,4 @@
-import { Box, LinearProgress, Typography, useTheme } from "@mui/material"
+import { Box, LinearProgress, Typography } from "@mui/material"
 import { useEffect, useRef, useState } from "react"
 
 const MESSAGES = [
@@ -10,7 +10,6 @@ const MESSAGES = [
 ]
 
 export const ScanningIndicator = () => {
-  const theme = useTheme()
   const [messageIndex, setMessageIndex] = useState(0)
   const [visible, setVisible] = useState(true)
   const pendingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -47,8 +46,7 @@ export const ScanningIndicator = () => {
           width: 72,
           height: 72,
           borderRadius: "50%",
-          backgroundColor:
-            theme.palette.mode === "dark" ? "rgba(245,166,35,0.12)" : "rgba(245,166,35,0.1)",
+          backgroundColor: "rgba(71,177,229,0.1)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -61,7 +59,7 @@ export const ScanningIndicator = () => {
       >
         <Box
           component="img"
-          src="/fred-logo.png"
+          src="/fred-icon-512.png"
           alt="Scanning"
           sx={{ width: 48, height: 48, objectFit: "contain" }}
         />
@@ -72,9 +70,8 @@ export const ScanningIndicator = () => {
           sx={{
             borderRadius: 4,
             height: 4,
-            backgroundColor:
-              theme.palette.mode === "dark" ? "rgba(245,166,35,0.15)" : "rgba(245,166,35,0.2)",
-            "& .MuiLinearProgress-bar": { backgroundColor: "#F5A623" },
+            backgroundColor: "rgba(71,177,229,0.2)",
+            "& .MuiLinearProgress-bar": { backgroundColor: "#47b1e5" },
           }}
         />
       </Box>
