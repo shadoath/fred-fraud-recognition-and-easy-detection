@@ -17,6 +17,7 @@ import {
   Divider,
   Fade,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   InputLabel,
@@ -25,15 +26,22 @@ import {
   Paper,
   Select,
   type SelectChangeEvent,
+  Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
   useTheme,
 } from "@mui/material"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useApiKey } from "../hooks/useApiKey"
 import { FREE_CHECKS_PER_MONTH, PAID_CHECKS_PER_MONTH } from "../lib/fraudService"
+import {
+  DEFAULT_AUTO_SCAN_SETTINGS,
+  getAutoScanSettings,
+  saveAutoScanSettings,
+  type AutoScanSettings,
+} from "../lib/autoScanStorage"
 
 export const ApiKeySettings = () => {
   const theme = useTheme()
@@ -56,6 +64,17 @@ export const ApiKeySettings = () => {
   } = useApiKey()
   const [licenseInput, setLicenseInput] = useState("")
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
+  const [autoScan, setAutoScan] = useState<AutoScanSettings>(DEFAULT_AUTO_SCAN_SETTINGS)
+
+  useEffect(() => {
+    getAutoScanSettings().then(setAutoScan)
+  }, [])
+
+  const handleAutoScanToggle = async (enabled: boolean) => {
+    const updated = { ...autoScan, enabled }
+    setAutoScan(updated)
+    await saveAutoScanSettings(updated)
+  }
 
   if (isLoading) {
     return (
@@ -342,7 +361,40 @@ export const ApiKeySettings = () => {
             </>
           )}
 
+          {/* Auto-scan toggle */}
           <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.875rem" }}>
+                  Gmail Auto-scan
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {connectionMode === "proxy" && !isPaidUser
+                    ? "Requires FRED Premium or your own API key"
+                    : "Automatically scans emails as you open them"}
+                </Typography>
+              </Box>
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={autoScan.enabled}
+                    disabled={connectionMode === "proxy" && !isPaidUser}
+                    onChange={(e) => handleAutoScanToggle(e.target.checked)}
+                  />
+                }
+                label=""
+                sx={{ m: 0 }}
+              />
+            </Box>
+            {connectionMode === "proxy" && !isPaidUser && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                Free users can still use the manual "Scan this email" button in Gmail.
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
             <Typography
               variant="caption"
               sx={{

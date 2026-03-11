@@ -2,7 +2,6 @@ export interface Env {
   USAGE_KV: KVNamespace
   OPENAI_API_KEY: string
   FRED_SECRET: string
-  LEMONSQUEEZY_API_KEY: string
   FREE_MONTHLY_LIMIT: string
   PAID_MONTHLY_LIMIT: string
 }
@@ -44,7 +43,7 @@ interface LicenseValidation {
 }
 
 const validateLicenseKey = async (licenseKey: string, env: Env): Promise<boolean> => {
-  if (!licenseKey || !env.LEMONSQUEEZY_API_KEY) return false
+  if (!licenseKey) return false
 
   // Check KV cache first
   const cacheKey = `ls:valid:${licenseKey}`

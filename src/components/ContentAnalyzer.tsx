@@ -107,7 +107,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       if (trimmedContent) {
         const cached = await findHistoryMatch("text", { content: trimmedContent })
         if (cached) {
-          setResult(cached.result)
+          finishWithResult(cached.result, "text", trimmedContent)
           toast.info("Loaded from history")
           return
         }
@@ -137,7 +137,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       } else {
         const cached = await findHistoryMatch("url", { content: trimmedSubjectOrUrl })
         if (cached) {
-          setResult(cached.result)
+          finishWithResult(cached.result, "url", trimmedSubjectOrUrl)
           toast.info("Loaded from history")
           return
         }
@@ -188,7 +188,7 @@ export const ContentAnalyzer = ({ onAnalysisComplete }: ContentAnalyzerProps) =>
       setTextContent(pageData.visibleText)
       const cached = await findHistoryMatch("url", { content: pageData.url })
       if (cached) {
-        setResult(cached.result)
+        finishWithResult(cached.result, "url", pageData.url, pageData.title)
         toast.info("Loaded from history")
         return
       }

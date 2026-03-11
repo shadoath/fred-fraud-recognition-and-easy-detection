@@ -7,7 +7,22 @@
   "description": "Analyzes emails and text for potential fraud using OpenAI.",
   "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "optional_host_permissions": ["<all_urls>"],
-  "host_permissions": ["*://mail.google.com/*", "https://*.workers.dev/*"],
+  "host_permissions": [
+    "*://mail.google.com/*",
+    "https://*.workers.dev/*",
+    "https://api.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://mail.google.com/*"],
+      "js": ["content/gmailScanner.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_popup": "index.html",
     "default_icon": {

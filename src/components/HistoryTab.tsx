@@ -131,7 +131,9 @@ export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
         </Box>
       ) : (
         <List disablePadding sx={{ flex: 1, overflow: "auto" }}>
-          {history.map((entry) => (
+          {history.map((entry) => {
+            const secondaryLabel = getSecondaryLabel(entry)
+            return (
             <ListItem
               key={entry.id}
               disablePadding
@@ -180,14 +182,14 @@ export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
                       >
                         {getPrimaryLabel(entry)}
                       </Typography>
-                      {getSecondaryLabel(entry) && (
+                      {secondaryLabel && (
                         <Typography
                           component="span"
                           variant="caption"
                           color="text.secondary"
                           sx={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                         >
-                          {getSecondaryLabel(entry)}
+                          {secondaryLabel}
                         </Typography>
                       )}
                     </>
@@ -195,7 +197,7 @@ export const HistoryTab = ({ onSelectEntry }: HistoryTabProps) => {
                 />
               </ListItemButton>
             </ListItem>
-          ))}
+          )})}
         </List>
       )}
     </Box>

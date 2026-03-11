@@ -29,8 +29,8 @@ export interface ApiKeyState {
   isLoading: boolean
   isSaving: boolean
   isApiKeySaved: boolean
-  saveApiKey: () => void
-  clearApiKey: () => void
+  saveApiKey: () => Promise<void>
+  clearApiKey: () => Promise<void>
   selectedModel: string
   setSelectedModel: (model: string) => void
   saveSelectedModel: (model: string) => Promise<void>

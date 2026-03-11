@@ -57,12 +57,29 @@ npm run test:watch
 - `/src/lib/simpleEnhancedStorage.ts`: V3 obfuscation format
 - `/src/lib/usageStorage.ts`: Tracks `allTimeChecks`, `allTimeThreats`, `weeklyChecks`, `weeklyThreats` in `chrome.storage.local`. Weekly counters reset on Monday. Threat threshold = 70.
 - `/src/lib/historyStorage.ts`: Stores last 20 analysis results locally. Max 20 entries.
+- `/src/lib/heuristics.ts`: Tier 1 client-side fraud checks (pure functions, no Chrome API). Returns `{ score, flags }`. Score ≥ 40 triggers Tier 2 in service worker.
+- `/src/lib/autoScanStorage.ts`: Persists `AutoScanSettings` — `enabled`, `tier2Threshold` (default 40), `tier3Threshold` (default 0.7), `showSafeBadge`.
 - `/src/lib/pageScraper.ts`: Scrapes current tab via `chrome.scripting.executeScript`
 - `/src/types/fraudTypes.ts`: Shared type definitions. `TextData` has optional `url?` field for subject/URL context.
-- `/src/components/MainDisplay.tsx`: Root layout, toolbar, tab switching. Calls `recordCheck(threatRating)` and `saveHistoryEntry` after every analysis.
+- `/src/background/serviceWorker.ts`: MV3 background service worker. Orchestrates Tier 1→2→3 scanning. Uses native `fetch` (not axios). Access gate: BYOK or paid proxy only for Tier 2/3 AI calls. Stores completed results in `chrome.storage.local` as `fredPendingResult`.
+- `/src/content/gmailScanner.ts`: Gmail content script. MutationObserver + hashchange for email detection. Injects badge for all users; auto-scans for paid/BYOK users, shows manual button for free users.
+- `/src/content/gmailBadge.ts`: Badge DOM lifecycle using shadow DOM. States: button | scanning | tier2 | safe | suspicious | dangerous | error. Inline detail panel on click.
+- `/src/components/MainDisplay.tsx`: Root layout, toolbar, tab switching. On open: checks `fredPendingResult` storage for a pending auto-scan result from the badge. Calls `recordCheck(threatRating)` and `saveHistoryEntry` after every analysis.
 - `/src/components/ContentAnalyzer.tsx`: Unified form — Subject/URL + Content fields. Routes to `TextData` (with optional url), `URLData`, or `PageData` depending on what's filled.
 - `/src/components/EmailAnalyzer.tsx`: Gmail email extraction and analysis
-- `/src/components/ApiKeySettings.tsx`: Settings panel with usage stats section showing all-time checks, threats caught, and weekly usage (proxy users only).
+- `/src/components/ApiKeySettings.tsx`: Settings panel with usage stats section and Gmail Auto-scan toggle. Toggle disabled for free proxy users.
+
+## Build system
+
+Two-pass build:
+1. `vite build` — popup (`index.html`) + background service worker (`background.js`, ESM)
+2. `vite build --mode content` — Gmail content script (`content/gmailScanner.js`, IIFE)
+
+Content script must be IIFE (not ESM) because Chrome MV3 manifest `content_scripts` entries are loaded as classic scripts.
+
+## Auto-scan architecture
+
+Tier 1 (heuristics) runs in the content script via the service worker message handler. Tier 2 (gpt-4o-mini triage) and Tier 3 (full analysis) are called from `serviceWorker.ts` using native `fetch`. The service worker must NOT import `fraudService.ts` — it uses axios which fails in service worker context. Prompt builders are duplicated in `serviceWorker.ts` for this reason.
 
 ## Best Practices
 

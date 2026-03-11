@@ -1,5 +1,5 @@
 import { Box, LinearProgress, Typography, useTheme } from "@mui/material"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 const MESSAGES = [
   "Analyzing content…",
@@ -13,16 +13,20 @@ export const ScanningIndicator = () => {
   const theme = useTheme()
   const [messageIndex, setMessageIndex] = useState(0)
   const [visible, setVisible] = useState(true)
+  const pendingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const interval = setInterval(() => {
       setVisible(false)
-      setTimeout(() => {
+      pendingTimeout.current = setTimeout(() => {
         setMessageIndex((i) => (i + 1) % MESSAGES.length)
         setVisible(true)
       }, 300)
     }, 2200)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      if (pendingTimeout.current) clearTimeout(pendingTimeout.current)
+    }
   }, [])
 
   return (

@@ -48,12 +48,32 @@ export const MainDisplay = () => {
   const [showHistory, setShowHistory] = useState(false)
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<HistoryEntry | null>(null)
   const [emailProvider, setEmailProvider] = useState<string | null>(null)
+  const [autoScanResult, setAutoScanResult] = useState<{
+    threatRating: number
+    explanation: string
+    flags: string[]
+    confidence?: number
+  } | null>(null)
   const emailAnalyzerRef = useRef<EmailAnalyzerRef>(null)
 
   useEffect(() => {
     const detectEmailProvider = async () => {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+
+        // Check for a pending auto-scan result from the Gmail badge
+        if (tab?.id) {
+          const storage = await chrome.storage.local.get("fredPendingResult")
+          const pending = storage.fredPendingResult as
+            | { tabId: number; result: { threatRating: number; explanation: string; flags: string[]; confidence?: number } }
+            | undefined
+          if (pending?.tabId === tab.id) {
+            setAutoScanResult(pending.result)
+            await chrome.storage.local.remove("fredPendingResult")
+            return
+          }
+        }
+
         if (tab?.url) {
           const url = new URL(tab.url)
           const hostname = url.hostname.toLowerCase()
@@ -73,6 +93,7 @@ export const MainDisplay = () => {
             setEmailProvider(matchedProvider.name)
             setTabValue(0)
             if (matchedProvider.name === "Gmail") {
+              // Defer to let the EmailAnalyzer component finish mounting before triggering extraction
               setTimeout(() => emailAnalyzerRef.current?.extractEmail(), 100)
             }
           } else {
@@ -120,12 +141,19 @@ export const MainDisplay = () => {
     recordCheck(result.threatRating)
   }
 
-  const panel = showSettings ? "settings" : showHistory ? "history" : "tabs"
+  const panel = autoScanResult
+    ? "autoscan"
+    : showSettings
+      ? "settings"
+      : showHistory
+        ? "history"
+        : "tabs"
 
   const goHome = () => {
     setShowSettings(false)
     setShowHistory(false)
     setSelectedHistoryEntry(null)
+    setAutoScanResult(null)
   }
 
   return (
@@ -186,6 +214,15 @@ export const MainDisplay = () => {
           </Box>
         </Toolbar>
       </AppBar>
+
+      {panel === "autoscan" && autoScanResult && (
+        <Box sx={{ flex: 1, overflow: "auto", p: 0 }}>
+          <ThreatRating rating={autoScanResult.threatRating} explanation={autoScanResult.explanation} />
+          {autoScanResult.flags && autoScanResult.flags.length > 0 && (
+            <DetectedIndicators flags={autoScanResult.flags} threatRating={autoScanResult.threatRating} />
+          )}
+        </Box>
+      )}
 
       {panel === "settings" && (
         <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
