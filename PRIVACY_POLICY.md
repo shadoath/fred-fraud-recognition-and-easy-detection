@@ -10,16 +10,17 @@ FRED is designed with privacy as a core principle. We believe that protecting yo
 
 1. **Never stores your email content** on our servers
 2. **Never collects or transmits your browsing history**
-3. **Only sends data to OpenAI** using your own API key
+3. **Only sends content to OpenAI** — either directly (BYOK) or via FRED's anonymous proxy (Free/Paid)
 4. **Stores your API key locally** on your device only
 
 ## Data Collection and Usage
 
 ### What we DO collect/use:
 
-- **API Key**: Your OpenAI API key is stored locally in your browser's secure storage. It is never transmitted to our servers.
-- **Email Content (Temporary)**: When you analyze an email, its content is temporarily processed in memory and sent directly from your browser to OpenAI's API. This data is never stored persistently.
-- **Analysis Results**: Fraud detection results are displayed to you but are never saved beyond your current session.
+- **API Key**: Your OpenAI API key (BYOK mode) is stored locally in your browser's secure storage with obfuscation. It is never transmitted to our servers.
+- **Email and Page Content (Temporary)**: When you scan an email or webpage, its content is temporarily processed and sent to OpenAI's API — either directly from your browser (BYOK) or via FRED's Cloudflare Worker proxy (Free/Paid). This data is never stored persistently.
+- **Analysis Results**: Fraud detection results are saved locally on your device (last 20 entries). They are never transmitted to our servers.
+- **Device ID** (proxy mode only): A randomly generated UUID used solely for rate limiting. It is never linked to your identity.
 
 ### What we DO NOT collect:
 
@@ -27,36 +28,37 @@ FRED is designed with privacy as a core principle. We believe that protecting yo
 - We do not track your browsing history
 - We do not use cookies or any other tracking technologies
 - We do not collect analytics about your usage of the extension
-- We do not store copies of your emails or analyzed content anywhere
+- We do not store copies of your emails, page content, or analyzed text anywhere on our servers
 
 ## Data Sharing and Third Parties
 
-- **OpenAI**: The only third-party service that may receive your data is OpenAI when you use your API key to analyze content. This transmission happens directly from your browser to OpenAI's servers. Please refer to [OpenAI's Privacy Policy](https://openai.com/policies/privacy-policy) for information on how they handle your data.
+- **OpenAI**: Content you submit for analysis is sent to OpenAI's API — directly (BYOK) or via the FRED proxy (Free/Paid). Please refer to [OpenAI's Privacy Policy](https://openai.com/policies/privacy-policy) for information on how they handle your data.
 
 - **Google**: As a Chrome extension, certain technical information may be available to Google as outlined in their Chrome Web Store policies. We do not separately share data with Google.
 
-## Offline Mode
+## Client-Side Heuristics
 
-FRED includes an offline analysis mode that:
-- Uses pattern matching on your device only
+FRED includes a Tier 1 heuristics engine that:
+- Runs pattern matching entirely on your device
 - Does not transmit any data externally
-- Provides basic fraud detection capability without an API key
+- Provides instant fraud signal detection before any AI call is made
 
 ## Security
 
 We protect your information by:
-- Storing sensitive data (like API keys) only in your local browser storage
-- Implementing basic obfuscation for stored API keys
+- Storing sensitive data (like API keys) only in your local browser storage with obfuscation
 - Using secure HTTPS connections for all API communications
-- Never transmitting information to our own servers
+- Never transmitting your API key to our servers
+- Using a shared secret header to prevent unauthorized use of the proxy
 
 ## Your Rights and Choices
 
 Since we don't collect or store your personal information on our servers, there isn't much to manage. However, you can:
 
 - Delete your API key from local storage at any time through the extension's settings
+- Clear your local analysis history via the History panel
 - Uninstall the extension to remove all locally stored data
-- Choose to use offline mode exclusively to avoid transmitting any data to OpenAI
+- Switch between Free proxy, Paid proxy, and BYOK modes in Settings at any time
 
 ## Changes to This Policy
 
@@ -64,7 +66,7 @@ If we make significant changes to this privacy policy, we will update the policy
 
 ## Contact Us
 
-If you have questions or concerns about this privacy policy or FRED's data practices, please open an issue on our GitHub repository or contact us at [your contact email].
+If you have questions or concerns about this privacy policy or FRED's data practices, please open an issue on our [GitHub repository](https://github.com/shadoath/fred-fraud-recognition-and-easy-detection).
 
 ---
 

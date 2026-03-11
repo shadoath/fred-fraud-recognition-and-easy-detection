@@ -39,28 +39,45 @@ npm run test:watch # Run tests in watch mode
 ```
 src/
   components/       # React UI components
-    MainDisplay.tsx      # Root layout, toolbar, tab switching
-    ContentAnalyzer.tsx  # Unified text/URL/page analysis form
-    EmailAnalyzer.tsx    # Gmail extraction and email analysis
-    ApiKeySettings.tsx   # Settings panel, Premium upgrade, usage stats
-    ThreatRating.tsx     # Threat score display component
-    HistoryTab.tsx       # Analysis history list
+    MainDisplay.tsx        # Root layout, toolbar, settings/history panels
+    Scanner.tsx            # Single "Scan This Email" / "Scan This Page" button + result display
+    GeneralSettings.tsx    # Text size slider, Gmail auto-scan toggle, website auto-scan toggle
+    ApiKeySettings.tsx     # Connection mode (proxy/BYOK), license key, model selector, usage stats
+    AnalysisResultPanel.tsx # Renders threat result after a scan
+    ThreatRating.tsx       # Threat score display component
+    DetectedIndicators.tsx # List of flagged threat indicators
+    HistoryTab.tsx         # Analysis history — card layout with type chips and status pills
+    ScanningIndicator.tsx  # Spinner/progress shown while scan is running
+    UsageStatsSection.tsx  # All-time and weekly usage stats
+    HelpContent.tsx        # Help/FAQ panel
+    ErrorBoundary.tsx      # Top-level React error boundary
+  background/
+    serviceWorker.ts       # Background service worker — Tier 1/2/3 scan orchestration
+  content/
+    gmailScanner.ts        # MutationObserver, email extraction, badge injection for Gmail
+    gmailBadge.ts          # Badge DOM lifecycle (mount, update, unmount)
   hooks/
-    useApiKey.tsx        # API key, model, connection mode, license key state
+    useApiKey.tsx          # API key, model, connection mode, license key state
   lib/
-    fraudService.ts      # OpenAI API integration, prompt building
-    keyStorage.ts        # API key obfuscation and Chrome storage
-    licenseStorage.ts    # License key persistence
-    usageStorage.ts      # Monthly usage tracking
-    historyStorage.ts    # Analysis history (last 20 entries)
-    pageScraper.ts       # Page content extraction via chrome.scripting
-    deviceId.ts          # Persistent device ID for rate limiting
+    fraudService.ts        # OpenAI API integration, prompt building, Tier 2/3 calls
+    heuristics.ts          # Tier 1 client-side fraud pattern matching
+    keyStorage.ts          # API key obfuscation and Chrome storage
+    licenseStorage.ts      # License key persistence
+    usageStorage.ts        # Weekly usage tracking (checks, threats caught)
+    historyStorage.ts      # Analysis history (last 20 entries)
+    autoScanStorage.ts     # Auto-scan settings persistence
+    pageScraper.ts         # Page content extraction via chrome.scripting
+    deviceId.ts            # Persistent device ID for rate limiting
+    theme.ts               # Single light theme (fredBlue = #47b1e5)
+    threatUtils.ts         # Shared threat scoring helpers
+    apiErrorUtils.ts       # API error parsing and messaging
+    simpleEnhancedStorage.ts # V3 key obfuscation format
   types/
-    fraudTypes.ts        # Shared type definitions
+    fraudTypes.ts          # Shared type definitions
 fred-proxy/
-  src/index.ts           # Cloudflare Worker — proxy, rate limiting, license validation
-  wrangler.toml          # Worker configuration
-docs/                    # GitHub Pages site (fredsecurity.com)
+  src/index.ts             # Cloudflare Worker — proxy, rate limiting, license validation
+  wrangler.toml            # Worker configuration
+docs/                      # GitHub Pages site (fredsecurity.com)
 ```
 
 ## Cloudflare Worker (Proxy)

@@ -4,9 +4,9 @@ The goal is to transform FRED from a tool users actively invoke into a protectio
 
 ---
 
-## Phase 1: Auto-scan Gmail (proactive protection)
+## Phase 1: Auto-scan Gmail (proactive protection) ✓ COMPLETE
 
-**The core shift:** FRED currently requires the user to open the popup and manually paste or extract content. Phase 1 makes FRED run automatically whenever an email is opened in Gmail, showing a threat badge inline without any user action.
+**The core shift:** FRED no longer requires manual input. A single "Scan This Email" or "Scan This Page" button auto-detects context and triggers a full scan. Gmail auto-scan runs automatically when an email is opened (paid/BYOK users), showing a threat badge inline without any user action.
 
 ### Access gates
 
@@ -14,11 +14,11 @@ The content script and Gmail badge run for **all users** — everyone gets the i
 
 | User type | Trigger mode | Notes |
 |-----------|-------------|-------|
-| **Free proxy** | Manual — "Scan this email" button injected into Gmail | Button initiates a full Tier 1 → 2 → 3 scan on click. Uses their 3 free monthly checks. Acts as a conversion funnel toward Premium. |
-| **BYOK** | Automatic — scans immediately when email opens | Each scan costs the user their own OpenAI API credits. |
-| **Paid proxy** | Automatic — scans immediately when email opens | Counts against their 300 monthly checks. |
+| **Free proxy** | Manual — "Scan this email" button in popup | Button initiates a full Tier 1 → 2 → 3 scan on click. Uses their free weekly checks. Acts as a conversion funnel toward Premium. |
+| **BYOK** | Automatic — scans immediately when email/page opens | Each scan costs the user their own OpenAI API credits. |
+| **Paid proxy** | Automatic — scans immediately when email/page opens | Counts against their monthly checks. |
 
-Free users who try to enable "automatic scan" in settings see an upgrade prompt. Their manual button always works within their monthly check limit.
+Free users who try to enable "automatic scan" in settings see an upgrade prompt. Their manual scan button always works within their weekly check limit.
 
 ### Scanning tiers
 
@@ -64,23 +64,33 @@ The content script injects a small FRED badge at the top of each opened email. I
 
 Clicking the badge on a suspicious/dangerous result opens the FRED popup pre-loaded with the full result. The popup detects the `pendingResult` via `chrome.storage.local` and renders it immediately.
 
-### Architecture changes
+### Architecture (as built)
 
 **New files:**
 ```
 src/background/serviceWorker.ts     — coordinates scan jobs, holds API key access
 src/content/gmailScanner.ts         — MutationObserver, email extraction, badge injection
+src/content/gmailBadge.ts           — badge DOM lifecycle (mount, update, unmount)
 src/lib/heuristics.ts               — Tier 1 engine (pure functions, fully testable)
 src/lib/autoScanStorage.ts          — persists auto-scan settings
-src/content/gmailBadge.ts           — badge DOM lifecycle (mount, update, unmount)
+src/components/Scanner.tsx          — unified scan button (auto-detects email vs page context)
+src/components/GeneralSettings.tsx  — text size slider, Gmail auto-scan, website auto-scan toggles
+src/lib/theme.ts                    — single light theme (fredBlue = #47b1e5, dark mode removed)
 ```
 
-**Changed files:**
+**Updated files:**
 ```
-public/manifest.json                — add background service_worker, content_scripts for mail.google.com
-vite.config.ts                      — add content script + service worker as separate Rollup entry points
-src/lib/fraudService.ts             — add buildTier2Prompt() and checkTier2()
-src/components/ApiKeySettings.tsx   — add auto-scan toggle + sensitivity setting UI
+public/manifest.json                — background service_worker, content_scripts for mail.google.com
+vite.config.ts                      — content script + service worker as separate Rollup entry points
+src/lib/fraudService.ts             — added buildTier2Prompt() and checkTier2()
+src/components/MainDisplay.tsx      — toolbar with stats icon, settings/history panels, no tab switching
+src/components/ApiKeySettings.tsx   — connection mode accordion, license key, model selector
+```
+
+**Removed:**
+```
+src/components/EmailAnalyzer.tsx    — replaced by Scanner + background service worker
+src/components/ContentAnalyzer.tsx  — replaced by Scanner (auto-detect, no manual text fields)
 ```
 
 **Messaging protocol:**
@@ -107,23 +117,23 @@ interface AutoScanSettings {
 }
 ```
 
-### Phase 1 build order
+### Phase 1 build order (all complete)
 
-1. `heuristics.ts` — pure functions, write tests alongside
-2. `autoScanStorage.ts` — settings read/write
-3. `manifest.json` + `vite.config.ts` — get the build pipeline working for content script + service worker
-4. `serviceWorker.ts` — message handler, tier orchestration, settings gate
-5. `gmailBadge.ts` — badge DOM mount/update/unmount
-6. `gmailScanner.ts` — MutationObserver, email extraction, wires badge + messaging
-7. `fraudService.ts` — add Tier 2 prompt + call
-8. `ApiKeySettings.tsx` — auto-scan toggle UI
-9. Popup: detect and display `pendingResult` when opened from badge click
+1. ~~`heuristics.ts` — pure functions, write tests alongside~~ DONE
+2. ~~`autoScanStorage.ts` — settings read/write~~ DONE
+3. ~~`manifest.json` + `vite.config.ts` — get the build pipeline working for content script + service worker~~ DONE
+4. ~~`serviceWorker.ts` — message handler, tier orchestration, settings gate~~ DONE
+5. ~~`gmailBadge.ts` — badge DOM mount/update/unmount~~ DONE
+6. ~~`gmailScanner.ts` — MutationObserver, email extraction, wires badge + messaging~~ DONE
+7. ~~`fraudService.ts` — add Tier 2 prompt + call~~ DONE
+8. ~~Auto-scan settings UI (General Settings accordion: Gmail auto-scan + website auto-scan toggles)~~ DONE
+9. ~~Popup auto-scan: detects Gmail vs webpage on open and scans automatically (paid/BYOK)~~ DONE
 
 ### Key risks and mitigations
 
 | Risk | Mitigation |
 |------|-----------|
-| Gmail DOM changes break extraction | Robust multi-selector fallback chain (already in EmailAnalyzer); monitor and patch |
+| Gmail DOM changes break extraction | Robust multi-selector fallback chain in gmailScanner.ts; monitor and patch |
 | Badge injection breaks Gmail layout | Inject as an absolutely positioned overlay, not inline; test across Gmail views |
 | MutationObserver fires too often | Debounce + deduplicate by message-id; don't re-scan the same email twice per session |
 | Auto-scan spamming proxy | Gate behind paid/BYOK; debounce scan trigger; skip if email already in history |

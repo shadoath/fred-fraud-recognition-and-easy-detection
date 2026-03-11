@@ -28,7 +28,7 @@ When you provide your own OpenAI API key, content is sent **directly from your b
 ### Information You Provide
 
 - **OpenAI API Key** (BYOK mode only): Your personal OpenAI API key, stored only on your device.
-- **Content for Analysis**: Email content, pasted text, or URLs you submit for fraud checking.
+- **Content for Analysis**: Email content or webpage content submitted for fraud checking — either by clicking "Scan This Email" / "Scan This Page" or automatically via auto-scan (paid/BYOK only).
 
 ### Information Collected Automatically
 
@@ -53,6 +53,7 @@ When you provide your own OpenAI API key, content is sent **directly from your b
 - Device ID (proxy mode)
 - Selected model preference
 - Connection mode preference
+- Auto-scan settings (Gmail auto-scan toggle, website auto-scan toggle)
 - Analysis history (last 20 entries, stored locally)
 
 ### On FRED's Cloudflare Worker (Proxy Mode)
@@ -77,7 +78,7 @@ When you provide your own OpenAI API key, content is sent **directly from your b
 
 - **Stop using**: Uninstall the extension at any time to stop all data processing
 - **Clear API key**: Remove your API key via Settings at any time
-- **Clear history**: Clear your local analysis history via the History tab
+- **Clear history**: Clear your local analysis history via the History panel
 - **Switch modes**: Change between Free and BYOK mode in Settings at any time
 
 ---
@@ -106,12 +107,12 @@ If you have any questions about this Privacy Policy, please open an issue on our
 
 This extension requires the following permissions:
 
-- **activeTab**: To access the currently open Gmail email for analysis
+- **activeTab**: To access the currently open Gmail email or webpage for analysis
 - **storage**: To store your API key, preferences, and analysis history on your device
-- **tabs**: To read the current tab URL for the "Check This Page" feature
-- **scripting**: To extract email content from the Gmail interface
-- **host_permissions** (mail.google.com): To operate within Gmail
-- **host_permissions** (*.workers.dev): To connect to FRED's free-tier analysis proxy
+- **tabs**: To read the current tab URL for the "Scan This Page" feature
+- **scripting**: To extract email and page content for analysis
+- **host_permissions** (mail.google.com): To operate within Gmail for email scanning and badge injection
+- **host_permissions** (*.workers.dev): To connect to FRED's free-tier and paid analysis proxy
 
 ---
 
