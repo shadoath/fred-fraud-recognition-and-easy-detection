@@ -29,7 +29,7 @@ FRED (Fraud Recognition & Easy Detection) helps you instantly spot fraud, scams,
 
 --- WHAT IT DOES ---
 
-Open a suspicious email or webpage, click the FRED icon, and hit the Scan button — FRED auto-detects what you're looking at and gives you a plain-English threat assessment in seconds. You get a 1–100 threat score, an AI confidence rating, a clear explanation of what looks suspicious, and a list of specific red flags detected in the content.
+Open a suspicious email or webpage, click the FRED icon, and hit the Scan button — FRED auto-detects what you're looking at and gives you a plain-English threat assessment in seconds. You get a clear verdict (Safe Zone, Be Careful, or Likely a Scam), a detailed explanation of what looks suspicious, and a list of specific red flags detected in the content.
 
 --- TWO WAYS TO SCAN ---
 
@@ -41,12 +41,9 @@ History — Your last 20 analyses are saved locally in a card layout with type l
 
 --- THREAT RATING SYSTEM ---
 
-• 1–25: Low risk (green) — content appears legitimate
-• 26–50: Moderate risk (yellow) — some suspicious elements worth noting
-• 51–75: High risk (orange) — multiple red flags, treat with caution
-• 76–100: Critical risk (red) — strong indicators of fraud or phishing
-
-Each result also includes an AI confidence score so you know how certain the model is about its assessment.
+• Safe Zone (green) — content appears legitimate, no action needed
+• Be Careful (orange) — suspicious elements detected, proceed with caution
+• Likely a Scam (red) — strong indicators of fraud or phishing, do not engage
 
 --- YOUR PRIVACY COMES FIRST ---
 
@@ -136,6 +133,6 @@ FRED analyzes user-provided text, email content, and URLs for fraud, phishing, a
 ### Suggested screenshot captions
 
 1. **Scan button** — "One click scans your Gmail email or current webpage automatically"
-2. **Threat result** — "Color-coded 1–100 threat score with AI confidence rating and detailed explanation"
+2. **Threat result** — "Color-coded verdict (Safe Zone / Be Careful / Likely a Scam) with AI explanation and red flags"
 3. **History tab** — "Review your last 20 analyses in a card layout with type labels and status pills"
 4. **Settings panel** — "General Settings and API Settings in clean accordions — text size slider, auto-scan toggles, and key management"

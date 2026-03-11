@@ -19,7 +19,7 @@ No account needed. Install it and start checking.
 
 - **One-Click Scanning** — A single "Scan" button auto-detects whether you're on a Gmail email or a regular webpage and labels itself accordingly
 - **Auto-Scan** — Optionally scan Gmail emails or web pages automatically when you open them (paid/BYOK only)
-- **Clear Verdicts** — "Safe Zone", "Be Careful", or "Likely a Scam" with a 1–100 risk score
+- **Clear Verdicts** — "Safe Zone", "Be Careful", or "Likely a Scam" with a plain-English explanation
 - **Actionable Advice** — Tells you exactly what to do based on the threat level
 - **Plain Language** — No tech jargon. Explanations anyone can understand
 - **Analysis History** — Review your last 20 checks in a card layout with type labels and color-coded status pills
