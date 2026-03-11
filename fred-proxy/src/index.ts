@@ -7,7 +7,7 @@ export interface Env {
 }
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-const DEFAULT_FREE_LIMIT = 3
+const DEFAULT_FREE_LIMIT = 5
 const DEFAULT_PAID_LIMIT = 300
 const LICENSE_CACHE_TTL = 60 * 60 // 1 hour in seconds
 const KV_EXPIRATION_TTL = 60 * 24 * 60 * 60 // 60 days in seconds

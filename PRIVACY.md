@@ -40,7 +40,7 @@ When you provide your own OpenAI API key, content is sent **directly from your b
 ## How We Use Your Information
 
 - **Content**: Sent to OpenAI for fraud analysis. Not logged or retained by FRED.
-- **Device ID**: Used only to enforce the 5 free checks per week limit.
+- **Device ID**: Used only to enforce the 5 free checks per month limit.
 - **OpenAI API Key**: Used only to authenticate requests to OpenAI on your behalf (BYOK mode). Never transmitted to FRED's servers.
 
 ---

@@ -15,7 +15,7 @@ FRED - Fraud Recognition & Easy Detection
 (132 character max)
 
 ```
-AI-powered fraud and phishing detector for emails, text, and URLs. 25 free checks/week included. Use your own OpenAI key for unlimited.
+AI-powered fraud and phishing detector for emails, text, and URLs. 5 free checks/month included. Use your own OpenAI key for unlimited.
 ```
 
 ---
@@ -25,7 +25,7 @@ AI-powered fraud and phishing detector for emails, text, and URLs. 25 free check
 (Paste this into the "Description" field on the store listing)
 
 ```
-FRED (Fraud Recognition & Easy Detection) helps you instantly spot fraud, scams, and phishing attempts before they catch you off guard. Get started immediately with 25 free checks per week — no API key or account needed. For unlimited checks, bring your own OpenAI API key.
+FRED (Fraud Recognition & Easy Detection) helps you instantly spot fraud, scams, and phishing attempts before they catch you off guard. Get started immediately with 5 free checks per month — no API key or account needed. For unlimited checks, bring your own OpenAI API key.
 
 --- WHAT IT DOES ---
 
@@ -59,7 +59,7 @@ FRED is designed around the principle that your data belongs to you:
 --- HOW TO GET STARTED ---
 
 1. Install FRED from the Chrome Web Store
-2. Open FRED — you get 25 free checks per week immediately, no setup needed
+2. Open FRED — you get 5 free checks per month immediately, no setup needed
 3. For unlimited checks: get a free API key at platform.openai.com, open FRED → Settings → API Settings → switch to "My Own Key", and paste your key
 
 OpenAI API usage costs fractions of a cent per analysis. There is no subscription fee for FRED itself.

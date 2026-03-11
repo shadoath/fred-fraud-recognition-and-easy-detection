@@ -14,7 +14,7 @@ export const PROXY_URL = "https://fred-proxy.skylar-bolton.workers.dev"
 export const PROXY_SECRET = "8ca9bd89-9b8b-4b36-8578-a9ba2e3c69b0"
 
 // Free tier monthly check limit — must match FREE_MONTHLY_LIMIT in fred-proxy/wrangler.toml
-export const FREE_CHECKS_PER_MONTH = 3
+export const FREE_CHECKS_PER_MONTH = 5
 
 // Paid tier monthly check limit — must match PAID_MONTHLY_LIMIT in fred-proxy/wrangler.toml
 export const PAID_CHECKS_PER_MONTH = 300
