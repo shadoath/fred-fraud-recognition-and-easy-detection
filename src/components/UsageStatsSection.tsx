@@ -55,6 +55,13 @@ export const UsageStatsSection = () => {
     setOpen(true)
   }
 
+  const handleClose = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    setOpen(false)
+  }
+
   const monthLimit = isPaidUser ? PAID_CHECKS_PER_MONTH : FREE_CHECKS_PER_MONTH
 
   return (
@@ -67,7 +74,7 @@ export const UsageStatsSection = () => {
 
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
         PaperProps={{
           sx: {
             borderRadius: 2,
@@ -113,7 +120,7 @@ export const UsageStatsSection = () => {
         </DialogContent>
         <DialogActions sx={{ px: 2.5, pb: 2, pt: 1 }}>
           <Button
-            onClick={() => setOpen(false)}
+            onClick={handleClose}
             size="small"
             variant="contained"
             sx={{ bgcolor: "#47b1e5", "&:hover": { bgcolor: "#2e9fd4" } }}

@@ -35,13 +35,13 @@ No account needed. Install it and start checking.
 
 ### Free Tier
 
-FRED includes **10 free checks per month** with no account or payment needed.
+FRED includes **5 free checks per month** with no account or payment needed.
 
 ### FRED Premium — $4.99/month
 
 For the price of a cup of coffee, get peace of mind:
 
-- **300 checks per month** (vs 10 free)
+- **300 checks per month** (vs 5 free)
 - **Enhanced AI analysis** for better accuracy
 - Cancel anytime, 14-day money-back guarantee
 
@@ -54,18 +54,21 @@ Prefer to use your own OpenAI API key? Switch to "My Own Key" in Settings for un
 ## How to Use
 
 ### Check an Email
+
 1. Open any email in Gmail
 2. Click the FRED icon in your toolbar
 3. Click "Scan This Email" — FRED extracts and analyzes the email automatically
 4. Review the verdict and any warning flags
 
 ### Check a Web Page
+
 1. Navigate to any page you want to check
 2. Click the FRED icon in your toolbar
 3. Click "Scan This Page"
 4. Review the threat assessment
 
 ### Auto-Scan (paid/BYOK only)
+
 Enable "Auto-scan Gmail emails" or "Auto-scan websites" in Settings → General Settings so FRED scans automatically when you open an email or the popup.
 
 ## Privacy

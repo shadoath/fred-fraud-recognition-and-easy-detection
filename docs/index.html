@@ -1,302 +1,658 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fred — Your Personal AI Fraud Detective</title>
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-67B6MRW43W"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-67B6MRW43W');
-  </script>
-  <meta name="description" content="Fred is a Chrome extension that uses AI to help you spot scam emails, phishing links, and online fraud. Free to install.">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; line-height: 1.6; background: #fff; }
-    a { text-decoration: none; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fred — Your Personal AI Fraud Detective</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-67B6MRW43W"></script>
+    <script>
+      window.dataLayer = window.dataLayer || []
+      function gtag() {
+        dataLayer.push(arguments)
+      }
+      gtag("js", new Date())
+      gtag("config", "G-67B6MRW43W")
+    </script>
+    <meta
+      name="description"
+      content="Fred is a Chrome extension that uses AI to help you spot scam emails, phishing links, and online fraud. Free to install."
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #1a1a1a;
+        line-height: 1.6;
+        background: #fff;
+      }
+      a {
+        text-decoration: none;
+      }
 
-    /* NAV */
-    nav {
-      background: #1a1a1a;
-      display: flex; align-items: center; justify-content: center;
-      flex-direction: column; gap: 16px;
-      padding: 28px 40px;
-      text-align: center;
-    }
-    .nav-logo { display: flex; align-items: center; gap: 12px; }
-    .nav-logo img { width: 52px; height: 52px; object-fit: contain; }
-    .nav-logo span { font-size: 2.2rem; font-weight: 900; color: #fff; letter-spacing: -1px; }
-    .nav-cta {
-      background: #47b1e5; color: #fff; font-weight: 700; font-size: 1rem;
-      padding: 12px 32px; border-radius: 999px; white-space: nowrap;
-      transition: background 0.2s;
-    }
-    .nav-cta:hover { background: #2e9fd4; }
+      /* NAV */
+      nav {
+        background: #1a1a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 16px;
+        padding: 28px 40px;
+        text-align: center;
+      }
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .nav-logo img {
+        width: 52px;
+        height: 52px;
+        object-fit: contain;
+      }
+      .nav-logo span {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #fff;
+        letter-spacing: -1px;
+      }
+      .nav-cta {
+        background: #47b1e5;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        padding: 12px 32px;
+        border-radius: 999px;
+        white-space: nowrap;
+        transition: background 0.2s;
+      }
+      .nav-cta:hover {
+        background: #2e9fd4;
+      }
 
-    /* HERO */
-    .hero { text-align: center; padding: 80px 20px 64px; }
-    .hero h1 {
-      font-size: 3.4rem; font-weight: 900; line-height: 1.12;
-      color: #1a1a1a; max-width: 700px; margin: 0 auto 20px;
-    }
-    .hero p {
-      font-size: 1.1rem; color: #555; max-width: 460px;
-      margin: 0 auto 36px; line-height: 1.75;
-    }
-    .hero-cta {
-      display: inline-block; background: #47b1e5; color: #fff;
-      font-weight: 700; font-size: 1.1rem; padding: 16px 42px;
-      border-radius: 999px; transition: background 0.2s;
-    }
-    .hero-cta:hover { background: #2e9fd4; }
-    .hero-sub { margin-top: 16px; font-size: 0.95rem; color: #888; }
-    .hero-sub a { color: #1a1a1a; font-weight: 700; text-decoration: underline; }
-    .hero-sub a:hover { color: #47b1e5; }
+      /* HERO */
+      .hero {
+        text-align: center;
+        padding: 80px 20px 64px;
+      }
+      .hero h1 {
+        font-size: 3.4rem;
+        font-weight: 900;
+        line-height: 1.12;
+        color: #1a1a1a;
+        max-width: 700px;
+        margin: 0 auto 20px;
+      }
+      .hero p {
+        font-size: 1.1rem;
+        color: #555;
+        max-width: 460px;
+        margin: 0 auto 36px;
+        line-height: 1.75;
+      }
+      .hero-cta {
+        display: inline-block;
+        background: #47b1e5;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 16px 42px;
+        border-radius: 999px;
+        transition: background 0.2s;
+      }
+      .hero-cta:hover {
+        background: #2e9fd4;
+      }
+      .hero-sub {
+        margin-top: 16px;
+        font-size: 0.95rem;
+        color: #888;
+      }
+      .hero-sub a {
+        color: #1a1a1a;
+        font-weight: 700;
+        text-decoration: underline;
+      }
+      .hero-sub a:hover {
+        color: #47b1e5;
+      }
 
-    /* CONTAINER */
-    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+      /* CONTAINER */
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
 
-    /* HOW IT WORKS */
-    .how { padding: 72px 0 48px; text-align: center; }
-    .how h2 { font-size: 2.6rem; font-weight: 900; color: #47b1e5; margin-bottom: 16px; }
-    .how .lead {
-      font-size: 1.05rem; color: #555; max-width: 500px;
-      margin: 0 auto 56px; line-height: 1.75;
-    }
-    .screenshots { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
-    @media (max-width: 640px) { .screenshots { grid-template-columns: 1fr; } }
-    .screenshot-card {
-      background: #1a1a1a; border-radius: 16px; overflow: hidden;
-      box-shadow: 0 16px 56px rgba(0,0,0,0.2);
-    }
-    .screenshot-card img { width: 100%; display: block; }
-    .screenshot-label { padding: 14px 18px; font-size: 0.85rem; font-weight: 600; color: #aaa; text-align: center; }
+      /* HOW IT WORKS */
+      .how {
+        padding: 72px 0 48px;
+        text-align: center;
+      }
+      .how h2 {
+        font-size: 2.6rem;
+        font-weight: 900;
+        color: #47b1e5;
+        margin-bottom: 16px;
+      }
+      .how .lead {
+        font-size: 1.05rem;
+        color: #555;
+        max-width: 500px;
+        margin: 0 auto 56px;
+        line-height: 1.75;
+      }
+      .screenshots {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        align-items: start;
+      }
+      @media (max-width: 640px) {
+        .screenshots {
+          grid-template-columns: 1fr;
+        }
+      }
+      .screenshot-card {
+        background: #1a1a1a;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 16px 56px rgba(0, 0, 0, 0.2);
+      }
+      .screenshot-card img {
+        width: 100%;
+        display: block;
+      }
+      .screenshot-label {
+        padding: 14px 18px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #aaa;
+        text-align: center;
+      }
 
-    /* FEATURES */
-    .features-section { padding: 72px 0; background: #f7f9fc; }
-    .features-section h2 { font-size: 2rem; font-weight: 800; text-align: center; margin-bottom: 48px; }
-    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    @media (max-width: 640px) { .features { grid-template-columns: 1fr; } }
-    .feature {
-      background: #fff; border-radius: 14px; padding: 28px 24px;
-      border: 1px solid #e8e8e8; display: flex; flex-direction: column; gap: 10px;
-    }
-    .feature-icon {
-      width: 40px; height: 40px; border-radius: 10px;
-      background: #e8f6fd; display: flex; align-items: center; justify-content: center;
-    }
-    .feature-icon svg { width: 22px; height: 22px; stroke: #47b1e5; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    .feature h3 { font-size: 1.05rem; font-weight: 700; }
-    .feature p { font-size: 0.95rem; color: #666; line-height: 1.65; }
+      /* FEATURES */
+      .features-section {
+        padding: 72px 0;
+        background: #f7f9fc;
+      }
+      .features-section h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 48px;
+      }
+      .features {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      @media (max-width: 640px) {
+        .features {
+          grid-template-columns: 1fr;
+        }
+      }
+      .feature {
+        background: #fff;
+        border-radius: 14px;
+        padding: 28px 24px;
+        border: 1px solid #e8e8e8;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .feature-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: #e8f6fd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .feature-icon svg {
+        width: 22px;
+        height: 22px;
+        stroke: #47b1e5;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .feature h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+      .feature p {
+        font-size: 0.95rem;
+        color: #666;
+        line-height: 1.65;
+      }
 
-    /* MORE SCREENSHOTS */
-    .more-screenshots { padding: 72px 0; }
-    .more-screenshots h2 { font-size: 2rem; font-weight: 800; text-align: center; margin-bottom: 48px; }
-    .screenshot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
-    @media (max-width: 640px) { .screenshot-row { grid-template-columns: 1fr; } }
-    .screenshot-item { text-align: center; }
-    .screenshot-item img {
-      width: 100%; max-width: 340px; border-radius: 14px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.12); border: 1px solid #e8e8e8;
-    }
-    .screenshot-item p { margin-top: 14px; font-size: 0.9rem; font-weight: 600; color: #555; }
+      /* MORE SCREENSHOTS */
+      .more-screenshots {
+        padding: 72px 0;
+      }
+      .more-screenshots h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 48px;
+      }
+      .screenshot-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        align-items: start;
+      }
+      @media (max-width: 640px) {
+        .screenshot-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      .screenshot-item {
+        text-align: center;
+      }
+      .screenshot-item img {
+        width: 100%;
+        max-width: 340px;
+        border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        border: 1px solid #e8e8e8;
+      }
+      .screenshot-item p {
+        margin-top: 14px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #555;
+      }
 
-    /* PRICING */
-    .pricing { padding: 72px 0; background: #f7f9fc; }
-    .pricing h2 { font-size: 2rem; font-weight: 800; text-align: center; margin-bottom: 48px; }
-    .pricing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 680px; margin: 0 auto; }
-    @media (max-width: 640px) { .pricing-cards { grid-template-columns: 1fr; } }
-    .price-card {
-      background: #fff; border-radius: 16px; padding: 36px 28px;
-      text-align: center; border: 1px solid #e0e0e0;
-    }
-    .price-card.featured { border: 2px solid #47b1e5; position: relative; }
-    .price-card.featured::before {
-      content: 'Most Popular'; position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
-      background: #47b1e5; color: #fff; font-size: 0.75rem; font-weight: 700;
-      padding: 4px 18px; border-radius: 999px;
-    }
-    .price-card h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
-    .price-card .price { font-size: 2.4rem; font-weight: 900; color: #1a1a1a; margin: 12px 0; }
-    .price-card .price span { font-size: 1rem; font-weight: 400; color: #888; }
-    .price-card ul { text-align: left; list-style: none; margin: 20px 0 28px; }
-    .price-card ul li { padding: 5px 0; font-size: 0.95rem; color: #555; display: flex; align-items: baseline; gap: 8px; }
-    .price-card ul li::before { content: '✓'; color: #47b1e5; font-weight: 800; flex-shrink: 0; }
-    .btn { display: inline-block; padding: 13px 36px; border-radius: 999px; font-weight: 700; font-size: 1rem; transition: background 0.2s; }
-    .btn-primary { background: #47b1e5; color: #fff; }
-    .btn-primary:hover { background: #2e9fd4; }
-    .btn-outline { border: 2px solid #1a1a1a; color: #1a1a1a; }
-    .btn-outline:hover { background: #1a1a1a; color: #fff; }
+      /* PRICING */
+      .pricing {
+        padding: 72px 0;
+        background: #f7f9fc;
+      }
+      .pricing h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 48px;
+      }
+      .pricing-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 680px;
+        margin: 0 auto;
+      }
+      @media (max-width: 640px) {
+        .pricing-cards {
+          grid-template-columns: 1fr;
+        }
+      }
+      .price-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 36px 28px;
+        text-align: center;
+        border: 1px solid #e0e0e0;
+      }
+      .price-card.featured {
+        border: 2px solid #47b1e5;
+        position: relative;
+      }
+      .price-card.featured::before {
+        content: "Most Popular";
+        position: absolute;
+        top: -13px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #47b1e5;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 18px;
+        border-radius: 999px;
+      }
+      .price-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .price-card .price {
+        font-size: 2.4rem;
+        font-weight: 900;
+        color: #1a1a1a;
+        margin: 12px 0;
+      }
+      .price-card .price span {
+        font-size: 1rem;
+        font-weight: 400;
+        color: #888;
+      }
+      .price-card ul {
+        text-align: left;
+        list-style: none;
+        margin: 20px 0 28px;
+      }
+      .price-card ul li {
+        padding: 5px 0;
+        font-size: 0.95rem;
+        color: #555;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .price-card ul li::before {
+        content: "✓";
+        color: #47b1e5;
+        font-weight: 800;
+        flex-shrink: 0;
+      }
+      .btn {
+        display: inline-block;
+        padding: 13px 36px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 1rem;
+        transition: background 0.2s;
+      }
+      .btn-primary {
+        background: #47b1e5;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #2e9fd4;
+      }
+      .btn-outline {
+        border: 2px solid #1a1a1a;
+        color: #1a1a1a;
+      }
+      .btn-outline:hover {
+        background: #1a1a1a;
+        color: #fff;
+      }
 
-    /* PRIVACY */
-    .privacy { padding: 72px 0; text-align: center; }
-    .privacy h2 { font-size: 2rem; font-weight: 800; margin-bottom: 16px; }
-    .privacy p { font-size: 1rem; color: #555; max-width: 560px; margin: 0 auto 12px; line-height: 1.75; }
-    .privacy a { color: #47b1e5; }
+      /* PRIVACY */
+      .privacy {
+        padding: 72px 0;
+        text-align: center;
+      }
+      .privacy h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 16px;
+      }
+      .privacy p {
+        font-size: 1rem;
+        color: #555;
+        max-width: 560px;
+        margin: 0 auto 12px;
+        line-height: 1.75;
+      }
+      .privacy a {
+        color: #47b1e5;
+      }
 
-    /* FOOTER */
-    footer { background: #1a1a1a; color: #888; text-align: center; padding: 40px 20px; font-size: 0.85rem; }
-    footer a { color: #47b1e5; }
-    footer .links { margin-bottom: 14px; }
-    footer .links a { margin: 0 14px; }
-  </style>
-</head>
-<body>
-
-<!-- NAV -->
-<nav>
-  <div class="nav-logo">
-    <img src="/fred-icon-512.png" alt="Fred">
-    <span>Fred</span>
-  </div>
-  <a class="nav-cta" href="https://chromewebstore.google.com/detail/fred-fraud-recognition-ea/bjdbcabacnlmbpcmiapcdfancfgcakfn" target="_blank" rel="noopener">Install Fred — Free on Chrome</a>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <h1>Meet Fred, your personal AI detective.</h1>
-  <p>Fraud Recognition &amp; Easy Detection. A Chrome extension that uses AI to help you spot scam emails, phishing links, and online fraud.</p>
-  <a class="hero-cta" href="https://chromewebstore.google.com/detail/fred-fraud-recognition-ea/bjdbcabacnlmbpcmiapcdfancfgcakfn" target="_blank" rel="noopener">Install Fred — Free on Chrome</a>
-  <p class="hero-sub">or get <a href="https://whiteboard-works.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d?embed=1" class="lemonsqueezy-button">Fred Premium</a> for $4.99/month</p>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="how">
-  <div class="container">
-    <h2>How Fred Protects You</h2>
-    <p class="lead">Click the Fred icon on any Gmail email or webpage. Fred auto-detects what you're looking at and gives you an instant verdict — in plain language, no tech jargon.</p>
-    <div class="screenshots">
-      <div class="screenshot-card">
-        <img src="/scam-screenshot.png" alt="Fred flagging a scam email">
-        <div class="screenshot-label">Likely a Scam — clear warning with what to do next</div>
+      /* FOOTER */
+      footer {
+        background: #1a1a1a;
+        color: #888;
+        text-align: center;
+        padding: 40px 20px;
+        font-size: 0.85rem;
+      }
+      footer a {
+        color: #47b1e5;
+      }
+      footer .links {
+        margin-bottom: 14px;
+      }
+      footer .links a {
+        margin: 0 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav>
+      <div class="nav-logo">
+        <img src="/fred-icon-512.png" alt="Fred" />
+        <span>Fred</span>
       </div>
-      <div class="screenshot-card">
-        <img src="/history-screenshot.png" alt="Fred analysis history">
-        <div class="screenshot-label">History — your last 20 scans, always at hand</div>
-      </div>
-    </div>
-  </div>
-</section>
+    </nav>
 
-<!-- FEATURES -->
-<section class="features-section">
-  <div class="container">
-    <h2>Everything You Need to Stay Safe</h2>
-    <div class="features">
+    <!-- HERO -->
+    <section class="hero">
+      <h1>Meet Fred, your personal AI detective.</h1>
+      <p>
+        Fraud Recognition &amp; Easy Detection. A Chrome extension that uses AI to help you spot
+        scam emails, phishing links, and online fraud.
+      </p>
+      <a
+        class="hero-cta"
+        href="https://chromewebstore.google.com/detail/fred-fraud-recognition-ea/bjdbcabacnlmbpcmiapcdfancfgcakfn"
+        target="_blank"
+        rel="noopener"
+        >Install Fred — Free on Chrome</a
+      >
+      <p class="hero-sub">
+        or get
+        <a
+          href="https://whiteboard-works.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d?embed=1"
+          class="lemonsqueezy-button"
+          >Fred Premium</a
+        >
+        for $4.99/month
+      </p>
+    </section>
 
-      <div class="feature">
-        <div class="feature-icon">
-          <!-- Mail icon -->
-          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+    <!-- HOW IT WORKS -->
+    <section class="how">
+      <div class="container">
+        <h2>How Fred Protects You</h2>
+        <p class="lead">
+          Click the Fred icon on any Gmail email or webpage. Fred auto-detects what you're looking
+          at and gives you an instant verdict — in plain language, no tech jargon.
+        </p>
+        <div class="screenshots">
+          <div class="screenshot-card">
+            <img src="/scam-screenshot.png" alt="Fred flagging a scam email" />
+            <div class="screenshot-label">Likely a Scam — clear warning with what to do next</div>
+          </div>
+          <div class="screenshot-card">
+            <img src="/history-screenshot.png" alt="Fred analysis history" />
+            <div class="screenshot-label">History — your last 20 scans, always at hand</div>
+          </div>
         </div>
-        <h3>Gmail Email Scanning</h3>
-        <p>Open any email in Gmail and click Scan This Email. Fred reads the sender, subject, and body and tells you whether it's a scam. Premium users can enable auto-scan to check emails the moment they're opened.</p>
       </div>
+    </section>
 
-      <div class="feature">
-        <div class="feature-icon">
-          <!-- Globe icon -->
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    <!-- FEATURES -->
+    <section class="features-section">
+      <div class="container">
+        <h2>Everything You Need to Stay Safe</h2>
+        <div class="features">
+          <div class="feature">
+            <div class="feature-icon">
+              <!-- Mail icon -->
+              <svg viewBox="0 0 24 24">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <polyline points="2,4 12,13 22,4" />
+              </svg>
+            </div>
+            <h3>Gmail Email Scanning</h3>
+            <p>
+              Open any email in Gmail and click Scan This Email. Fred reads the sender, subject, and
+              body and tells you whether it's a scam. Premium users can enable auto-scan to check
+              emails the moment they're opened.
+            </p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">
+              <!-- Globe icon -->
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path
+                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                />
+              </svg>
+            </div>
+            <h3>Website Scanning</h3>
+            <p>
+              On any webpage, click Scan This Page. Fred analyzes the content for phishing patterns,
+              impersonation, and fraud signals. Premium users can auto-scan pages every time they
+              open the Fred popup.
+            </p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">
+              <!-- Shield check icon -->
+              <svg viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <polyline points="9,12 11,14 15,10" />
+              </svg>
+            </div>
+            <h3>Three-Tier Verdicts</h3>
+            <p>
+              Every scan returns one of three clear verdicts: <strong>Safe Zone</strong>,
+              <strong>Be Careful</strong>, or <strong>Likely a Scam</strong> — along with a
+              plain-English explanation and specific red flags found.
+            </p>
+          </div>
+
+          <div class="feature">
+            <div class="feature-icon">
+              <!-- Clock/history icon -->
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12,6 12,12 16,14" />
+              </svg>
+            </div>
+            <h3>Scan History</h3>
+            <p>
+              Your last 20 scans are saved locally on your device. Each entry shows the type (Email
+              or Website), verdict, and timestamp so you can quickly revisit past results without
+              re-scanning.
+            </p>
+          </div>
         </div>
-        <h3>Website Scanning</h3>
-        <p>On any webpage, click Scan This Page. Fred analyzes the content for phishing patterns, impersonation, and fraud signals. Premium users can auto-scan pages every time they open the Fred popup.</p>
       </div>
+    </section>
 
-      <div class="feature">
-        <div class="feature-icon">
-          <!-- Shield check icon -->
-          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9,12 11,14 15,10"/></svg>
+    <!-- MORE SCREENSHOTS -->
+    <section class="more-screenshots">
+      <div class="container">
+        <h2>See Fred in Action</h2>
+        <div class="screenshot-row">
+          <div class="screenshot-item">
+            <img src="/scam-screenshot.png" alt="Scam email detected" />
+            <p>Instant verdict with red flags and actionable advice</p>
+          </div>
+          <div class="screenshot-item">
+            <img src="/stats-screenshot.png" alt="Usage stats popup" />
+            <p>Track your all-time checks and threats caught</p>
+          </div>
         </div>
-        <h3>Three-Tier Verdicts</h3>
-        <p>Every scan returns one of three clear verdicts: <strong>Safe Zone</strong>, <strong>Be Careful</strong>, or <strong>Likely a Scam</strong> — along with a plain-English explanation and specific red flags found.</p>
       </div>
+    </section>
 
-      <div class="feature">
-        <div class="feature-icon">
-          <!-- Clock/history icon -->
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+    <!-- PRICING -->
+    <section class="pricing">
+      <div class="container">
+        <h2>Simple Pricing</h2>
+        <div class="pricing-cards">
+          <div class="price-card">
+            <h3>Free</h3>
+            <div class="price">$0<span>/month</span></div>
+            <ul>
+              <li>10 scans per month</li>
+              <li>Gmail &amp; website scanning</li>
+              <li>Full verdict + explanation</li>
+              <li>No credit card required</li>
+            </ul>
+            <a
+              class="btn btn-outline"
+              href="https://chromewebstore.google.com/detail/fred-fraud-recognition-ea/bjdbcabacnlmbpcmiapcdfancfgcakfn"
+              target="_blank"
+              rel="noopener"
+              >Install Free</a
+            >
+          </div>
+          <div class="price-card featured">
+            <h3>Premium</h3>
+            <div class="price">$4.99<span>/month</span></div>
+            <ul>
+              <li>300 scans per month</li>
+              <li>Gmail &amp; website auto-scan</li>
+              <li>Enhanced AI accuracy</li>
+              <li>Cancel anytime</li>
+            </ul>
+            <a
+              class="btn btn-primary lemonsqueezy-button"
+              href="https://whiteboard-works.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d?embed=1"
+              target="_blank"
+              rel="noopener"
+              >Get Premium</a
+            >
+          </div>
         </div>
-        <h3>Scan History</h3>
-        <p>Your last 20 scans are saved locally on your device. Each entry shows the type (Email or Website), verdict, and timestamp so you can quickly revisit past results without re-scanning.</p>
       </div>
+    </section>
 
-    </div>
-  </div>
-</section>
-
-<!-- MORE SCREENSHOTS -->
-<section class="more-screenshots">
-  <div class="container">
-    <h2>See Fred in Action</h2>
-    <div class="screenshot-row">
-      <div class="screenshot-item">
-        <img src="/scam-screenshot.png" alt="Scam email detected">
-        <p>Instant verdict with red flags and actionable advice</p>
+    <!-- PRIVACY -->
+    <section class="privacy">
+      <div class="container">
+        <h2>Your Privacy Matters</h2>
+        <p>
+          Fred never stores your emails or personal data. Content is sent to AI for analysis in real
+          time and immediately discarded. Your API key and license key never leave your device.
+        </p>
+        <p>
+          Fred is
+          <a
+            href="https://github.com/shadoath/fred-fraud-recognition-and-easy-detection"
+            target="_blank"
+            rel="noopener"
+            >open source</a
+          >
+          — anyone can read the code and verify exactly what it does.
+        </p>
       </div>
-      <div class="screenshot-item">
-        <img src="/stats-screenshot.png" alt="Usage stats popup">
-        <p>Track your all-time checks and threats caught</p>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="links">
+        <a href="/terms.html">Terms of Service</a>
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/refund.html">Refund Policy</a>
+        <a
+          href="https://github.com/shadoath/fred-fraud-recognition-and-easy-detection"
+          target="_blank"
+          rel="noopener"
+          >GitHub</a
+        >
       </div>
-    </div>
-  </div>
-</section>
+      <p>&copy; 2025 Skylar Bolton. All rights reserved.</p>
+      <p style="margin-top: 8px">
+        A
+        <a href="https://whiteboardworks.com" target="_blank" rel="noopener">Whiteboard Works</a>
+        project.
+      </p>
+      <p style="margin-top: 8px">
+        Questions? <a href="mailto:info@fredsecurity.com">info@fredsecurity.com</a>
+      </p>
+    </footer>
 
-<!-- PRICING -->
-<section class="pricing">
-  <div class="container">
-    <h2>Simple Pricing</h2>
-    <div class="pricing-cards">
-      <div class="price-card">
-        <h3>Free</h3>
-        <div class="price">$0<span>/month</span></div>
-        <ul>
-          <li>10 scans per month</li>
-          <li>Gmail &amp; website scanning</li>
-          <li>Full verdict + explanation</li>
-          <li>No credit card required</li>
-        </ul>
-        <a class="btn btn-outline" href="https://chromewebstore.google.com/detail/fred-fraud-recognition-ea/bjdbcabacnlmbpcmiapcdfancfgcakfn" target="_blank" rel="noopener">Install Free</a>
-      </div>
-      <div class="price-card featured">
-        <h3>Premium</h3>
-        <div class="price">$4.99<span>/month</span></div>
-        <ul>
-          <li>300 scans per month</li>
-          <li>Gmail &amp; website auto-scan</li>
-          <li>Enhanced AI accuracy</li>
-          <li>Cancel anytime</li>
-        </ul>
-        <a class="btn btn-primary lemonsqueezy-button" href="https://whiteboard-works.lemonsqueezy.com/checkout/buy/61ff0f2b-4995-4759-8bdf-a724499a6f8d?embed=1" target="_blank" rel="noopener">Get Premium</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PRIVACY -->
-<section class="privacy">
-  <div class="container">
-    <h2>Your Privacy Matters</h2>
-    <p>Fred never stores your emails or personal data. Content is sent to AI for analysis in real time and immediately discarded. Your API key and license key never leave your device.</p>
-    <p>Fred is <a href="https://github.com/shadoath/fred-fraud-recognition-and-easy-detection" target="_blank" rel="noopener">open source</a> — anyone can read the code and verify exactly what it does.</p>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="links">
-    <a href="/terms.html">Terms of Service</a>
-    <a href="/privacy.html">Privacy Policy</a>
-    <a href="/refund.html">Refund Policy</a>
-    <a href="https://github.com/shadoath/fred-fraud-recognition-and-easy-detection" target="_blank" rel="noopener">GitHub</a>
-  </div>
-  <p>&copy; 2025 Skylar Bolton. All rights reserved.</p>
-  <p style="margin-top: 8px;">A <a href="https://whiteboardworks.com" target="_blank" rel="noopener">Whiteboard Works</a> project.</p>
-  <p style="margin-top: 8px;">Questions? <a href="mailto:info@fredsecurity.com">info@fredsecurity.com</a></p>
-</footer>
-
-<script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
-</body>
+    <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+  </body>
 </html>
